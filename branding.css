@@ -20,3 +20,10 @@
 a.home-research-cta{background-color:#c8005f}
 a.home-research-cta:hover{background-color:#a90050}
 a.home-research-cta:focus-visible{outline:2px solid #c8005f;outline-offset:2px}
+
+.home-research-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(3px,1.4vw,16px)}
+.home-research-grid>a{min-width:0}
+.people-four-grid{grid-template-columns:repeat(4,minmax(0,1fr));column-gap:clamp(4px,2vw,24px)}
+.people-four-grid>div{min-width:0}
+.people-four-grid .h-32.w-32{width:min(100%,8rem);height:auto;aspect-ratio:1}
+@media(max-width:480px){.people-four-grid h3{font-size:clamp(10px,2.9vw,14px);line-height:1.2;overflow-wrap:anywhere}}
