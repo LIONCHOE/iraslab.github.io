@@ -3,3 +3,5 @@
 .site-postech-logo{display:block;width:190px;height:auto;max-height:32px;object-fit:contain}
 .site-brand-divider{height:26px;width:1px;background:#dbe4ec}
 @media(max-width:640px){.site-brand-links{gap:8px}.site-postech-logo{width:118px}.site-brand-divider{height:22px}}
+/* The exported Tailwind stylesheet has no lg: utilities; supply the header breakpoint here. */
+@media(min-width:1200px){header nav[aria-label="Primary"] > ul{display:flex}header #nav-toggle,header #mobile-menu{display:none}}
