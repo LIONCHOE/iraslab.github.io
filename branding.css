@@ -3,8 +3,7 @@
 .site-postech-logo{display:block;width:190px;height:auto;max-height:32px;object-fit:contain}
 .site-brand-divider{height:26px;width:1px;background:#dbe4ec}
 .site-brand-links > a[href="/"] > img{width:44px;height:44px}
-.site-brand-links > a[href="/"] > span{font-family:Arial,Helvetica,sans-serif;font-size:22px;font-weight:700;color:#c8005f}
 @media(max-width:640px){.site-brand-links{gap:8px}.site-postech-logo{width:118px}.site-brand-divider{height:22px}}
-@media(max-width:640px){.site-brand-links > a[href="/"] > img{width:40px;height:40px}.site-brand-links > a[href="/"] > span{font-size:19px}}
+@media(max-width:640px){.site-brand-links > a[href="/"] > img{width:40px;height:40px}}
 /* Preserve the exported md utilities, with room for the wider two-logo brand. */
 @media(min-width:768px) and (max-width:1199px){header nav[aria-label="Primary"] > ul{display:none}header #nav-toggle{display:inline-flex}header #mobile-menu:not(.hidden){display:block}}
