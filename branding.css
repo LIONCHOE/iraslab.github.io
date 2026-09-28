@@ -7,3 +7,9 @@
 @media(max-width:640px){.site-brand-links > a[href="/"] > img{width:40px;height:40px}}
 /* Preserve the exported md utilities, with room for the wider two-logo brand. */
 @media(min-width:768px) and (max-width:1199px){header nav[aria-label="Primary"] > ul{display:none}header #nav-toggle{display:inline-flex}header #mobile-menu:not(.hidden){display:block}}
+.site-footer-brand{display:flex;flex-direction:column;align-items:flex-start;gap:18px}
+.site-footer-wordmark{display:block;width:174px;max-width:100%;height:auto;mix-blend-mode:multiply}
+.site-footer-policies{display:flex;flex-direction:column;align-items:flex-start;gap:7px;font-size:13px;line-height:1.55}
+.site-footer-policies a{color:#475569;text-decoration:none}
+.site-footer-policies a:hover,.site-footer-policies a:focus-visible{color:#c8005f;text-decoration:underline}
+@media(min-width:1100px){.site-footer-grid{grid-template-columns:1.7fr 1.1fr .9fr 1.15fr}.site-footer-brand{justify-self:end}}
