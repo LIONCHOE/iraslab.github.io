@@ -16,3 +16,7 @@
 
 #pub-type-filters button[data-active]{border-color:#c8005f;background:#c8005f;color:#fff}
 #pub-type-filters button:focus-visible{outline:2px solid #c8005f;outline-offset:2px}
+
+a.home-research-cta{background-color:#c8005f}
+a.home-research-cta:hover{background-color:#a90050}
+a.home-research-cta:focus-visible{outline:2px solid #c8005f;outline-offset:2px}
