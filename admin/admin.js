@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const REPO = 'howaboutj/howaboutj.github.io', BRANCH = 'main';
+  const REPO = 'iraslab/iraslab.github.io', BRANCH = 'main';
   const paths = {people:'people/index.html', publications:'publications/index.html', news:'news/index.html', 'lab-life':'lab-life/index.html'};
   const $ = (s,root=document) => root.querySelector(s);
   let token = '', page = 'people', source = '', sha = '', doc = null, selected = null, pending = null, user = '';

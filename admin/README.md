@@ -5,7 +5,7 @@
 ZIP 안의 `admin` 폴더를 저장소 루트의 `admin` 폴더에 덮어쓰고 GitHub에 올립니다.
 수정 파일은 `admin/index.html`, `admin/admin.js`, `admin/admin.css`, 새 파일은 `admin/content-rules.js`입니다.
 이 README도 함께 포함되어 있습니다. 기존 People·Publications·News·Lab Life·메인 HTML을 교체할 필요가 없습니다.
-GitHub Pages 배포 후 https://howaboutj.github.io/admin/ 에 접속합니다.
+GitHub Pages 배포 후 https://iraslab.github.io/admin/ 에 접속합니다.
 
 ## 사용
 
