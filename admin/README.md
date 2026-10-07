@@ -1,16 +1,48 @@
-# IRAS content manager
+# IRAS 관리자 — 일괄 업로드 버전
 
-The site at `/admin/` edits the existing HTML pages directly through the GitHub Contents API. It supports:
+## 설치
 
-- People: add, edit, move between sections, reorder within a section, and remove cards; edit modal details and photos.
-- Publications: add, edit, change category, reorder within a category, and remove entries. Category counts and reverse item numbers are recalculated.
-- News: add, edit, remove, reorder and upload one or more photos.
-- Lab Life: add, edit, remove, reorder and upload one or more photos; the existing gallery data and card indices are updated together.
+ZIP 안의 `admin` 폴더를 저장소 루트의 `admin` 폴더에 덮어쓰고 GitHub에 올립니다.
+수정 파일은 `admin/index.html`, `admin/admin.js`, `admin/admin.css`, 새 파일은 `admin/content-rules.js`입니다.
+이 README도 함께 포함되어 있습니다. 기존 People·Publications·News·Lab Life·메인 HTML을 교체할 필요가 없습니다.
+GitHub Pages 배포 후 https://howaboutj.github.io/admin/ 에 접속합니다.
 
-## Administrator setup
+## 사용
 
-1. On the GitHub account with write access to `howaboutj/howaboutj.github.io`, create a **fine-grained personal access token** for only this repository, with **Contents: Read and write** permission. Set a short expiration and regenerate it when needed. Do not put the token into any repository file.
-2. Open `https://howaboutj.github.io/admin/` and enter the token. It is held in the open page only; no local storage, cookie or application server stores it. Close the page or press “연결 해제” to clear it.
-3. Save edits. Each save commits the HTML (and any uploaded images) to `main`. GitHub Pages publishes the changes using the repository's existing deployment setup. If another editor changes the same file, GitHub refuses the stale save. Reload the section and retry.
+1. 기존과 동일하게 이 저장소의 Contents: Read and write 권한이 있는 fine-grained GitHub 토큰으로 연결합니다.
+2. 항목을 수정하거나 추가한 다음 **변경사항에 반영**을 누릅니다.
+3. 삭제 및 위/아래 이동도 업로드 대기 목록에 반영됩니다.
+4. 탭을 바꿔 People·Publications·News·Lab Life에서 필요한 작업을 모두 합니다.
+5. 마지막에 상단 **변경사항 업로드**를 한 번 누릅니다.
+6. GitHub Pages 배포가 끝나면 공개 홈페이지에 변경 내용이 나타납니다.
 
-This workflow does not require a paid server. It uses a GitHub token in place of an OAuth sign-in. Never share the token or use an account-wide classic token. The `/admin/` route is public, but content changes require the repository token. Removing a displayed image does not delete its original asset from the repository, so another page using that image remains intact. Uploaded images are limited to 8 MB each. The original static page remains available as before.
+수정과 사진 선택 중에는 GitHub에 쓰지 않습니다. 최종 업로드 때 필요한 사진과 모든 수정 페이지를 하나의 커밋으로 게시합니다.
+상단 **변경사항 취소**를 누르면 업로드 전의 모든 변경사항을 취소합니다.
+임시 수정과 토큰은 현재 페이지의 메모리에만 있습니다. 새로고침·탭 닫기·연결 해제 전에는 업로드를 완료하세요. 수정 중 페이지를 떠나면 브라우저 경고가 표시됩니다.
+
+## 정렬·연동
+
+- Publications: 모든 분류에서 연도 내림차순, 같은 연도 안에서는 월 내림차순입니다.
+- 월이 없는 항목은 같은 연도의 월이 있는 항목 앞에 배치합니다.
+- 월은 기존 서지 정보에서 읽어 오며, 편집 화면에서 확인·수정할 수 있습니다. 서지 정보를 입력하면 월 입력칸도 따라 갱신됩니다. 월을 모르면 빈칸으로 둡니다.
+- 같은 연도·월의 항목은 기존 순서를 유지하며, 위/아래 버튼으로 조정할 수 있습니다.
+- 번호는 각 분류의 가장 오래된 항목이 1이고, 최근 항목이 가장 큰 번호입니다.
+- Publications를 업로드하면 메인 Recent work도 International Journal 최근 5개로 같은 커밋에서 갱신됩니다. 제목·서지 정보·순서가 함께 반영됩니다.
+- Alumni: 졸업 연도 내림차순, 같은 연도에는 Ph.D. 먼저, 같은 연도·학위 안에서는 기존 순서 유지입니다.
+- 졸업 연도·학위가 다른 Alumni의 이동은 수정 화면에서 정보를 바꾸면 자동으로 정렬됩니다.
+
+## 충돌·오류
+
+업로드 전 원본 파일이 GitHub에서 바뀌었는지 검사합니다. 충돌이 있으면 게시를 중단하고 임시 수정은 유지합니다.
+충돌 메시지에 나온 파일의 수정 내용을 따로 보관한 뒤, 변경사항 취소 → 연결 해제 → 다시 연결하여 최신 원본에서 반영하세요.
+일시적인 업로드 실패도 수정본을 유지하므로 다시 시도할 수 있습니다.
+다른 사람이 업로드 중 새 커밋을 만들면 강제로 덮어쓰지 않습니다.
+
+## 검증
+
+현재 저장소 파일을 사용한 모의 GitHub API 테스트로 여러 페이지의 추가·수정·삭제, 탭 이동, 사진 대기, 갤러리 이동, 모든 분류의 정렬·번호, Recent work 연동, 연속 업로드, 충돌 및 통신 오류 처리를 확인했습니다.
+실제 관리자 토큰을 사용한 GitHub 쓰기·배포 테스트는 수행하지 않았습니다.
+
+GitHub API 참고: https://docs.github.com/en/rest/git/trees
+https://docs.github.com/en/rest/git/commits
+https://docs.github.com/en/rest/git/refs
