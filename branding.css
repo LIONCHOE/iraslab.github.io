@@ -57,3 +57,7 @@ a.home-research-cta:focus-visible{outline:2px solid #c8005f;outline-offset:2px}
 
 /* Shared high-resolution IRAS logo for every page. */
 .site-brand-links a[href="/"] img { content: url("/iras-logo.svg?v=1"); }
+
+/* Transparent vector POSTECH wordmark shared by all page headers. */
+.site-postech-logo { content: url("/postech-logo.svg?v=1"); }
+
