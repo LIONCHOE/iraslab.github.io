@@ -5,7 +5,7 @@
   const SITE = 'iraslab_visitors_ebf0929109aa8830284c431c';
   const STORE = `${SITE}:history`;
   const LOCK = `${SITE}:lock`;
-  const allowed = new Set(['howaboutj.github.io', 'iras.postech.ac.kr']);
+  const allowed = new Set(['iraslab.github.io', 'howaboutj.github.io', 'iras.postech.ac.kr']);
   if (!allowed.has(location.hostname)) return;
 
   const date = () => new Intl.DateTimeFormat('en-CA', {
