@@ -80,7 +80,38 @@
   function form(item=null){if(busy||!guardForm())return;formDirty=false;selected=item;pending=null;const d=item?data(item):{};$('#form-title').textContent=item?'항목 수정':'새 항목 추가';$('#fields').replaceChildren(...fields().map(f=>{const label=document.createElement('label');label.textContent=f.label;let control;if(f.options){control=document.createElement('select');for(const opt of f.options){const o=document.createElement('option');o.value=o.textContent=opt;control.append(o)}}else{control=document.createElement(f.multiline?'textarea':'input');if(!f.multiline)control.type='text';control.placeholder=f.placeholder||''}control.name=f.key;control.value=d[f.key]||'';control.required=!!f.required;label.append(control);return label}));
     if(page!=='publications'){const label=document.createElement('label');label.textContent=page==='lab-life'?'새 사진 파일 (여러 장 가능)':'새 사진 파일';const input=document.createElement('input');input.type='file';input.accept='image/jpeg,image/png,image/webp,image/gif';input.multiple=page==='lab-life'||page==='news';input.onchange=()=>{pending=[...input.files];formDirty=true;status(`${pending.length}개 파일은 저장을 누르면 업로드됩니다.`)};label.append(input);$('#fields').append(label)}$('#form-area').hidden=false;$('#form-area').scrollIntoView({behavior:'smooth',block:'start'});}
   function personCard(d){const wrap=doc.createElement('div');wrap.className='text-center';wrap.innerHTML=`<button type="button" data-person-trigger class="group block w-full text-center"><div class="mx-auto h-32 w-32 overflow-hidden rounded-full ring-1 ring-slate-200 transition duration-300 group-hover:shadow-md group-hover:ring-2 group-hover:ring-primary-300"><img class="h-full w-full object-cover" loading="lazy" alt=""></div><h3 class="mt-3 font-serif text-base text-slate-900 group-hover:text-primary-700"></h3><p class="text-sm text-slate-600"></p></button>`;return wrap;}
-  function updatePerson(node,d){const t=$('[data-person-trigger]',node)||$('a',node);if(t?.matches('[data-person-trigger]')){for(const k of ['name','role','title','email'])t.dataset[k]=d[k]||'';t.dataset.photo=d.photo||'';t.dataset.initials=(d.name||'').split(/\s+/).map(x=>x[0]).join('').slice(0,3)}$('h3',node).textContent=d.name;let role=$('p:not(.alumni-affiliation)',node);if(!role){role=doc.createElement('p');role.className='text-sm text-slate-600';$('h3',node).after(role)}role.textContent=d.section==='Alumni'?(d.role||''):d.role||'';let aff=$('.alumni-affiliation',node);if(d.section==='Alumni'&&d.affiliation){if(!aff){aff=doc.createElement('p');aff.className='alumni-affiliation mt-1 text-xs text-slate-500';role.after(aff)}aff.textContent=d.affiliation}else aff?.remove();const im=$('img',node);if(im){im.src=d.photo||'';im.removeAttribute('srcset');im.alt=d.name}}
+  function updatePerson(node,d) {
+    const t = $('[data-person-trigger]',node) || $('a',node);
+    if (t?.matches('[data-person-trigger]')) {
+      for (const k of ['name','role','title','email']) t.dataset[k] = d[k] || '';
+      t.dataset.photo = d.photo || '';
+      t.dataset.initials = (d.name || '').split(/\s+/).map(x=>x[0]).join('').slice(0,3);
+    }
+    $('h3',node).textContent = d.name;
+    let role = $('p:not(.alumni-affiliation)',node);
+    // 학위 정보는 상세 팝업에 유지하고 박사과정 목록에는 표시하지 않습니다.
+    if (d.section === 'Ph.D. Students') {
+      for (const paragraph of node.querySelectorAll('p:not(.alumni-affiliation)')) paragraph.remove();
+    } else {
+      if (!role) {
+        role = doc.createElement('p');
+        role.className = 'text-sm text-slate-600';
+        $('h3',node).after(role);
+      }
+      role.textContent = d.role || '';
+    }
+    let aff = $('.alumni-affiliation',node);
+    if (d.section === 'Alumni' && d.affiliation) {
+      if (!aff) {
+        aff = doc.createElement('p');
+        aff.className = 'alumni-affiliation mt-1 text-xs text-slate-500';
+        role.after(aff);
+      }
+      aff.textContent = d.affiliation;
+    } else aff?.remove();
+    const im = $('img',node);
+    if (im) { im.src = d.photo || ''; im.removeAttribute('srcset'); im.alt = d.name; }
+  }
   function pubCard(){const li=doc.createElement('li');li.className='pl-1';li.setAttribute('data-pub','');li.innerHTML='<p class="font-medium text-slate-900"></p><p class="mt-1 text-sm leading-relaxed text-slate-600"></p>';return li}
   function updatePub(node,d){if(!/^\d{4}$/.test(d.year)&&d.year!=='unknown')throw Error('연도는 네 자리 숫자로 입력하세요.');const month=d.month.trim();if(month&&!/^(?:[1-9]|1[0-2])$/.test(month))throw Error('월은 1–12 또는 빈칸으로 입력하세요.');node.dataset.pubType=d.type;node.dataset.pubYear=d.year;node.dataset.pubMonth=month||'0';$('p',node).textContent=d.title;$('p + p',node).textContent=d.citation;}
   function articleCard(){const a=doc.createElement('article');a.className=page==='news'?'grid gap-5 border-b border-slate-200 pb-10 last:border-b-0 sm:grid-cols-[minmax(0,15rem)_1fr]':'grid gap-5 border-b border-slate-200 pb-8 last:border-b-0 sm:grid-cols-[9rem_1fr]';a.innerHTML='<div class="grid gap-1.5 grid-cols-1"><button type="button" class="group relative block aspect-[4/3] w-full cursor-zoom-in overflow-hidden rounded-lg border border-slate-200 bg-slate-50"><img loading="lazy" class="aspect-[4/3] w-full object-cover"></button></div><div><p class="text-sm text-slate-500"></p><h3 class="mt-1 font-serif text-lg text-slate-900"></h3></div>';return a}
