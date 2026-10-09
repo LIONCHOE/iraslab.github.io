@@ -1,6 +1,8 @@
 (() => {
   'use strict';
-  const REPO = 'iraslab/iraslab.github.io', BRANCH = 'main';
+  const environment = window.IRASAdminEnvironment;
+  let target = null;
+  let REPO = '', BRANCH = '';
   const paths = {people:'people/index.html', publications:'publications/index.html', news:'news/index.html', 'lab-life':'lab-life/index.html'};
   const $ = (s,root=document) => root.querySelector(s);
   let token = '', page = 'people', source = '', sha = '', doc = null, selected = null, pending = null, user = '';
@@ -44,6 +46,8 @@
   const decode = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g,'')),c=>c.charCodeAt(0)));
   const encode = s => {const bytes=new TextEncoder().encode(s);let out='';for(let i=0;i<bytes.length;i+=32768)out+=String.fromCharCode(...bytes.subarray(i,i+32768));return btoa(out);};
   async function api(path, options={}) {
+    environment.assertReady(target, window);
+    environment.assertRequest(target, path, options);
     const response = await fetch(`https://api.github.com${path}`, { ...options, headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28',...(options.headers||{})} });
     const body = await response.json().catch(()=>({}));
     if (!response.ok) throw new Error(body.message||`GitHub HTTP ${response.status}`);
@@ -67,7 +71,7 @@
     return {title:$('h3',n)?.textContent.trim()||'',date:$('p.text-sm',n)?.textContent.trim()||'',description:page==='lab-life'?($('h3 + p',n)?.textContent.trim()||''):'',photo:g?.images?.[0]||$('[data-lightbox]',n)?.dataset.full||$('img',n)?.getAttribute('src')||'',photos:g?.images?.join('\n')||[...n.querySelectorAll('[data-lightbox]')].map(b=>b.dataset.full).join('\n'),index};
   }
   function render(){const q=$('#search').value.toLowerCase().trim();const items=list().filter(x=>!q||JSON.stringify(data(x)).toLowerCase().includes(q));$('#count').textContent=`${items.length}개 항목`;
-    $('#items').replaceChildren(...items.map(item=>{const d=data(item);const row=document.createElement('div');row.className='item';const image=document.createElement('img');image.src=images.get(d.photo)?.preview||d.photo||'';image.alt='';image.onerror=()=>image.removeAttribute('src');const body=document.createElement('div');body.innerHTML=`<strong>${safe(d.name||d.title)}</strong><small>${safe(d.section||d.type||d.date)} ${safe(d.role||d.year||'')}</small>`;const actions=document.createElement('div');actions.className='actions';for(const [label,fn,cls] of [['수정',()=>form(item)],['↑',()=>move(item,-1)],['↓',()=>move(item,1)],['삭제',()=>remove(item),'danger']]){const b=document.createElement('button');b.type='button';b.textContent=label;b.className=cls||'';b.onclick=fn;actions.append(b)}row.append(image,body,actions);return row}));}
+    $('#items').replaceChildren(...items.map(item=>{const d=data(item);const row=document.createElement('div');row.className='item';const image=document.createElement('img');image.src=images.get(d.photo)?.preview||environment.previewUrl(window.location.href,d.photo||'');image.alt='';image.onerror=()=>image.removeAttribute('src');const body=document.createElement('div');body.innerHTML=`<strong>${safe(d.name||d.title)}</strong><small>${safe(d.section||d.type||d.date)} ${safe(d.role||d.year||'')}</small>`;const actions=document.createElement('div');actions.className='actions';for(const [label,fn,cls] of [['수정',()=>form(item)],['↑',()=>move(item,-1)],['↓',()=>move(item,1)],['삭제',()=>remove(item),'danger']]){const b=document.createElement('button');b.type='button';b.textContent=label;b.className=cls||'';b.onclick=fn;actions.append(b)}row.append(image,body,actions);return row}));}
   const types=rules.types;
   function fields(){if(page==='people')return [{key:'name',label:'이름',required:true},{key:'section',label:'섹션',options:sections().map(s=>s.querySelector('h2').textContent.trim())},{key:'role',label:'직책 / 학위'},{key:'title',label:'연구 분야 / 상세 정보'},{key:'email',label:'이메일'},{key:'affiliation',label:'졸업생 소속'},{key:'photo',label:'사진 주소',placeholder:'/_astro/... 또는 업로드'}];
     if(page==='publications')return [{key:'title',label:'논문 제목',required:true},{key:'citation',label:'서지 정보',multiline:true,required:true},{key:'type',label:'분류',options:types},{key:'year',label:'연도',required:true},{key:'month',label:'월 (1–12, 모르면 비워두기)',placeholder:'예: 9'}];
@@ -158,6 +162,8 @@
   const post = (path, body) => api(`/repos/${REPO}/git/${path}`, {method:'POST', body:JSON.stringify(body)});
   async function publishAll() {
     if (busy) return;
+    try { environment.assertReady(target, window); }
+    catch (e) { return status(e.message, true); }
     if (formDirty) return status('입력 중인 항목의 변경사항에 반영 버튼을 먼저 누르세요.', true);
     if (!dirtyDrafts().length) return;
     setBusy(true);
@@ -236,7 +242,10 @@
   }
   $('#login-form').onsubmit = async e => {
     e.preventDefault(); if (busy) return;
+    try { environment.assertReady(target, window); }
+    catch (err) { status(err.message, true); return; }
     const button = $('#login-form button'); button.disabled = true; token = $('#token').value.trim();
+    $('#token').value = '';
     try {
       user = (await api('/user')).login;
       const repo = await api(`/repos/${REPO}`);
@@ -250,7 +259,7 @@
   $('#logout').onclick = () => {
     if (busy) return;
     if ((dirtyDrafts().length || formDirty) && !confirm('업로드하지 않은 변경사항이 있습니다. 취소하고 연결을 해제할까요?')) return;
-    token = ''; doc = null; source = ''; sha = ''; user = ''; selected = null; pending = null; drafts.clear(); clearImages(); operationCount = 0; formDirty = false;
+    token = ''; $('#token').value = ''; doc = null; source = ''; sha = ''; user = ''; selected = null; pending = null; drafts.clear(); clearImages(); operationCount = 0; formDirty = false;
     $('#editor').hidden = true; $('#login').hidden = false; updateDraftStatus(); status('연결을 해제했습니다.');
   };
   $('#tabs').onclick = async e => {
@@ -280,4 +289,20 @@
   window.addEventListener('beforeunload', e => {
     if (dirtyDrafts().length || formDirty) {e.preventDefault(); e.returnValue = '';}
   });
+  try {
+    if (!environment) throw Error('대상 정책을 불러오지 못했습니다. 연결과 게시를 차단했습니다.');
+    target = environment.resolve(window.location.href);
+    REPO = target.repo; BRANCH = target.branch;
+    $('#environment').textContent = `${target.label} · ${REPO} · ${BRANCH}`;
+    $('#environment').dataset.mode = target.mode;
+    environment.assertReady(target, window);
+    $('#token').disabled = false;
+    $('#login-form button').disabled = false;
+  } catch (err) {
+    $('#environment').textContent = target ? `${target.label} · ${REPO} · ${BRANCH} · 연결 차단` : '환경 확인 실패 · 연결 차단';
+    $('#environment').dataset.mode = 'blocked';
+    $('#token').disabled = true;
+    $('#login-form button').disabled = true;
+    status(err.message, true);
+  }
 })();
