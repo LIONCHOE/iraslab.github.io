@@ -1,0 +1,51 @@
+# 로컬 초안: 별도 승인 후 개인 브랜치의 .github/workflows/sandbox-pages.yml에 배치합니다.
+name: Personal sandbox Pages
+"on":
+  push:
+    branches: [admin/sandbox-content]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: personal-sandbox-pages
+  cancel-in-progress: true
+jobs:
+  build:
+    if: github.repository == 'LIONCHOE/iraslab.github.io' && github.ref == 'refs/heads/admin/sandbox-content'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/configure-pages@v5
+      - name: 원본을 보존하여 개인 Pages 산출물 생성
+        id: build
+        shell: bash
+        run: |
+          python3 scripts/build-sandbox-preview.py --source "$GITHUB_WORKSPACE" --output-root "$RUNNER_TEMP/iras-pages" --json > "$RUNNER_TEMP/iras-build.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          result = json.loads((Path(os.environ['RUNNER_TEMP']) / 'iras-build.json').read_text())
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:
+              stream.write('site=' + result['site'] + '\n')
+          PY
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ steps.build.outputs.site }}
+  deploy:
+    if: github.repository == 'LIONCHOE/iraslab.github.io' && github.ref == 'refs/heads/admin/sandbox-content'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 개인 Pages 배포
+        id: deployment
+        uses: actions/deploy-pages@v4
