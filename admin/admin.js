@@ -89,8 +89,8 @@
     }
     $('h3',node).textContent = d.name;
     let role = $('p:not(.alumni-affiliation)',node);
-    // 학위 정보는 상세 팝업에 유지하고 박사과정 목록에는 표시하지 않습니다.
-    if (d.section === 'Ph.D. Students') {
+    // 학위 정보는 상세 팝업에 유지하고 학생 목록에는 표시하지 않습니다.
+    if (['Ph.D. Students', 'M.S. Students'].includes(d.section)) {
       for (const paragraph of node.querySelectorAll('p:not(.alumni-affiliation)')) paragraph.remove();
     } else {
       if (!role) {
