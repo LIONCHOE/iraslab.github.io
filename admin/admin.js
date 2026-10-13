@@ -43,7 +43,8 @@
     bulkPlan = null;
     $('#bulk-file').value = '';
     $('#bulk-json').value = '';
-    $('#bulk-summary').textContent = 'URL 목록을 선택하면 일치하는 논문과 제외 항목을 확인할 수 있습니다.';
+    $('#bulk-summary').textContent = '목록을 선택하면 일치 항목과 변경 내용을 확인할 수 있습니다.';
+    $('#bulk-preview-list').replaceChildren();
     $('#bulk-apply').disabled = true;
   }
 
@@ -128,56 +129,71 @@
   async function previewBulk() {
     bulkPlan = null;
     $('#bulk-apply').disabled = true;
+    $('#bulk-preview-list').replaceChildren();
     const file = $('#bulk-file').files[0];
     const pasted = $('#bulk-json').value.trim();
     if ((!file && !pasted) || page !== 'publications' || !doc) return;
     try {
       const records = JSON.parse(pasted || await file.text());
-      if (!Array.isArray(records)) throw Error('URL 목록은 JSON 배열이어야 합니다.');
+      if (!Array.isArray(records)) throw Error('논문 정보 목록은 JSON 배열이어야 합니다.');
       const targets = new Map();
       for (const item of list()) {
         const key = bulkKey(data(item));
         targets.set(key, [...(targets.get(key) || []), item.node]);
       }
       const seen = new Set(), matches = [], excluded = [];
+      const hasCorrections = records.some(entry => entry && typeof entry === 'object' && ['citation', 'newTitle', 'newCitation'].some(key => key in entry));
       for (const entry of records) {
-        if (!entry || typeof entry !== 'object' || !['type', 'year', 'title', 'url'].every(key => typeof entry[key] === 'string')) {
+        if (!entry || typeof entry !== 'object' || !['type', 'year', 'title'].every(key => typeof entry[key] === 'string')) {
           excluded.push('필수 항목이 빠진 행'); continue;
         }
         const key = bulkKey(entry);
         if (seen.has(key)) { excluded.push(`${entry.title}: URL 목록 중복`); continue; }
         seen.add(key);
-        if (!validPaperUrl(entry.url)) { excluded.push(`${entry.title}: HTTPS URL 없음`); continue; }
+        const correction = ['citation', 'newTitle', 'newCitation'].some(field => field in entry);
+        if (correction && (!['citation', 'newTitle', 'newCitation'].every(field => typeof entry[field] === 'string') || !entry.newTitle.trim() || !entry.newCitation.trim())) {
+          excluded.push(`${entry.title}: 정정할 서지 정보가 불완전함`); continue;
+        }
+        if (!correction && typeof entry.url !== 'string') { excluded.push(`${entry.title}: URL 없음`); continue; }
+        if ('url' in entry && (typeof entry.url !== 'string' || !validPaperUrl(entry.url))) { excluded.push(`${entry.title}: HTTPS URL 없음`); continue; }
         const nodes = targets.get(key) || [];
         if (nodes.length !== 1) { excluded.push(`${entry.title}: 페이지에서 일치 항목 ${nodes.length}건`); continue; }
-        const current = $('[data-pub-link]', nodes[0])?.getAttribute('href');
-        if (current === entry.url) { excluded.push(`${entry.title}: 이미 연결됨`); continue; }
-        if (current) { excluded.push(`${entry.title}: 기존 링크와 다름`); continue; }
-        matches.push({node:nodes[0], url:entry.url});
+        const current = data({node:nodes[0]});
+        if (correction && current.citation !== entry.citation) { excluded.push(`${entry.title}: 기존 서지 정보가 다름`); continue; }
+        if (entry.url && current.paperUrl && current.paperUrl !== entry.url) { excluded.push(`${entry.title}: 기존 링크와 다름`); continue; }
+        const next = {title:correction ? entry.newTitle.trim() : current.title, citation:correction ? entry.newCitation.trim() : current.citation, paperUrl:entry.url || current.paperUrl, type:current.type, year:current.year, month:current.month};
+        if (next.title === current.title && next.citation === current.citation && next.paperUrl === current.paperUrl) { excluded.push(`${entry.title}: 이미 반영됨`); continue; }
+        matches.push({node:nodes[0], current, next});
       }
       bulkPlan = {doc, snapshot:serialize(doc), matches};
-      $('#bulk-summary').textContent = `${records.length}건 중 ${matches.length}건 반영 가능, ${excluded.length}건 제외. ${excluded.slice(0, 8).join(' · ')}${excluded.length > 8 ? ' · …' : ''}`;
-      $('#bulk-apply').disabled = !matches.length;
+      $('#bulk-summary').textContent = `${records.length}건 중 ${matches.length}건 반영 가능, ${excluded.length}건 제외.${hasCorrections && excluded.length ? ' 서지 정보 목록은 모두 일치해야 반영할 수 있습니다.' : ''} ${excluded.slice(0, 8).join(' · ')}${excluded.length > 8 ? ' · …' : ''}`;
+      const preview = $('#bulk-preview-list');
+      for (const {current, next} of matches) {
+        const item = document.createElement('div'); item.className = 'bulk-preview-item';
+        const title = document.createElement('strong'); title.textContent = `${current.year} · ${current.title}`;
+        const before = document.createElement('p'); before.textContent = `기존: ${current.citation}`;
+        const after = document.createElement('p'); after.textContent = `변경: ${next.title} · ${next.citation}`;
+        const link = document.createElement('p'); link.textContent = `원문: ${next.paperUrl || '연결하지 않음'}`;
+        item.append(title, before, after, link); preview.append(item);
+      }
+      $('#bulk-apply').disabled = !matches.length || (hasCorrections && excluded.length > 0);
     } catch (error) {
-      $('#bulk-summary').textContent = `URL 목록을 확인할 수 없습니다: ${error.message}`;
+      $('#bulk-summary').textContent = `논문 정보 목록을 확인할 수 없습니다: ${error.message}`;
     }
   }
   function applyBulk() {
-    if (busy || page !== 'publications' || !bulkPlan || !bulkPlan.matches.length) return;
+    if (busy || $('#bulk-apply').disabled || page !== 'publications' || !bulkPlan || !bulkPlan.matches.length) return;
     if (formDirty || bulkPlan.doc !== doc || bulkPlan.snapshot !== serialize(doc)) return status('논문 목록이 바뀌었습니다. URL 목록을 다시 선택하세요.', true);
     const backup = serialize(doc), state = drafts.get(paths[page]), wasDirty = state.dirty;
     try {
-      for (const {node, url} of bulkPlan.matches) {
-        const citation = $('p + p', node);
-        if (!citation || $('[data-pub-link]', node)) throw Error('논문 항목이 변경되었습니다.');
-        const link = doc.createElement('a');
-        link.setAttribute('data-pub-link', ''); link.href = url;
-        link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = 'View Paper ↗';
-        citation.append(' ', link);
+      for (const {node, current, next} of bulkPlan.matches) {
+        const actual = data({node});
+        if (actual.title !== current.title || actual.citation !== current.citation || actual.paperUrl !== current.paperUrl) throw Error('논문 항목이 변경되었습니다.');
+        updatePub(node, next);
       }
       const count = bulkPlan.matches.length;
       stage(); clearBulkPlan();
-      status(`${count}건의 논문 URL을 변경사항에 반영했습니다. 상단의 변경사항 업로드를 누르면 게시됩니다.`);
+      status(`${count}건의 논문 정보를 변경사항에 반영했습니다. 상단의 변경사항 업로드를 누르면 게시됩니다.`);
     } catch (error) {
       doc = parse(backup); state.doc = doc; state.dirty = wasDirty;
       render(); updateDraftStatus(); status(error.message, true);
