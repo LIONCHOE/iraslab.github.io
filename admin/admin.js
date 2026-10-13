@@ -7,7 +7,7 @@
   const rules = window.IRASContentRules;
   const drafts = new Map(), images = new Map();
   const galleryCache = new WeakMap();
-  let busy = false, formDirty = false, operationCount = 0;
+  let busy = false, formDirty = false, operationCount = 0, bulkPlan = null;
   const serialize = d => '<!DOCTYPE html>\n' + d.documentElement.outerHTML;
   const parse = html => new DOMParser().parseFromString(html, 'text/html');
   const dirtyDrafts = () => [...drafts.entries()].filter(([, d]) => d.dirty);
@@ -37,6 +37,14 @@
     state.doc = doc; state.dirty = true;
     operationCount++; render(); updateDraftStatus();
     status('변경사항에 반영했습니다. 상단의 변경사항 업로드를 누르면 게시됩니다.');
+  }
+
+  function clearBulkPlan() {
+    bulkPlan = null;
+    $('#bulk-file').value = '';
+    $('#bulk-json').value = '';
+    $('#bulk-summary').textContent = 'URL 목록을 선택하면 일치하는 논문과 제외 항목을 확인할 수 있습니다.';
+    $('#bulk-apply').disabled = true;
   }
 
   const status = (message,error=false) => { $('#status').textContent=message; $('#status').classList.toggle('error',error); };
@@ -110,6 +118,71 @@
   }
   function pubCard(){const li=doc.createElement('li');li.className='pl-1';li.setAttribute('data-pub','');li.innerHTML='<p class="font-medium text-slate-900"></p><p class="mt-1 text-sm leading-relaxed text-slate-600"></p>';return li}
   function updatePub(node,d){if(!/^\d{4}$/.test(d.year)&&d.year!=='unknown')throw Error('연도는 네 자리 숫자로 입력하세요.');const month=d.month.trim();if(month&&!/^(?:[1-9]|1[0-2])$/.test(month))throw Error('월은 1–12 또는 빈칸으로 입력하세요.');const paperUrl=(d.paperUrl||'').trim();if(paperUrl){let parsed;try{parsed=new URL(paperUrl)}catch{throw Error('논문 URL은 https://로 시작하는 전체 주소를 입력하세요.')}if(parsed.protocol!=='https:'||!parsed.hostname||parsed.username||parsed.password)throw Error('논문 URL은 https://로 시작하는 전체 주소를 입력하세요.')}node.dataset.pubType=d.type;node.dataset.pubYear=d.year;node.dataset.pubMonth=month||'0';$('p',node).textContent=d.title;const citation=$('p + p',node);citation.textContent=d.citation;if(paperUrl){const link=doc.createElement('a');link.setAttribute('data-pub-link','');link.href=paperUrl;link.target='_blank';link.rel='noopener noreferrer';link.textContent='View Paper ↗';citation.append(' ',link);}}
+  const bulkKey = d => JSON.stringify([d.type, d.year, d.title.trim().replace(/\s+/g, ' ').toLocaleLowerCase()]);
+  function validPaperUrl(value) {
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === 'https:' && !!parsed.hostname && !parsed.username && !parsed.password;
+    } catch { return false; }
+  }
+  async function previewBulk() {
+    bulkPlan = null;
+    $('#bulk-apply').disabled = true;
+    const file = $('#bulk-file').files[0];
+    const pasted = $('#bulk-json').value.trim();
+    if ((!file && !pasted) || page !== 'publications' || !doc) return;
+    try {
+      const records = JSON.parse(pasted || await file.text());
+      if (!Array.isArray(records)) throw Error('URL 목록은 JSON 배열이어야 합니다.');
+      const targets = new Map();
+      for (const item of list()) {
+        const key = bulkKey(data(item));
+        targets.set(key, [...(targets.get(key) || []), item.node]);
+      }
+      const seen = new Set(), matches = [], excluded = [];
+      for (const entry of records) {
+        if (!entry || typeof entry !== 'object' || !['type', 'year', 'title', 'url'].every(key => typeof entry[key] === 'string')) {
+          excluded.push('필수 항목이 빠진 행'); continue;
+        }
+        const key = bulkKey(entry);
+        if (seen.has(key)) { excluded.push(`${entry.title}: URL 목록 중복`); continue; }
+        seen.add(key);
+        if (!validPaperUrl(entry.url)) { excluded.push(`${entry.title}: HTTPS URL 없음`); continue; }
+        const nodes = targets.get(key) || [];
+        if (nodes.length !== 1) { excluded.push(`${entry.title}: 페이지에서 일치 항목 ${nodes.length}건`); continue; }
+        const current = $('[data-pub-link]', nodes[0])?.getAttribute('href');
+        if (current === entry.url) { excluded.push(`${entry.title}: 이미 연결됨`); continue; }
+        if (current) { excluded.push(`${entry.title}: 기존 링크와 다름`); continue; }
+        matches.push({node:nodes[0], url:entry.url});
+      }
+      bulkPlan = {doc, snapshot:serialize(doc), matches};
+      $('#bulk-summary').textContent = `${records.length}건 중 ${matches.length}건 반영 가능, ${excluded.length}건 제외. ${excluded.slice(0, 8).join(' · ')}${excluded.length > 8 ? ' · …' : ''}`;
+      $('#bulk-apply').disabled = !matches.length;
+    } catch (error) {
+      $('#bulk-summary').textContent = `URL 목록을 확인할 수 없습니다: ${error.message}`;
+    }
+  }
+  function applyBulk() {
+    if (busy || page !== 'publications' || !bulkPlan || !bulkPlan.matches.length) return;
+    if (formDirty || bulkPlan.doc !== doc || bulkPlan.snapshot !== serialize(doc)) return status('논문 목록이 바뀌었습니다. URL 목록을 다시 선택하세요.', true);
+    const backup = serialize(doc), state = drafts.get(paths[page]), wasDirty = state.dirty;
+    try {
+      for (const {node, url} of bulkPlan.matches) {
+        const citation = $('p + p', node);
+        if (!citation || $('[data-pub-link]', node)) throw Error('논문 항목이 변경되었습니다.');
+        const link = doc.createElement('a');
+        link.setAttribute('data-pub-link', ''); link.href = url;
+        link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = 'View Paper ↗';
+        citation.append(' ', link);
+      }
+      const count = bulkPlan.matches.length;
+      stage(); clearBulkPlan();
+      status(`${count}건의 논문 URL을 변경사항에 반영했습니다. 상단의 변경사항 업로드를 누르면 게시됩니다.`);
+    } catch (error) {
+      doc = parse(backup); state.doc = doc; state.dirty = wasDirty;
+      render(); updateDraftStatus(); status(error.message, true);
+    }
+  }
   function articleCard(){const a=doc.createElement('article');a.className=page==='news'?'grid gap-5 border-b border-slate-200 pb-10 last:border-b-0 sm:grid-cols-[minmax(0,15rem)_1fr]':'grid gap-5 border-b border-slate-200 pb-8 last:border-b-0 sm:grid-cols-[9rem_1fr]';a.innerHTML='<div class="grid gap-1.5 grid-cols-1"><button type="button" class="group relative block aspect-[4/3] w-full cursor-zoom-in overflow-hidden rounded-lg border border-slate-200 bg-slate-50"><img loading="lazy" class="aspect-[4/3] w-full object-cover"></button></div><div><p class="text-sm text-slate-500"></p><h3 class="mt-1 font-serif text-lg text-slate-900"></h3></div>';return a}
   function updateArticle(node,d){const date=$('p.text-sm',node);if(date)date.textContent=d.date;const h=$('h3',node);if(h)h.textContent=d.title;const img=$('img',node);if(img){img.src=d.photo||'';img.removeAttribute('srcset');img.alt=d.title}const button=$('button',node);if(page==='news'){const photos=d.photos||[d.photo].filter(Boolean);const holder=button.parentElement;const template=button.cloneNode(true);holder.replaceChildren(...photos.map(url=>{const b=template.cloneNode(true);b.setAttribute('data-lightbox','');b.dataset.full=url;b.dataset.caption=d.title;b.dataset.date=d.date;b.setAttribute('aria-label','View full-size photo: '+d.title);const im=$('img',b);im.src=url;im.removeAttribute('srcset');im.alt=d.title;return b}))}else{button.setAttribute('data-lightbox-open','');button.dataset.itemIndex=d.index;button.setAttribute('aria-label','View photos: '+d.title);const badge=$('span',button);if(badge){if(d.photos.length>1)badge.textContent='+'+(d.photos.length-1);else badge.remove()}else if(d.photos.length>1){const span=doc.createElement('span');span.className='absolute bottom-1.5 right-1.5 rounded-full bg-slate-900/70 px-1.5 py-0.5 text-[11px] font-medium text-white';span.textContent='+'+(d.photos.length-1);button.append(span)}let description=$('h3 + p',node);if(d.description){if(!description){description=doc.createElement('p');description.className='mt-2 text-sm leading-relaxed text-slate-600';h.after(description)}description.textContent=d.description}else description?.remove()}for(const a of node.querySelectorAll('a[href*="iras.postech.ac.kr/main/bbs"]')){if(a.closest('h3'))a.replaceWith(doc.createTextNode(a.textContent));else a.remove()}}
   function articleContainer(){return doc.querySelector('main .space-y-10')||doc.querySelector('main .space-y-8')}
@@ -182,6 +255,7 @@
     const state = await getDraft(paths[page]);
     doc = state.doc; source = state.source; sha = state.sha;
     selected = null; pending = null; formDirty = false; $('#form-area').hidden = true;
+    clearBulkPlan(); $('#bulk-area').hidden = page !== 'publications';
     render(); updateDraftStatus();
     status(state.dirty ? '업로드 대기 중인 수정본을 불러왔습니다.' : '최신 파일을 불러왔습니다.');
   }
@@ -262,7 +336,7 @@
     if (busy || !confirm('아직 업로드하지 않은 모든 변경사항을 취소할까요?')) return;
     for (const state of drafts.values()) {state.doc = parse(state.source); state.dirty = false;}
     clearImages(); operationCount = 0; selected = null; pending = null; formDirty = false;
-    doc = drafts.get(paths[page]).doc; $('#form-area').hidden = true;
+    doc = drafts.get(paths[page]).doc; $('#form-area').hidden = true; clearBulkPlan();
     render(); updateDraftStatus(); status('업로드 전 변경사항을 모두 취소했습니다.');
   }
   $('#login-form').onsubmit = async e => {
@@ -281,7 +355,7 @@
   $('#logout').onclick = () => {
     if (busy) return;
     if ((dirtyDrafts().length || formDirty) && !confirm('업로드하지 않은 변경사항이 있습니다. 취소하고 연결을 해제할까요?')) return;
-    token = ''; doc = null; source = ''; sha = ''; user = ''; selected = null; pending = null; drafts.clear(); clearImages(); operationCount = 0; formDirty = false;
+    token = ''; doc = null; source = ''; sha = ''; user = ''; selected = null; pending = null; drafts.clear(); clearImages(); operationCount = 0; formDirty = false; clearBulkPlan();
     $('#editor').hidden = true; $('#login').hidden = false; updateDraftStatus(); status('연결을 해제했습니다.');
   };
   $('#tabs').onclick = async e => {
@@ -303,6 +377,10 @@
   };
   $('#content-form').onchange = () => { formDirty = true; };
   $('#search').oninput = () => { if (doc && !busy) render(); };
+  $('#bulk-file').onchange = previewBulk;
+  $('#bulk-json').oninput = () => { bulkPlan = null; $('#bulk-apply').disabled = true; };
+  $('#bulk-preview').onclick = previewBulk;
+  $('#bulk-apply').onclick = applyBulk;
   $('#add').onclick = () => form();
   $('#cancel').onclick = () => {$('#form-area').hidden = true; selected = null; pending = null; formDirty = false;};
   $('#content-form').onsubmit = save;
