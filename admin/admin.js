@@ -44,7 +44,6 @@
   function clearBulkPlan() {
     bulkPlan = null;
     $('#bulk-file').value = '';
-    $('#bulk-json').value = '';
     $('#bulk-summary').textContent = '목록을 선택하면 일치 항목과 변경 내용을 확인할 수 있습니다.';
     $('#bulk-preview-list').replaceChildren();
     $('#bulk-apply').disabled = true;
@@ -80,7 +79,7 @@
     return {title:$('h3',n)?.textContent.trim()||'',date:$('p.text-sm',n)?.textContent.trim()||'',description:page==='lab-life'?($('h3 + p',n)?.textContent.trim()||''):'',photo:g?.images?.[0]||$('[data-lightbox]',n)?.dataset.full||$('img',n)?.getAttribute('src')||'',photos:g?.images?.join('\n')||[...n.querySelectorAll('[data-lightbox]')].map(b=>b.dataset.full).join('\n'),index};
   }
   function render(){const q=$('#search').value.toLowerCase().trim();const items=list().filter(x=>!q||JSON.stringify(data(x)).toLowerCase().includes(q));$('#count').textContent=`${items.length}개 항목`;
-    $('#items').replaceChildren(...items.map(item=>{const d=data(item);const row=document.createElement('div');row.className='item';const image=document.createElement('img');image.src=images.get(d.photo)?.preview||environment.previewUrl(window.location.href,d.photo||'');image.alt='';image.onerror=()=>image.removeAttribute('src');const body=document.createElement('div');body.innerHTML=`<strong>${safe(d.name||d.title)}</strong><small>${safe(d.section||d.type||d.date)} ${safe(d.role||d.year||'')}</small>`;const actions=document.createElement('div');actions.className='actions';for(const [label,fn,cls] of [['수정',()=>form(item)],['↑',()=>move(item,-1)],['↓',()=>move(item,1)],['삭제',()=>remove(item),'danger']]){const b=document.createElement('button');b.type='button';b.textContent=label;b.className=cls||'';b.onclick=fn;actions.append(b)}row.append(image,body,actions);return row}));}
+    $('#items').replaceChildren(...items.map(item=>{const d=data(item);const row=document.createElement('div');row.className=page==='publications'?'item publication-item':'item';const body=document.createElement('div');body.innerHTML=`<strong>${safe(d.name||d.title)}</strong><small>${safe(d.section||d.type||d.date)} ${safe(d.role||d.year||'')}</small>`;const actions=document.createElement('div');actions.className='actions';for(const [label,fn,cls] of [['수정',()=>form(item)],['↑',()=>move(item,-1)],['↓',()=>move(item,1)],['삭제',()=>remove(item),'danger']]){const b=document.createElement('button');b.type='button';b.textContent=label;b.className=cls||'';b.onclick=fn;actions.append(b)}if(page!=='publications'){const image=document.createElement('img');image.src=images.get(d.photo)?.preview||environment.previewUrl(window.location.href,d.photo||'');image.alt='';image.onerror=()=>image.removeAttribute('src');row.append(image)}row.append(body,actions);return row}));}
   const types=rules.types;
   function fields(){if(page==='people')return [{key:'name',label:'이름',required:true},{key:'section',label:'섹션',options:sections().map(s=>s.querySelector('h2').textContent.trim())},{key:'role',label:'직책 / 학위'},{key:'title',label:'연구 분야 / 상세 정보'},{key:'email',label:'이메일'},{key:'affiliation',label:'졸업생 소속'},{key:'photo',label:'사진 주소',placeholder:'/_astro/... 또는 업로드'}];
     if(page==='publications')return [{key:'title',label:'논문 제목',required:true},{key:'citation',label:'서지 정보',multiline:true,required:true},{key:'paperUrl',label:'논문 URL (선택)',placeholder:'https://doi.org/...'},{key:'type',label:'분류',options:types},{key:'year',label:'연도',required:true},{key:'month',label:'월 (1–12, 모르면 비워두기)',placeholder:'예: 9'}];
@@ -224,10 +223,9 @@
     $('#bulk-apply').disabled = true;
     $('#bulk-preview-list').replaceChildren();
     const file = $('#bulk-file').files[0];
-    const pasted = $('#bulk-json').value.trim();
-    if ((!file && !pasted) || page !== 'publications' || !doc) return;
+    if (!file || page !== 'publications' || !doc) return;
     try {
-      const records = JSON.parse(pasted || await file.text());
+      const records = JSON.parse(await file.text());
       if (!Array.isArray(records)) throw Error('논문 정보 목록은 JSON 배열이어야 합니다.');
       const targets = new Map();
       for (const item of list()) {
@@ -492,7 +490,6 @@
   $('#content-form').onchange = () => { formDirty = true; };
   $('#search').oninput = () => { if (doc && !busy) render(); };
   $('#bulk-file').onchange = previewBulk;
-  $('#bulk-json').oninput = () => { bulkPlan = null; $('#bulk-apply').disabled = true; };
   $('#bulk-preview').onclick = previewBulk;
   $('#bulk-apply').onclick = applyBulk;
   $('#add').onclick = () => form();
