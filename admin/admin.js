@@ -69,11 +69,57 @@
   function render(){const q=$('#search').value.toLowerCase().trim();const items=list().filter(x=>!q||JSON.stringify(data(x)).toLowerCase().includes(q));$('#count').textContent=`${items.length}개 항목`;
     $('#items').replaceChildren(...items.map(item=>{const d=data(item);const row=document.createElement('div');row.className=page==='publications'?'item publication-item':'item';const body=document.createElement('div');body.innerHTML=`<strong>${safe(d.name||d.title)}</strong><small>${safe(d.section||d.type||d.date)} ${safe(d.role||d.year||'')}</small>`;const actions=document.createElement('div');actions.className='actions';for(const [label,fn,cls] of [['수정',()=>form(item)],['↑',()=>move(item,-1)],['↓',()=>move(item,1)],['삭제',()=>remove(item),'danger']]){const b=document.createElement('button');b.type='button';b.textContent=label;b.className=cls||'';b.onclick=fn;actions.append(b)}if(page!=='publications'){const image=document.createElement('img');image.src=images.get(d.photo)?.preview||d.photo||'';image.alt='';image.onerror=()=>image.removeAttribute('src');row.append(image)}row.append(body,actions);return row}));}
   const types=rules.types;
+  function updateClassificationButtons(picker) {
+    const kind=picker.dataset.kind, region=picker.dataset.region;
+    for(const button of picker.querySelectorAll('[data-kind]'))button.setAttribute('aria-pressed',String(button.dataset.kind===kind));
+    for(const button of picker.querySelectorAll('[data-region]'))button.setAttribute('aria-pressed',String(button.dataset.region===region));
+    picker.querySelector('.publication-region').hidden=kind==='Patent';
+    picker.querySelector('[name="type"]').value=kind==='Patent'?'Patent':kind&&region?`${region} ${kind}`:'';
+  }
+  function setPublicationClassification(kind,region,emit=true) {
+    const picker=$('.publication-classification');
+    if(!picker)return;
+    picker.dataset.kind=['Journal','Conference','Patent'].includes(kind)?kind:'';
+    picker.dataset.region=picker.dataset.kind==='Patent'?'':['International','Domestic'].includes(region)?region:'';
+    updateClassificationButtons(picker);
+    if(emit)picker.querySelector('[name="type"]').dispatchEvent(new Event('input',{bubbles:true}));
+  }
+  function publicationClassification(value) {
+    const picker=document.createElement('fieldset');picker.className='publication-classification';
+    const legend=document.createElement('legend');legend.textContent='분류';picker.append(legend);
+    const createGroup=(className,title,choices,key)=>{
+      const group=document.createElement('div');group.className=className;
+      const heading=document.createElement('span');heading.className='classification-heading';heading.textContent=title;
+      const buttons=document.createElement('div');buttons.className='classification-buttons';
+      for(const [choice,label] of choices){const button=document.createElement('button');button.type='button';button.dataset[key]=choice;button.textContent=label;button.setAttribute('aria-pressed','false');button.onclick=()=>setPublicationClassification(key==='kind'?choice:picker.dataset.kind,key==='region'?choice:picker.dataset.region);buttons.append(button)}
+      group.append(heading,buttons);return group;
+    };
+    picker.append(createGroup('publication-kind','유형',[['Journal','저널'],['Conference','학회'],['Patent','특허']],'kind'));
+    picker.append(createGroup('publication-region','지역',[['International','국외'],['Domestic','국내']],'region'));
+    const input=document.createElement('input');input.type='hidden';input.name='type';picker.append(input);
+    const parts=/^(International|Domestic) (Journal|Conference)$/.exec(value||'');
+    picker.dataset.kind=value==='Patent'?'Patent':parts?.[2]||'';
+    picker.dataset.region=parts?.[1]||'';
+    updateClassificationButtons(picker);
+    return picker;
+  }
+  function showClassificationDialog(message,group) {
+    let dialog=$('#classification-dialog');
+    if(!dialog){
+      dialog=document.createElement('dialog');dialog.id='classification-dialog';dialog.className='classification-dialog';dialog.setAttribute('aria-labelledby','classification-dialog-title');
+      const title=document.createElement('h2');title.id='classification-dialog-title';title.textContent='분류를 선택해 주세요';
+      const detail=document.createElement('p');
+      const button=document.createElement('button');button.type='button';button.textContent='확인';button.onclick=()=>dialog.close();
+      dialog.append(title,detail,button);document.body.append(dialog);
+      dialog.addEventListener('close',()=>$('#fields .publication-'+dialog.dataset.focus+' button')?.focus());
+    }
+    dialog.querySelector('p').textContent=message;dialog.dataset.focus=group;dialog.showModal();
+  }
   function fields(){if(page==='people')return [{key:'name',label:'이름',required:true},{key:'section',label:'섹션',options:sections().map(s=>s.querySelector('h2').textContent.trim())},{key:'role',label:'직책 / 학위'},{key:'title',label:'연구 분야 / 상세 정보'},{key:'email',label:'이메일'},{key:'affiliation',label:'졸업생 소속'},{key:'photo',label:'사진 주소',placeholder:'/_astro/... 또는 업로드'}];
     if(page==='publications')return [{key:'title',label:'논문 제목',required:true},{key:'citation',label:'서지 정보',multiline:true,required:true},{key:'paperUrl',label:'논문 URL (선택)',placeholder:'https://doi.org/...'},{key:'type',label:'분류',options:types},{key:'year',label:'연도',required:true},{key:'month',label:'월 (1–12, 모르면 비워두기)',placeholder:'예: 9'}];
     if(page==='news')return [{key:'title',label:'제목',required:true},{key:'date',label:'게시 날짜',required:true,placeholder:'October 6, 2026'},{key:'photos',label:'사진 주소 (한 줄에 하나)',multiline:true}];
     return [{key:'title',label:'제목',required:true},{key:'date',label:'게시 날짜',required:true},{key:'description',label:'본문',multiline:true},{key:'photos',label:'사진 주소 (한 줄에 하나)',multiline:true,placeholder:'/_astro/photo-1.jpg'}];}
-  function form(item=null){if(busy||!guardForm())return;lookupRequest?.abort();lookupRequest=null;formDirty=false;selected=item;pending=null;const d=item?data(item):{};$('#form-title').textContent=item?'항목 수정':'새 항목 추가';$('#fields').replaceChildren(...fields().map(f=>{const label=document.createElement('label');label.textContent=f.label;let control;if(f.options){control=document.createElement('select');for(const opt of f.options){const o=document.createElement('option');o.value=o.textContent=opt;control.append(o)}}else{control=document.createElement(f.multiline?'textarea':'input');if(!f.multiline)control.type=f.key==='paperUrl'?'url':'text';control.placeholder=f.placeholder||''}control.name=f.key;control.value=d[f.key]||'';control.required=!!f.required;label.append(control);return label}));
+  function form(item=null){if(busy||!guardForm())return;lookupRequest?.abort();lookupRequest=null;formDirty=false;selected=item;pending=null;const d=item?data(item):{};$('#form-title').textContent=item?'항목 수정':'새 항목 추가';$('#fields').replaceChildren(...fields().map(f=>{if(page==='publications'&&f.key==='type')return publicationClassification(d.type);const label=document.createElement('label');label.textContent=f.label;let control;if(f.options){control=document.createElement('select');for(const opt of f.options){const o=document.createElement('option');o.value=o.textContent=opt;control.append(o)}}else{control=document.createElement(f.multiline?'textarea':'input');if(!f.multiline)control.type=f.key==='paperUrl'?'url':'text';control.placeholder=f.placeholder||''}control.name=f.key;control.value=d[f.key]||'';control.required=!!f.required;label.append(control);return label}));
     if(page==='publications')addPublicationLookup();
     if(page!=='publications'){const label=document.createElement('label');label.textContent=page==='lab-life'?'새 사진 파일 (여러 장 가능)':'새 사진 파일';const input=document.createElement('input');input.type='file';input.accept='image/jpeg,image/png,image/webp,image/gif';input.multiple=page==='lab-life'||page==='news';input.onchange=()=>{pending=[...input.files];formDirty=true;status(`${pending.length}개 파일은 저장을 누르면 업로드됩니다.`)};label.append(input);$('#fields').append(label)}$('#form-area').hidden=false;$('#form-area').scrollIntoView({behavior:'smooth',block:'start'});}
   function personCard(d){const wrap=doc.createElement('div');wrap.className='text-center';wrap.innerHTML=`<button type="button" data-person-trigger class="group block w-full text-center"><div class="mx-auto h-32 w-32 overflow-hidden rounded-full ring-1 ring-slate-200 transition duration-300 group-hover:shadow-md group-hover:ring-2 group-hover:ring-primary-300"><img class="h-full w-full object-cover" loading="lazy" alt=""></div><h3 class="mt-3 font-serif text-base text-slate-900 group-hover:text-primary-700"></h3><p class="text-sm text-slate-600"></p></button>`;return wrap;}
@@ -159,13 +205,14 @@
           const meta=document.createElement('p');meta.textContent=[work.year||'연도 미상',work.type,work.journal,work.authors.join(', ')||'저자 미상'].filter(Boolean).join(' · ');
           const titleMismatch=normalizedTitle(work.title)!==normalizedTitle(query);
           const yearMismatch=!!expectedYear&&expectedYear!=='unknown'&&String(work.year)!==expectedYear;
-          const typeMismatch=(expectedType.includes('Journal')&&work.type!=='journal-article')||(expectedType.includes('Conference')&&work.type!=='proceedings-article');
+          const typeMismatch=(expectedType.includes('Journal')&&work.type!=='journal-article')||(expectedType.includes('Conference')&&work.type!=='proceedings-article')||(expectedType==='Patent'&&['journal-article','proceedings-article'].includes(work.type));
           if(titleMismatch){const warning=document.createElement('p');warning.className='publication-lookup-warning';warning.textContent='입력 제목과 다릅니다. 같은 논문인지 확인하세요.';card.append(warning)}
           if(yearMismatch){const warning=document.createElement('p');warning.className='publication-lookup-warning';warning.textContent=`입력 연도 ${expectedYear}와 다릅니다.`;card.append(warning)}
           if(typeMismatch){const warning=document.createElement('p');warning.className='publication-lookup-warning';warning.textContent='선택한 논문 분류와 검색 결과의 유형이 다릅니다.';card.append(warning)}
           const doi=document.createElement('p');doi.textContent=`DOI ${work.doi}`;
-          const currentType=$('#fields [name="type"]').value;
-          const category=work.type==='journal-article'?(currentType==='Domestic Journal'?'Domestic Journal':'International Journal'):work.type==='proceedings-article'?(currentType==='Domestic Conference'?'Domestic Conference':'International Conference'):null;
+          const candidateKind=work.type==='journal-article'?'Journal':work.type==='proceedings-article'?'Conference':null;
+          const region=$('.publication-classification').dataset.region;
+          const category=candidateKind&&region?`${region} ${candidateKind}`:null;
           const dateLabels={'published-print':'인쇄 발행일',published:'발행일','published-online':'온라인 발행일',issued:'등록된 발행일'};
           const dateText=work.year?`${work.month||'월 미상'} / ${work.year} (${dateLabels[work.dateSource]})`:'발행일 미상';
           const monthNames=['Jan.','Feb.','Mar.','Apr.','May','Jun.','Jul.','Aug.','Sep.','Oct.','Nov.','Dec.'];
@@ -178,17 +225,18 @@
           const preview=document.createElement('div');preview.className='publication-lookup-preview';
           const previewLabel=document.createElement('span');previewLabel.textContent='입력안';
           const previewCitation=document.createElement('p');previewCitation.textContent=`서지 정보: ${citation||'메타데이터 부족 · 기존 입력 유지'}`;
-          const previewDetails=document.createElement('p');previewDetails.textContent=`분류: ${category||'유형 확인 필요'} · 발행: ${dateText}`;
-          const previewNote=document.createElement('p');previewNote.textContent=`${titleMismatch?'서지 제목은 현재 입력 제목을 사용합니다. ':''}${category?'국내·국외 분류는 선택 후 직접 확인하세요.':'이 논문 유형은 분류를 자동 선택하지 않습니다.'}`;
+          const previewDetails=document.createElement('p');previewDetails.textContent=`유형: ${candidateKind==='Journal'?'저널':candidateKind==='Conference'?'학회':'확인 필요'} · 지역: ${region==='Domestic'?'국내':region==='International'?'국외':'미선택'} · 발행: ${dateText}`;
+          const previewNote=document.createElement('p');previewNote.textContent=`${titleMismatch?'서지 제목은 현재 입력 제목을 사용합니다. ':''}${candidateKind?'후보 선택 시 유형은 자동으로 선택됩니다. 국내·국외는 직접 선택하세요.':'이 논문 유형은 자동 선택하지 않습니다.'}`;
           preview.append(previewLabel,previewCitation,previewDetails,previewNote);
           const link=document.createElement('a');link.href=work.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='후보 페이지 열기 ↗';
           const choose=document.createElement('button');choose.type='button';choose.textContent='이 정보 사용';choose.onclick=()=>{
             const formFields=Object.fromEntries(['citation','paperUrl','type','year','month'].map(name=>[name,$(`#fields [name="${name}"]`)]));
-            const next={citation:citation||formFields.citation.value,paperUrl:work.url,type:category||formFields.type.value,year:work.year?String(work.year):formFields.year.value,month:work.month?String(work.month):formFields.month.value};
+            const next={citation:citation||formFields.citation.value,paperUrl:work.url,type:candidateKind?category||'':formFields.type.value,year:work.year?String(work.year):formFields.year.value,month:work.month?String(work.month):formFields.month.value};
             const replaced=selected?Object.entries(next).filter(([name,value])=>formFields[name].value.trim()&&formFields[name].value.trim()!==value).map(([name])=>({citation:'서지 정보',paperUrl:'논문 URL',type:'분류',year:'연도',month:'월'})[name]):[];
             const mismatch=[titleMismatch?'제목':'',yearMismatch?'연도':'',typeMismatch?'논문 유형':''].filter(Boolean);
             if((mismatch.length||replaced.length)&&!confirm(`${mismatch.length?`입력값과 다른 ${mismatch.join('·')}을 확인하세요. `:''}${replaced.length?`기존 ${replaced.join('·')} 값을 바꿉니다. `:''}이 후보가 같은 논문이며 입력안을 적용할까요?`))return;
-            for(const [name,value] of Object.entries(next))formFields[name].value=value;
+            for(const [name,value] of Object.entries(next))if(name!=='type')formFields[name].value=value;
+            if(candidateKind)setPublicationClassification(candidateKind,region);
             formDirty=true;summary.textContent='입력안이 채워졌습니다. 분류와 서지 정보를 확인한 뒤 변경사항에 반영을 누르세요.';
           };
           const actions=document.createElement('div');actions.className='publication-lookup-actions';actions.append(link,choose);
@@ -227,7 +275,13 @@
     for (const [path, image] of staged) images.set(path, image);
     return staged.map(([path]) => path);
   }
-  async function save(event){event.preventDefault();if(busy)return;lookupRequest?.abort();lookupRequest=null;const d=Object.fromEntries(new FormData($('#content-form')));const backup=serialize(doc);const selectedIndex=selected?list().findIndex(x=>x.node===selected.node):-1;setBusy(true);try{if(pending?.length){status('사진을 변경사항에 추가하는 중…');const urls=await upload(pending);if(page==='lab-life'||page==='news')d.photos=[d.photos||'',...urls].filter(Boolean).join('\n');else d.photo=urls[0];}
+  async function save(event){event.preventDefault();if(busy)return;
+    if(page==='publications'){
+      const picker=$('.publication-classification');
+      if(!picker.dataset.kind)return showClassificationDialog('논문 유형을 선택하지 않았습니다. 저널, 학회 또는 특허를 선택해 주세요.','kind');
+      if(picker.dataset.kind!=='Patent'&&!picker.dataset.region)return showClassificationDialog('지역을 선택하지 않았습니다. 국외 또는 국내를 선택해 주세요.','region');
+    }
+    lookupRequest?.abort();lookupRequest=null;const d=Object.fromEntries(new FormData($('#content-form')));const backup=serialize(doc);const selectedIndex=selected?list().findIndex(x=>x.node===selected.node):-1;setBusy(true);try{if(pending?.length){status('사진을 변경사항에 추가하는 중…');const urls=await upload(pending);if(page==='lab-life'||page==='news')d.photos=[d.photos||'',...urls].filter(Boolean).join('\n');else d.photo=urls[0];}
       if(page==='people'){const section=sections().find(s=>s.querySelector('h2').textContent.trim()===d.section);if(!section)throw Error('섹션을 찾지 못했습니다.');const node=selected?.node||personCard(d);updatePerson(node,d);if(!selected||selected.section!==d.section)grid(section).append(node)}
       else if(page==='publications'){const node=selected?.node||pubCard();updatePub(node,d);if(!selected){const list=doc.querySelector('[data-pub-list]')||doc.querySelector('li[data-pub]')?.parentElement;const first=[...list.querySelectorAll(':scope > li[data-pub]')].find(x=>x.dataset.pubType===d.type);first?list.insertBefore(node,first):list.append(node)}}
       else{const node=selected?.node||articleCard();if(page==='news'){d.photos=(d.photos||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);if(!d.photos.length)throw Error('사진 주소나 업로드할 사진을 입력하세요.');d.photo=d.photos[0]}if(page==='lab-life'){const galleries=gallery(),photos=(d.photos||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);if(!photos.length)throw Error('사진 주소나 업로드할 사진을 입력하세요.');d.photo=photos[0];d.photos=photos;const index=selected?list().findIndex(x=>x.node===node):0;if(selected)galleries[index]={images:photos,caption:d.title,date:d.date};else galleries.unshift({images:photos,caption:d.title,date:d.date});setGallery(galleries);d.index=index}updateArticle(node,d);if(!selected)articleContainer().prepend(node)}
