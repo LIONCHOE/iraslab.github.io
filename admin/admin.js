@@ -9,7 +9,7 @@
   const rules = window.IRASContentRules;
   const drafts = new Map(), images = new Map();
   const galleryCache = new WeakMap();
-  let busy = false, formDirty = false, operationCount = 0, bulkPlan = null;
+  let busy = false, formDirty = false, operationCount = 0, bulkPlan = null, lookupRequest = null;
   const serialize = d => '<!DOCTYPE html>\n' + d.documentElement.outerHTML;
   const parse = html => new DOMParser().parseFromString(html, 'text/html');
   const dirtyDrafts = () => [...drafts.entries()].filter(([, d]) => d.dirty);
@@ -86,7 +86,8 @@
     if(page==='publications')return [{key:'title',label:'논문 제목',required:true},{key:'citation',label:'서지 정보',multiline:true,required:true},{key:'paperUrl',label:'논문 URL (선택)',placeholder:'https://doi.org/...'},{key:'type',label:'분류',options:types},{key:'year',label:'연도',required:true},{key:'month',label:'월 (1–12, 모르면 비워두기)',placeholder:'예: 9'}];
     if(page==='news')return [{key:'title',label:'제목',required:true},{key:'date',label:'게시 날짜',required:true,placeholder:'October 6, 2026'},{key:'photos',label:'사진 주소 (한 줄에 하나)',multiline:true}];
     return [{key:'title',label:'제목',required:true},{key:'date',label:'게시 날짜',required:true},{key:'description',label:'본문',multiline:true},{key:'photos',label:'사진 주소 (한 줄에 하나)',multiline:true,placeholder:'/_astro/photo-1.jpg'}];}
-  function form(item=null){if(busy||!guardForm())return;formDirty=false;selected=item;pending=null;const d=item?data(item):{};$('#form-title').textContent=item?'항목 수정':'새 항목 추가';$('#fields').replaceChildren(...fields().map(f=>{const label=document.createElement('label');label.textContent=f.label;let control;if(f.options){control=document.createElement('select');for(const opt of f.options){const o=document.createElement('option');o.value=o.textContent=opt;control.append(o)}}else{control=document.createElement(f.multiline?'textarea':'input');if(!f.multiline)control.type=f.key==='paperUrl'?'url':'text';control.placeholder=f.placeholder||''}control.name=f.key;control.value=d[f.key]||'';control.required=!!f.required;label.append(control);return label}));
+  function form(item=null){if(busy||!guardForm())return;lookupRequest?.abort();lookupRequest=null;formDirty=false;selected=item;pending=null;const d=item?data(item):{};$('#form-title').textContent=item?'항목 수정':'새 항목 추가';$('#fields').replaceChildren(...fields().map(f=>{const label=document.createElement('label');label.textContent=f.label;let control;if(f.options){control=document.createElement('select');for(const opt of f.options){const o=document.createElement('option');o.value=o.textContent=opt;control.append(o)}}else{control=document.createElement(f.multiline?'textarea':'input');if(!f.multiline)control.type=f.key==='paperUrl'?'url':'text';control.placeholder=f.placeholder||''}control.name=f.key;control.value=d[f.key]||'';control.required=!!f.required;label.append(control);return label}));
+    if(page==='publications')addPublicationLookup();
     if(page!=='publications'){const label=document.createElement('label');label.textContent=page==='lab-life'?'새 사진 파일 (여러 장 가능)':'새 사진 파일';const input=document.createElement('input');input.type='file';input.accept='image/jpeg,image/png,image/webp,image/gif';input.multiple=page==='lab-life'||page==='news';input.onchange=()=>{pending=[...input.files];formDirty=true;status(`${pending.length}개 파일은 저장을 누르면 업로드됩니다.`)};label.append(input);$('#fields').append(label)}$('#form-area').hidden=false;$('#form-area').scrollIntoView({behavior:'smooth',block:'start'});}
   function personCard(d){const wrap=doc.createElement('div');wrap.className='text-center';wrap.innerHTML=`<button type="button" data-person-trigger class="group block w-full text-center"><div class="mx-auto h-32 w-32 overflow-hidden rounded-full ring-1 ring-slate-200 transition duration-300 group-hover:shadow-md group-hover:ring-2 group-hover:ring-primary-300"><img class="h-full w-full object-cover" loading="lazy" alt=""></div><h3 class="mt-3 font-serif text-base text-slate-900 group-hover:text-primary-700"></h3><p class="text-sm text-slate-600"></p></button>`;return wrap;}
   function updatePerson(node,d) {
@@ -122,6 +123,59 @@
     if (im) { im.src = d.photo || ''; im.removeAttribute('srcset'); im.alt = d.name; }
   }
   function pubCard(){const li=doc.createElement('li');li.className='pl-1';li.setAttribute('data-pub','');li.innerHTML='<p class="font-medium text-slate-900"></p><p class="mt-1 text-sm leading-relaxed text-slate-600"></p>';return li}
+  function addPublicationLookup(){
+    const panel=document.createElement('div');panel.className='publication-lookup';
+    const button=document.createElement('button');button.type='button';button.textContent='논문 링크 찾기';
+    const note=document.createElement('p');note.className='note';note.textContent='검색 후보의 제목·저자·연도를 확인한 뒤 URL을 선택하세요. 검색만으로는 변경사항에 반영되지 않습니다.';
+    const summary=document.createElement('p');summary.className='publication-lookup-summary';summary.setAttribute('role','status');summary.setAttribute('aria-live','polite');
+    const results=document.createElement('div');results.className='publication-lookup-results';
+    const title=$('#fields [name="title"]');
+    title.closest('label').after(panel);panel.append(button,note,summary,results);
+    title.addEventListener('input',()=>{lookupRequest?.abort();lookupRequest=null;results.replaceChildren();summary.textContent='';button.disabled=false;});
+    button.onclick=async()=>{
+      const query=title.value.trim();
+      if(query.length<8){summary.textContent='논문 제목을 8자 이상 입력하세요.';return;}
+      lookupRequest?.abort();const request=new AbortController();lookupRequest=request;
+      const timeout=setTimeout(()=>request.abort(),10000);button.disabled=true;results.replaceChildren();summary.textContent='Crossref에서 논문을 찾는 중…';
+      try{
+        const params=new URLSearchParams({'query.title':query,rows:'5',select:'DOI,title,author,published,type,container-title'});
+        const response=await fetch(`https://api.crossref.org/works?${params}`,{signal:request.signal});
+        if(!response.ok)throw Error(response.status===429?'검색 요청이 많습니다. 잠시 후 다시 시도하세요.':`검색 서비스 오류 (HTTP ${response.status})`);
+        const body=await response.json();
+        if(lookupRequest!==request)return;
+        const expectedYear=$('#fields [name="year"]').value.trim();
+        const expectedType=$('#fields [name="type"]').value;
+        const normalizedTitle=value=>value.toLowerCase().replace(/[^a-z0-9가-힣]+/g,' ').trim();
+        const titleWords=value=>new Set(normalizedTitle(value).split(/\s+/).filter(Boolean));
+        const inputWords=titleWords(query);
+        const works=(body?.message?.items||[]).filter(work=>work.DOI&&work.title?.[0]).map(work=>{
+          const year=work.published?.['date-parts']?.[0]?.[0];
+          const doi=work.DOI.trim();
+          return {title:work.title[0],authors:(work.author||[]).map(a=>[a.given,a.family].filter(Boolean).join(' ')),year,type:work.type||'',journal:work['container-title']?.[0]||'',doi,url:`https://doi.org/${doi}`};
+        }).filter(work=>{try{const url=new URL(work.url);if(url.protocol!=='https:'||url.hostname!=='doi.org'||/\s/.test(work.doi))return false;const words=titleWords(work.title);const overlap=[...words].filter(word=>inputWords.has(word)).length;return overlap/new Set([...words,...inputWords]).size>=0.4}catch{return false}});
+        if(!works.length){summary.textContent='일치하는 DOI 후보를 찾지 못했습니다. URL을 직접 입력할 수 있습니다.';return;}
+        summary.textContent=`후보 ${works.length}건 · 제목, 저자, 연도와 학술지를 대조하세요.`;
+        for(const work of works){
+          const card=document.createElement('div');card.className='publication-lookup-item';
+          const heading=document.createElement('strong');heading.textContent=work.title;
+          const meta=document.createElement('p');meta.textContent=[work.year||'연도 미상',work.type,work.journal,work.authors.join(', ')||'저자 미상'].filter(Boolean).join(' · ');
+          if(normalizedTitle(work.title)!==normalizedTitle(query)){const warning=document.createElement('p');warning.className='publication-lookup-warning';warning.textContent='입력 제목과 다릅니다. 같은 논문인지 확인하세요.';card.append(warning)}
+          if(expectedYear&&expectedYear!=='unknown'&&String(work.year)!==expectedYear){const warning=document.createElement('p');warning.className='publication-lookup-warning';warning.textContent=`입력 연도 ${expectedYear}와 다릅니다.`;card.append(warning)}
+          if((expectedType.includes('Journal')&&work.type!=='journal-article')||(expectedType.includes('Conference')&&work.type!=='proceedings-article')){const warning=document.createElement('p');warning.className='publication-lookup-warning';warning.textContent='선택한 논문 분류와 검색 결과의 유형이 다릅니다.';card.append(warning)}
+          const doi=document.createElement('p');doi.textContent=`DOI ${work.doi}`;
+          const link=document.createElement('a');link.href=work.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='후보 페이지 열기 ↗';
+          const choose=document.createElement('button');choose.type='button';choose.textContent='이 URL 사용';choose.onclick=()=>{
+            const field=$('#fields [name="paperUrl"]');
+            if(field.value.trim()&&field.value.trim()!==work.url&&!confirm('기존 논문 URL을 이 후보 URL로 바꿀까요?'))return;
+            field.value=work.url;formDirty=true;summary.textContent='URL 입력란에 반영했습니다. 서지 정보를 확인하고 아래 변경사항에 반영을 누르세요.';
+          };
+          const actions=document.createElement('div');actions.className='publication-lookup-actions';actions.append(link,choose);
+          card.prepend(heading,meta);card.append(doi,actions);results.append(card);
+        }
+      }catch(error){if(lookupRequest!==request)return;summary.textContent=request.signal.aborted?'검색 시간이 초과됐습니다. 다시 시도하거나 URL을 직접 입력하세요.':`${error.message} URL을 직접 입력할 수 있습니다.`;}
+      finally{clearTimeout(timeout);if(lookupRequest===request){lookupRequest=null;button.disabled=false;}}
+    };
+  }
   function updatePub(node,d){if(!/^\d{4}$/.test(d.year)&&d.year!=='unknown')throw Error('연도는 네 자리 숫자로 입력하세요.');const month=d.month.trim();if(month&&!/^(?:[1-9]|1[0-2])$/.test(month))throw Error('월은 1–12 또는 빈칸으로 입력하세요.');const paperUrl=(d.paperUrl||'').trim();if(paperUrl){let parsed;try{parsed=new URL(paperUrl)}catch{throw Error('논문 URL은 https://로 시작하는 전체 주소를 입력하세요.')}if(parsed.protocol!=='https:'||!parsed.hostname||parsed.username||parsed.password)throw Error('논문 URL은 https://로 시작하는 전체 주소를 입력하세요.')}node.dataset.pubType=d.type;node.dataset.pubYear=d.year;node.dataset.pubMonth=month||'0';$('p',node).textContent=d.title;const citation=$('p + p',node);citation.textContent=d.citation;if(paperUrl){const link=doc.createElement('a');link.setAttribute('data-pub-link','');link.href=paperUrl;link.target='_blank';link.rel='noopener noreferrer';link.textContent='View Paper ↗';citation.append(' ',link);}}
   const bulkKey = d => JSON.stringify([d.type, d.year, d.title.trim().replace(/\s+/g, ' ').toLocaleLowerCase()]);
   function validPaperUrl(value) {
@@ -231,7 +285,7 @@
     for (const [path, image] of staged) images.set(path, image);
     return staged.map(([path]) => path);
   }
-  async function save(event){event.preventDefault();if(busy)return;const d=Object.fromEntries(new FormData($('#content-form')));const backup=serialize(doc);const selectedIndex=selected?list().findIndex(x=>x.node===selected.node):-1;setBusy(true);try{if(pending?.length){status('사진을 변경사항에 추가하는 중…');const urls=await upload(pending);if(page==='lab-life'||page==='news')d.photos=[d.photos||'',...urls].filter(Boolean).join('\n');else d.photo=urls[0];}
+  async function save(event){event.preventDefault();if(busy)return;lookupRequest?.abort();lookupRequest=null;const d=Object.fromEntries(new FormData($('#content-form')));const backup=serialize(doc);const selectedIndex=selected?list().findIndex(x=>x.node===selected.node):-1;setBusy(true);try{if(pending?.length){status('사진을 변경사항에 추가하는 중…');const urls=await upload(pending);if(page==='lab-life'||page==='news')d.photos=[d.photos||'',...urls].filter(Boolean).join('\n');else d.photo=urls[0];}
       if(page==='people'){const section=sections().find(s=>s.querySelector('h2').textContent.trim()===d.section);if(!section)throw Error('섹션을 찾지 못했습니다.');const node=selected?.node||personCard(d);updatePerson(node,d);if(!selected||selected.section!==d.section)grid(section).append(node)}
       else if(page==='publications'){const node=selected?.node||pubCard();updatePub(node,d);if(!selected){const list=doc.querySelector('[data-pub-list]')||doc.querySelector('li[data-pub]')?.parentElement;const first=[...list.querySelectorAll(':scope > li[data-pub]')].find(x=>x.dataset.pubType===d.type);first?list.insertBefore(node,first):list.append(node)}}
       else{const node=selected?.node||articleCard();if(page==='news'){d.photos=(d.photos||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);if(!d.photos.length)throw Error('사진 주소나 업로드할 사진을 입력하세요.');d.photo=d.photos[0]}if(page==='lab-life'){const galleries=gallery(),photos=(d.photos||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);if(!photos.length)throw Error('사진 주소나 업로드할 사진을 입력하세요.');d.photo=photos[0];d.photos=photos;const index=selected?list().findIndex(x=>x.node===node):0;if(selected)galleries[index]={images:photos,caption:d.title,date:d.date};else galleries.unshift({images:photos,caption:d.title,date:d.date});setGallery(galleries);d.index=index}updateArticle(node,d);if(!selected)articleContainer().prepend(node)}
@@ -380,13 +434,13 @@
   $('#logout').onclick = () => {
     if (busy) return;
     if ((dirtyDrafts().length || formDirty) && !confirm('업로드하지 않은 변경사항이 있습니다. 취소하고 연결을 해제할까요?')) return;
-    token = ''; $('#token').value = ''; doc = null; source = ''; sha = ''; user = ''; selected = null; pending = null; drafts.clear(); clearImages(); operationCount = 0; formDirty = false; clearBulkPlan();
+    lookupRequest?.abort();lookupRequest=null;token = ''; $('#token').value = ''; doc = null; source = ''; sha = ''; user = ''; selected = null; pending = null; drafts.clear(); clearImages(); operationCount = 0; formDirty = false; clearBulkPlan();
     $('#editor').hidden = true; $('#login').hidden = false; updateDraftStatus(); status('연결을 해제했습니다.');
   };
   $('#tabs').onclick = async e => {
     const button = e.target.closest('[data-page]');
     if (busy || !button || button.dataset.page === page || !guardForm()) return;
-    const previous = page; page = button.dataset.page; setBusy(true);
+    lookupRequest?.abort();lookupRequest=null;const previous = page; page = button.dataset.page; setBusy(true);
     try {
       $('#search').value = ''; await load();
       for (const b of $('#tabs').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b === button));
@@ -407,7 +461,7 @@
   $('#bulk-preview').onclick = previewBulk;
   $('#bulk-apply').onclick = applyBulk;
   $('#add').onclick = () => form();
-  $('#cancel').onclick = () => {$('#form-area').hidden = true; selected = null; pending = null; formDirty = false;};
+  $('#cancel').onclick = () => {lookupRequest?.abort();lookupRequest=null;$('#form-area').hidden = true; selected = null; pending = null; formDirty = false;};
   $('#content-form').onsubmit = save;
   $('#publish').onclick = publishAll;
   $('#discard').onclick = discardAll;
