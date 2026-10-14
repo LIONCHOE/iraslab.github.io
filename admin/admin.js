@@ -115,6 +115,31 @@
     }
     dialog.querySelector('p').textContent=message;dialog.dataset.focus=group;dialog.showModal();
   }
+  function confirmPublicationCandidate(query,work,mismatch,replaced,trigger) {
+    return new Promise(resolve=>{
+      const dialog=document.createElement('dialog');dialog.className='classification-dialog publication-candidate-dialog';
+      dialog.setAttribute('aria-labelledby','publication-candidate-dialog-title');
+      const title=document.createElement('h2');title.id='publication-candidate-dialog-title';title.textContent='같은 논문인지 확인해 주세요';
+      const introduction=document.createElement('p');introduction.textContent='검색 결과의 제목과 저자를 입력한 논문과 대조한 뒤 적용하세요.';
+      const details=document.createElement('div');details.className='publication-candidate-details';
+      const currentCitation=$('#fields [name="citation"]').value.trim();
+      const candidateType=work.type==='journal-article'?'저널':work.type==='proceedings-article'?'학회':work.type||'유형 정보 없음';
+      for(const [label,value] of [['입력 제목',query],...(currentCitation?[['입력 서지',currentCitation]]:[]),['검색 제목',work.title],['검색 저자',work.authors.join(', ')||'저자 정보 없음'],['검색 연도',work.year||'연도 정보 없음'],['검색 유형',candidateType]]){
+        const row=document.createElement('div');const term=document.createElement('strong');const description=document.createElement('span');
+        term.textContent=label;description.textContent=value;row.append(term,description);details.append(row);
+      }
+      const notice=document.createElement('p');notice.className='publication-candidate-notice';
+      notice.textContent=[mismatch.length?`입력값과 다른 항목: ${mismatch.join(' · ')}.`:'',replaced.length?`교체할 기존 항목: ${replaced.join(' · ')}.`:'','논문 제목은 자동으로 바뀌지 않습니다.'].filter(Boolean).join(' ');
+      const actions=document.createElement('div');actions.className='publication-candidate-actions';
+      const cancel=document.createElement('button');cancel.type='button';cancel.textContent='취소';cancel.onclick=()=>dialog.close('cancel');
+      const apply=document.createElement('button');apply.type='button';apply.textContent='이 정보 사용';apply.className='publication-candidate-apply';apply.onclick=()=>dialog.close('apply');
+      actions.append(cancel,apply);dialog.append(title,introduction,details,notice,actions);document.body.append(dialog);
+      dialog.addEventListener('cancel',event=>{event.preventDefault();dialog.close('cancel')});
+      dialog.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();dialog.close('cancel')}});
+      dialog.addEventListener('close',()=>{const accepted=dialog.returnValue==='apply';dialog.remove();trigger.focus();resolve(accepted)},{once:true});
+      dialog.showModal();cancel.focus();
+    });
+  }
   function fields(){if(page==='people')return [{key:'name',label:'이름',required:true},{key:'section',label:'섹션',options:sections().map(s=>s.querySelector('h2').textContent.trim())},{key:'role',label:'직책 / 학위'},{key:'title',label:'연구 분야 / 상세 정보'},{key:'email',label:'이메일'},{key:'affiliation',label:'졸업생 소속'},{key:'photo',label:'사진 주소',placeholder:'/_astro/... 또는 업로드'}];
     if(page==='publications')return [{key:'title',label:'논문 제목',required:true},{key:'citation',label:'서지 정보',multiline:true,required:true},{key:'paperUrl',label:'논문 URL (선택)',placeholder:'https://doi.org/...'},{key:'type',label:'분류',options:types},{key:'year',label:'연도',required:true},{key:'month',label:'월 (1–12, 모르면 비워두기)',placeholder:'예: 9'}];
     if(page==='news')return [{key:'title',label:'제목',required:true},{key:'date',label:'게시 날짜',required:true,placeholder:'October 6, 2026'},{key:'photos',label:'사진 주소 (한 줄에 하나)',multiline:true}];
@@ -229,12 +254,12 @@
           const previewNote=document.createElement('p');previewNote.textContent=`${titleMismatch?'서지 제목은 현재 입력 제목을 사용합니다. ':''}${candidateKind?'후보 선택 시 유형은 자동으로 선택됩니다. 국내·국외는 직접 선택하세요.':'이 논문 유형은 자동 선택하지 않습니다.'}`;
           preview.append(previewLabel,previewCitation,previewDetails,previewNote);
           const link=document.createElement('a');link.href=work.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='후보 페이지 열기 ↗';
-          const choose=document.createElement('button');choose.type='button';choose.textContent='이 정보 사용';choose.onclick=()=>{
+          const choose=document.createElement('button');choose.type='button';choose.textContent='이 정보 사용';choose.onclick=async()=>{
             const formFields=Object.fromEntries(['citation','paperUrl','type','year','month'].map(name=>[name,$(`#fields [name="${name}"]`)]));
             const next={citation:citation||formFields.citation.value,paperUrl:work.url,type:candidateKind?category||'':formFields.type.value,year:work.year?String(work.year):formFields.year.value,month:work.month?String(work.month):formFields.month.value};
             const replaced=selected?Object.entries(next).filter(([name,value])=>formFields[name].value.trim()&&formFields[name].value.trim()!==value).map(([name])=>({citation:'서지 정보',paperUrl:'논문 URL',type:'분류',year:'연도',month:'월'})[name]):[];
             const mismatch=[titleMismatch?'제목':'',yearMismatch?'연도':'',typeMismatch?'논문 유형':''].filter(Boolean);
-            if((mismatch.length||replaced.length)&&!confirm(`${mismatch.length?`입력값과 다른 ${mismatch.join('·')}을 확인하세요. `:''}${replaced.length?`기존 ${replaced.join('·')} 값을 바꿉니다. `:''}이 후보가 같은 논문이며 입력안을 적용할까요?`))return;
+            if((mismatch.length||replaced.length)&&!await confirmPublicationCandidate(query,work,mismatch,replaced,choose))return;
             for(const [name,value] of Object.entries(next))if(name!=='type')formFields[name].value=value;
             if(candidateKind)setPublicationClassification(candidateKind,region);
             formDirty=true;summary.textContent='입력안이 채워졌습니다. 분류와 서지 정보를 확인한 뒤 변경사항에 반영을 누르세요.';
