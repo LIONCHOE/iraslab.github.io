@@ -122,7 +122,7 @@
   function addPublicationLookup(){
     const panel=document.createElement('div');panel.className='publication-lookup';
     const button=document.createElement('button');button.type='button';button.textContent='논문 링크 찾기';
-    const note=document.createElement('p');note.className='note';note.textContent='검색 후보의 제목·저자·연도를 확인한 뒤 URL을 선택하세요. 검색만으로는 변경사항에 반영되지 않습니다.';
+    const note=document.createElement('p');note.className='note';note.textContent='후보의 제목·저자·연도와 입력안을 확인한 뒤 선택하세요. 검색과 선택만으로는 변경사항에 반영되지 않습니다.';
     const summary=document.createElement('p');summary.className='publication-lookup-summary';summary.setAttribute('role','status');summary.setAttribute('aria-live','polite');
     const results=document.createElement('div');results.className='publication-lookup-results';
     const title=$('#fields [name="title"]');
@@ -135,7 +135,7 @@
       lookupRequest?.abort();const request=new AbortController();lookupRequest=request;
       const timeout=setTimeout(()=>request.abort(),10000);button.disabled=true;results.replaceChildren();summary.textContent='Crossref에서 논문을 찾는 중…';
       try{
-        const params=new URLSearchParams({'query.title':query,rows:'5',select:'DOI,title,author,published,type,container-title'});
+        const params=new URLSearchParams({'query.title':query,rows:'5',select:'DOI,title,author,published,published-print,published-online,issued,type,container-title,volume,issue,page,article-number'});
         const response=await fetch(`https://api.crossref.org/works?${params}`,{signal:request.signal});
         if(!response.ok)throw Error(response.status===429?'검색 요청이 많습니다. 잠시 후 다시 시도하세요.':`검색 서비스 오류 (HTTP ${response.status})`);
         const body=await response.json();
@@ -146,28 +146,62 @@
         const titleWords=value=>new Set(normalizedTitle(value).split(/\s+/).filter(Boolean));
         const inputWords=titleWords(query);
         const works=(body?.message?.items||[]).filter(work=>work.DOI&&work.title?.[0]).map(work=>{
-          const year=work.published?.['date-parts']?.[0]?.[0];
+          const dateSources=work.type==='journal-article'?['published-print','published','published-online','issued']:['published','published-print','published-online','issued'];
+          const dateSource=dateSources.find(key=>work[key]?.['date-parts']?.[0]?.[0]);
+          const dateParts=work[dateSource]?.['date-parts']?.[0]||[];
+          const year=Number(dateParts[0])||null;
+          const month=Number(dateParts[1])>=1&&Number(dateParts[1])<=12?Number(dateParts[1]):null;
           const doi=work.DOI.trim();
-          return {title:work.title[0],authors:(work.author||[]).map(a=>[a.given,a.family].filter(Boolean).join(' ')),year,type:work.type||'',journal:work['container-title']?.[0]||'',doi,url:`https://doi.org/${doi}`};
+          const authors=(work.author||[]).map(a=>[a.given,a.family].filter(Boolean).join(' '));
+          const citationAuthors=(work.author||[]).map(a=>{
+            if(!a.family)return a.given||'';
+            const initials=(a.given||'').split(/[\s-]+/).filter(Boolean).map(part=>`${part[0]}.`).join('-');
+            return [initials,a.family].filter(Boolean).join(' ');
+          }).filter(Boolean);
+          return {title:work.title[0],authors,citationAuthors,year,month,dateSource,type:work.type||'',journal:work['container-title']?.[0]||'',volume:work.volume||'',issue:work.issue||'',page:work.page||'',articleNumber:work['article-number']||'',doi,url:`https://doi.org/${doi}`};
         }).filter(work=>{try{const url=new URL(work.url);if(url.protocol!=='https:'||url.hostname!=='doi.org'||/\s/.test(work.doi))return false;const words=titleWords(work.title);const overlap=[...words].filter(word=>inputWords.has(word)).length;return overlap/new Set([...words,...inputWords]).size>=0.4}catch{return false}});
         if(!works.length){summary.textContent='일치하는 DOI 후보를 찾지 못했습니다. URL을 직접 입력할 수 있습니다.';return;}
-        summary.textContent=`후보 ${works.length}건 · 제목, 저자, 연도와 학술지를 대조하세요.`;
+        summary.textContent=`후보 ${works.length}건 · 제목, 저자, 연도와 발행처를 대조하세요.`;
         for(const work of works){
           const card=document.createElement('div');card.className='publication-lookup-item';
           const heading=document.createElement('strong');heading.textContent=work.title;
           const meta=document.createElement('p');meta.textContent=[work.year||'연도 미상',work.type,work.journal,work.authors.join(', ')||'저자 미상'].filter(Boolean).join(' · ');
-          if(normalizedTitle(work.title)!==normalizedTitle(query)){const warning=document.createElement('p');warning.className='publication-lookup-warning';warning.textContent='입력 제목과 다릅니다. 같은 논문인지 확인하세요.';card.append(warning)}
-          if(expectedYear&&expectedYear!=='unknown'&&String(work.year)!==expectedYear){const warning=document.createElement('p');warning.className='publication-lookup-warning';warning.textContent=`입력 연도 ${expectedYear}와 다릅니다.`;card.append(warning)}
-          if((expectedType.includes('Journal')&&work.type!=='journal-article')||(expectedType.includes('Conference')&&work.type!=='proceedings-article')){const warning=document.createElement('p');warning.className='publication-lookup-warning';warning.textContent='선택한 논문 분류와 검색 결과의 유형이 다릅니다.';card.append(warning)}
+          const titleMismatch=normalizedTitle(work.title)!==normalizedTitle(query);
+          const yearMismatch=!!expectedYear&&expectedYear!=='unknown'&&String(work.year)!==expectedYear;
+          const typeMismatch=(expectedType.includes('Journal')&&work.type!=='journal-article')||(expectedType.includes('Conference')&&work.type!=='proceedings-article');
+          if(titleMismatch){const warning=document.createElement('p');warning.className='publication-lookup-warning';warning.textContent='입력 제목과 다릅니다. 같은 논문인지 확인하세요.';card.append(warning)}
+          if(yearMismatch){const warning=document.createElement('p');warning.className='publication-lookup-warning';warning.textContent=`입력 연도 ${expectedYear}와 다릅니다.`;card.append(warning)}
+          if(typeMismatch){const warning=document.createElement('p');warning.className='publication-lookup-warning';warning.textContent='선택한 논문 분류와 검색 결과의 유형이 다릅니다.';card.append(warning)}
           const doi=document.createElement('p');doi.textContent=`DOI ${work.doi}`;
+          const currentType=$('#fields [name="type"]').value;
+          const category=work.type==='journal-article'?(currentType==='Domestic Journal'?'Domestic Journal':'International Journal'):work.type==='proceedings-article'?(currentType==='Domestic Conference'?'Domestic Conference':'International Conference'):null;
+          const dateLabels={'published-print':'인쇄 발행일',published:'발행일','published-online':'온라인 발행일',issued:'등록된 발행일'};
+          const dateText=work.year?`${work.month||'월 미상'} / ${work.year} (${dateLabels[work.dateSource]})`:'발행일 미상';
+          const monthNames=['Jan.','Feb.','Mar.','Apr.','May','Jun.','Jul.','Aug.','Sep.','Oct.','Nov.','Dec.'];
+          const citation=work.citationAuthors.length&&work.journal?[
+            `${work.citationAuthors.join(', ')}, "${query}," ${work.type==='proceedings-article'?'in ':''}${work.journal}`,
+            work.volume?`vol. ${work.volume}`:'',work.issue?`no. ${work.issue}`:'',
+            work.page?`pp. ${work.page}`:work.articleNumber?`Art. no. ${work.articleNumber}`:'',
+            [work.month?monthNames[work.month-1]:'',work.year||''].filter(Boolean).join(' ')
+          ].filter(Boolean).join(', ')+'.':'';
+          const preview=document.createElement('div');preview.className='publication-lookup-preview';
+          const previewLabel=document.createElement('span');previewLabel.textContent='입력안';
+          const previewCitation=document.createElement('p');previewCitation.textContent=`서지 정보: ${citation||'메타데이터 부족 · 기존 입력 유지'}`;
+          const previewDetails=document.createElement('p');previewDetails.textContent=`분류: ${category||'유형 확인 필요'} · 발행: ${dateText}`;
+          const previewNote=document.createElement('p');previewNote.textContent=`${titleMismatch?'서지 제목은 현재 입력 제목을 사용합니다. ':''}${category?'국내·국외 분류는 선택 후 직접 확인하세요.':'이 논문 유형은 분류를 자동 선택하지 않습니다.'}`;
+          preview.append(previewLabel,previewCitation,previewDetails,previewNote);
           const link=document.createElement('a');link.href=work.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent='후보 페이지 열기 ↗';
-          const choose=document.createElement('button');choose.type='button';choose.textContent='이 URL 사용';choose.onclick=()=>{
-            const field=$('#fields [name="paperUrl"]');
-            if(field.value.trim()&&field.value.trim()!==work.url&&!confirm('기존 논문 URL을 이 후보 URL로 바꿀까요?'))return;
-            field.value=work.url;formDirty=true;summary.textContent='URL 입력란에 반영했습니다. 서지 정보를 확인하고 아래 변경사항에 반영을 누르세요.';
+          const choose=document.createElement('button');choose.type='button';choose.textContent='이 정보 사용';choose.onclick=()=>{
+            const formFields=Object.fromEntries(['citation','paperUrl','type','year','month'].map(name=>[name,$(`#fields [name="${name}"]`)]));
+            const next={citation:citation||formFields.citation.value,paperUrl:work.url,type:category||formFields.type.value,year:work.year?String(work.year):formFields.year.value,month:work.month?String(work.month):formFields.month.value};
+            const replaced=selected?Object.entries(next).filter(([name,value])=>formFields[name].value.trim()&&formFields[name].value.trim()!==value).map(([name])=>({citation:'서지 정보',paperUrl:'논문 URL',type:'분류',year:'연도',month:'월'})[name]):[];
+            const mismatch=[titleMismatch?'제목':'',yearMismatch?'연도':'',typeMismatch?'논문 유형':''].filter(Boolean);
+            if((mismatch.length||replaced.length)&&!confirm(`${mismatch.length?`입력값과 다른 ${mismatch.join('·')}을 확인하세요. `:''}${replaced.length?`기존 ${replaced.join('·')} 값을 바꿉니다. `:''}이 후보가 같은 논문이며 입력안을 적용할까요?`))return;
+            for(const [name,value] of Object.entries(next))formFields[name].value=value;
+            formDirty=true;summary.textContent='입력안이 채워졌습니다. 분류와 서지 정보를 확인한 뒤 변경사항에 반영을 누르세요.';
           };
           const actions=document.createElement('div');actions.className='publication-lookup-actions';actions.append(link,choose);
-          card.prepend(heading,meta);card.append(doi,actions);results.append(card);
+          card.prepend(heading,meta);card.append(doi,preview,actions);results.append(card);
         }
       }catch(error){if(lookupRequest!==request)return;summary.textContent=request.signal.aborted?'검색 시간이 초과됐습니다. 다시 시도하거나 URL을 직접 입력하세요.':`${error.message} URL을 직접 입력할 수 있습니다.`;}
       finally{clearTimeout(timeout);if(lookupRequest===request){lookupRequest=null;button.disabled=false;}}
