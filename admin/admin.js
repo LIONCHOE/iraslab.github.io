@@ -131,7 +131,8 @@
     const results=document.createElement('div');results.className='publication-lookup-results';
     const title=$('#fields [name="title"]');
     title.closest('label').after(panel);panel.append(button,note,summary,results);
-    title.addEventListener('input',()=>{lookupRequest?.abort();lookupRequest=null;results.replaceChildren();summary.textContent='';button.disabled=false;});
+    const clearLookup=()=>{lookupRequest?.abort();lookupRequest=null;results.replaceChildren();summary.textContent='';button.disabled=false;};
+    for(const input of [title,$('#fields [name="year"]'),$('#fields [name="type"]')])input.addEventListener('input',clearLookup);
     button.onclick=async()=>{
       const query=title.value.trim();
       if(query.length<8){summary.textContent='논문 제목을 8자 이상 입력하세요.';return;}
