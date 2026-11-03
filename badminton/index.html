@@ -321,7 +321,7 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
 @media(max-width:480px){.brand-links{display:none}}
 .site-top.root-brand .iras-logo{width:44px;height:44px}
 @media(max-width:640px){.site-top.root-brand .iras-logo{width:40px;height:40px}}
-.print-score{display:none}
+.print-score,#print-identification{display:none}
 @media print{
   @page{size:A4 landscape;margin:8mm}
   html,body{margin:0!important;padding:0!important;background:#fff!important;color:#000!important;font-size:9pt}
@@ -329,17 +329,20 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
   main{width:281mm;max-width:none;margin:0;padding:0}
   .view{display:none!important}
   #matches{display:block!important;margin:0;padding:0}
-  #matches> :not(#match-list),.match-panel>h3,.match-panel>.note,.match-panel caption{display:none!important}
+  #matches> :not(#match-list):not(#print-identification),.match-panel>h3,.match-panel>.note,.match-panel caption{display:none!important}
+  #print-identification{display:flex;align-items:flex-start;justify-content:space-between;gap:8mm;margin:0 0 4mm;font-size:11pt;line-height:1.3;color:#000}
+  #print-meeting-name{flex:1;min-width:0;overflow-wrap:anywhere;font-weight:600}
+  #print-meeting-date{flex:none;white-space:nowrap}
   .match-layout{display:grid!important;grid-template-columns:100mm 175mm;gap:6mm;align-items:start;width:281mm;margin:0;padding:0;break-inside:avoid}
   .match-panel{margin:0;padding:0;min-width:0;break-before:auto;break-inside:avoid}
   .league-scroll{overflow:visible;border:0;border-radius:0;margin:0}
-  .league-matrix,.schedule-table{width:100%;height:176mm;min-width:0;table-layout:fixed;border-collapse:collapse}
+  .league-matrix,.schedule-table{width:100%;height:166mm;min-width:0;table-layout:fixed;border-collapse:collapse}
   thead{display:table-header-group}
   tr{break-inside:avoid;page-break-inside:avoid}
   .league-matrix th,.league-matrix td,.schedule-table th,.schedule-table td{padding:0;border:.2mm solid #777;background:#fff!important;color:#000}
   .schedule-table thead th,.league-matrix thead th{height:8mm;padding:1mm;font-size:9pt}
   .schedule-table .schedule-slot{width:12mm;padding:1mm;font-size:8pt}
-  .schedule-game{display:flex;flex-direction:column;justify-content:center;flex-wrap:nowrap;height:calc(164mm / var(--schedule-slots,15));min-height:0;padding:.5mm;gap:.5mm}
+  .schedule-game{display:flex;flex-direction:column;justify-content:center;flex-wrap:nowrap;height:calc(154mm / var(--schedule-slots,15));min-height:0;padding:.5mm;gap:.5mm}
   .schedule-teams{font-size:8pt;gap:0 1mm;line-height:1.2}
   .schedule-teams i{font-size:7pt}
   .schedule-score{font-size:9pt;line-height:1.2}
@@ -349,7 +352,7 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
   .print-score>b{font-weight:400;padding-bottom:.5mm}
   .matrix-cell .print-score{height:7mm;margin-bottom:1mm}
   .matrix-cell .print-score>span{height:7mm}
-  .matrix-cell{height:calc(164mm / var(--team-count,6));min-height:0;padding:1mm;gap:1mm}
+  .matrix-cell{height:calc(154mm / var(--team-count,6));min-height:0;padding:1mm;gap:1mm}
   .matrix-cell strong,.matrix-cell.waiting strong{font-size:11pt;white-space:nowrap}
   .matrix-state,.matrix-cell small{display:block;font-size:8pt;line-height:1.3}
   .league-matrix .matrix-team{width:27mm;padding:1mm}
@@ -371,7 +374,7 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
 <main><nav aria-label="배드민턴 메뉴"><button data-tab="setup" aria-pressed="true">경기 준비</button><button data-tab="matches" aria-pressed="false">대진·점수</button><button data-tab="ranking" aria-pressed="false">순위</button><button data-tab="history" aria-pressed="false">지난 기록</button></nav>
 <div class="toolbar"><button id="export">MD 다운로드</button><label class="file-label">MD 불러오기<input id="import" type="file" accept=".md,text/markdown,text/plain"></label><button id="new" class="danger">새 모임</button><span id="save-state">이 브라우저에서 경기 기록</span></div>
 <section id="setup" class="view"><div class="sheet"><h2>오늘 누가 함께하나요?</h2><p class="note">2~6팀, 팀당 2~3명으로 편성합니다. 1티어가 가장 높은 단계입니다.</p><div class="toolbar"><label class="grow">모임 이름<input id="title" maxlength="80" value="IRAS 배드민턴 정기 모임"></label><label>날짜<input id="date" type="date"></label><label>팀 수<select id="team-count"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label><label>코트 수<select id="court-count"><option>1</option><option>2</option><option>3</option></select></label></div><p id="member-status" role="status">새 모임은 기본 참석으로 시작합니다. 불참자를 지정한 뒤 최대 18명으로 팀을 편성하세요.</p><p class="note">티어·랜덤 변경은 이번 모임에만 적용됩니다. 새 모임은 관리자에 게시된 기본 티어로 시작합니다. 카드를 드래그하거나 사진 팝업에서 변경하세요.</p><form id="add-player" class="toolbar"><label class="grow">선수 이름<input id="player-name" maxlength="80" required placeholder="새 선수 이름"></label><label>최초 티어<select id="player-tier"><option value="1">1티어</option><option value="2" selected>2티어</option><option value="3">3티어</option></select></label><button type="submit">선수 추가</button></form><div id="roster" class="tiers"></div><div class="toolbar"><button id="balance" class="primary">균형 팀 편성</button><span id="attendance" class="note"></span></div><div id="teams" class="teams"></div><div class="toolbar"><button id="generate" class="primary">리그 대진 만들기</button></div><p id="locked" class="notice" hidden>경기가 시작되어 팀과 당시 티어를 보존합니다. 점수 수정은 대진·점수 화면에서 진행하세요.</p></div></section>
-<section id="matches" class="view" hidden><div class="matches-heading"><h2 id="match-title">대진·점수</h2><button id="print-matches" type="button" disabled>인쇄 / PDF 저장</button></div><p id="print-meta" class="note"></p><p class="note">21점 단판 · 듀스 · 30점 상한. 경기 칸을 눌러 두 팀의 최종 점수를 저장하세요.</p><div id="round-rest" class="note"></div><div id="match-list" class="match-layout"></div></section>
+<section id="matches" class="view" hidden><div id="print-identification" aria-hidden="true"><span id="print-meeting-name"></span><span id="print-meeting-date"></span></div><div class="matches-heading"><h2 id="match-title">대진·점수</h2><button id="print-matches" type="button" disabled>인쇄 / PDF 저장</button></div><p id="print-meta" class="note"></p><p class="note">21점 단판 · 듀스 · 30점 상한. 경기 칸을 눌러 두 팀의 최종 점수를 저장하세요.</p><div id="round-rest" class="note"></div><div id="match-list" class="match-layout"></div></section>
 <section id="ranking" class="view" hidden><div class="sheet"><h2>오늘의 순위</h2><p class="note">확정 경기만 반영 · 전체 승수 → 동률 팀 간 승수(승자승) → 동률 팀 간 득실차 → 동률 팀 간 총득점 · 모두 같으면 공동 순위</p><div id="ranking-table" class="table-wrap"></div></div></section>
 <section id="history" class="view" hidden><div class="sheet"><h2>지난 모임</h2><p class="note">관리자가 게시한 기록입니다. 불러오면 현재 기록을 바꾸므로 먼저 MD를 내려받으세요.</p><div id="history-sample"></div><h3>게시된 기록</h3><div id="history-list"></div></div></section>
 <p id="message" role="status" aria-live="polite"></p><footer>경기 기록은 현재 브라우저에 임시 저장됩니다. 종료 후 MD를 내려받아 관리자에게 전달하세요. 다른 기기와 자동 동기화되지 않습니다.</footer></main>
@@ -668,6 +671,8 @@ window.IRASBadminton = createBadmintonRules();
   const printScore='<span class="print-score" aria-hidden="true"><span></span><b>:</b><span></span></span>';
   function renderMatches() {
     $('#print-matches').disabled=!state;
+    $('#print-meeting-name').textContent=state?'모임: '+state.title:'';
+    $('#print-meeting-date').textContent=state?'날짜: '+state.date:'';
     $('#print-meta').textContent=state?state.date+' · '+state.teams.length+'팀 · '+state.players.length+'명 · '+state.courts+'코트':'';
     if (!state) {
       $('#round-rest').textContent = '';
