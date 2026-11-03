@@ -51,7 +51,7 @@ h3{font-size:18px}
 .empty{padding:32px 0;line-height:1.8;color:var(--muted)}
 .players{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .player{display:flex;gap:10px;align-items:center;padding:12px;background:var(--soft);border:1px solid var(--line);border-radius:6px;min-width:0}
-.player span{flex:1;overflow-wrap:anywhere}
+.player span{overflow-wrap:anywhere}
 .player select{width:92px}
 .teams{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 .team{border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:6px;padding:14px;background:var(--soft)}
@@ -168,9 +168,9 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
 .player-profile{display:flex;align-items:center;gap:12px;width:100%;padding:0;border:0;background:transparent;text-align:left;color:#0f172a}
 .player-profile:hover{background:transparent;color:#a90050}
 .player-profile:focus-visible,.player-attendance:focus-within{outline:3px solid #c8005f;outline-offset:4px}
-.player-avatar{position:relative;display:grid;place-items:center;flex:none;width:64px;height:64px;overflow:hidden;border-radius:50%;background:#e8eef4;color:#475569;font-size:20px;font-weight:600}
-.player-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.player-profile-copy{min-width:0;display:grid;gap:4px}
+.player-avatar{position:relative;display:grid;place-items:center;flex:0 0 auto;aspect-ratio:1;width:64px;height:64px;overflow:hidden;border-radius:50%;background:#e8eef4;color:#475569;font-size:20px;font-weight:600}
+.player-avatar img{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:100%;object-fit:cover;object-position:center}
+.player-profile-copy{flex:1;min-width:0;display:grid;gap:4px}
 .player-profile-copy small{font-size:12px;font-weight:400;color:#64748b}
 .player-attendance{align-items:center;justify-content:center;gap:8px;margin:12px 0 0;padding:8px;border-radius:6px;background:#f1f5f9;font-size:13px}
 .is-selected .player-attendance{background:#c8005f;color:white}
