@@ -1,15 +1,151 @@
 <!doctype html>
 <html lang="ko">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#174f46"><title>Badminton · IRAS</title>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#ffffff"><title>Badminton · IRAS</title>
 <style>
-:root{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;color:#203c36;background:#edf3ef;font-synthesis:none;--court:#174f46;--line:#ccdcd2;--paper:#fff;--accent:#a51d53}*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button,a,input,select{touch-action:manipulation}button{min-height:44px;padding:10px 16px;border:1px solid #a7bfb1;border-radius:6px;background:white;color:var(--court);cursor:pointer;font-weight:700}button:hover{background:#e3eee7}button:disabled{opacity:.45;cursor:default}button.primary{background:var(--court);color:white;border-color:var(--court)}button.danger{color:#a51d53}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #d487a4;outline-offset:3px}input,select{min-height:44px;padding:9px;border:1px solid #a7bfb1;border-radius:5px;background:white;color:#203c36;max-width:100%}input[type=checkbox]{width:20px;min-height:20px}a{color:inherit;text-underline-offset:4px}header{background:var(--court);color:white;padding:24px max(20px,calc((100% - 1160px)/2));border-bottom:6px solid #c8dd9e}header .brand{display:flex;justify-content:space-between;gap:16px;font-size:.88rem}h1{font-size:clamp(30px,5vw,48px);letter-spacing:-1.5px;margin:24px 0 8px}header p{color:#d1e3d9;margin:0;line-height:1.7}main{max-width:1200px;margin:auto;padding:24px 20px 60px}nav{display:flex;gap:8px;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:20px;flex-wrap:wrap}nav button[aria-pressed=true]{background:var(--court);color:white}.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0}.toolbar label{display:grid;gap:6px}.toolbar .grow{flex:1;min-width:160px}h2{font-size:24px;margin:0 0 16px}h3{font-size:18px}.sheet{padding:24px;background:white;border:1px solid var(--line);border-radius:10px;margin:18px 0}.note,small{color:#536c60;font-size:.88rem;line-height:1.6}.notice{padding:14px 18px;border-left:4px solid #738e49;background:#f4f8e9;line-height:1.7}.empty{padding:32px 0;line-height:1.8}.players{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.player{display:flex;gap:10px;align-items:center;padding:12px;background:#f3f7f4;min-width:0}.player span{flex:1;overflow-wrap:anywhere}.player select{width:92px}.teams{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.team{border-top:4px solid #739c8b;padding:12px;background:#f3f7f4}.team p{display:flex;justify-content:space-between;align-items:center;gap:8px}.matches{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.match{background:white;border:1px solid var(--line);border-radius:10px;overflow:hidden;min-width:0}.match-head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;background:#f5f8f6}.court{display:grid;grid-template-columns:1fr 1fr;position:relative;background:var(--court);color:white;padding:22px 12px;gap:20px}.court:after{content:'';position:absolute;left:50%;top:12px;bottom:12px;border-left:1px dashed #c3dacc;pointer-events:none}.side{text-align:center;min-width:0;overflow-wrap:anywhere}.side h3{margin:0}.side .names{font-size:.82rem;min-height:38px;color:#d9e8df;margin-top:8px}.points{display:block;font-size:clamp(48px,7vw,76px);font-weight:800;line-height:1.3;font-variant-numeric:tabular-nums}.point{width:100%;font-size:20px;background:#edf3ef}.match-body{padding:18px}.lineup{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px}.lineup select{max-width:100%;flex:1;min-width:80px}.interval{background:#f5f1da;padding:16px;margin-bottom:12px}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;text-align:left;font-variant-numeric:tabular-nums}th,td{padding:14px 10px;border-bottom:1px solid var(--line);white-space:nowrap}th{font-size:.85rem;color:#536c60}td:first-child{font-weight:700}#message{position:sticky;bottom:12px;background:#203c36;color:white;padding:12px 16px;border-radius:6px;z-index:3;line-height:1.5}#message:empty{display:none}.error{background:#8e244a!important;color:white!important}#save-state{font-size:.85rem;color:#536c60;margin-left:auto}.record{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:16px 0;border-bottom:1px solid var(--line)}.record strong{display:block}.file-label{display:inline-flex;align-items:center;padding:10px 16px;min-height:44px;border:1px solid #a7bfb1;border-radius:6px;cursor:pointer;background:white;font-weight:700}.file-label:focus-within{outline:3px solid #d487a4}.file-label input{position:absolute;width:1px;height:1px;min-height:0;opacity:0}.view[hidden]{display:none}footer{font-size:.85rem;color:#536c60;margin-top:28px}@media(max-width:720px){main{padding:16px 12px 40px}.sheet{padding:18px}.players,.teams{grid-template-columns:repeat(2,minmax(0,1fr))}.matches{grid-template-columns:1fr}nav{gap:6px}nav button{padding:10px 12px}.brand a{font-size:.8rem}.record{align-items:flex-start}#save-state{width:100%;margin:0}}@media(max-width:420px){.players,.teams{grid-template-columns:1fr}.toolbar label{width:100%}.toolbar input,.toolbar select{width:100%}.points{font-size:64px}}
-
-/* 리그 전체 표와 경기 점수 팝업 */
-.league-scroll{max-width:100%;overflow:auto;border:1px solid var(--line);border-radius:10px;background:white;margin:16px 0;isolation:isolate}.league-matrix{table-layout:fixed;min-width:720px}.league-matrix caption{text-align:left;padding:14px 16px;color:#536c60;font-size:.88rem;line-height:1.6}.league-matrix th,.league-matrix td{padding:0;text-align:center;white-space:normal;border:1px solid var(--line)}.league-matrix thead th{height:44px;padding:8px;background:#e3eee7;color:var(--court)}.league-matrix .matrix-team{position:sticky;left:0;z-index:1;width:140px;padding:12px;background:#f0f5f1;text-align:left;box-shadow:2px 0 0 var(--line)}.matrix-team strong{display:block}.matrix-members{display:block;margin-top:6px;font-weight:400;font-size:.75rem;color:#536c60;overflow-wrap:anywhere}.matrix-diagonal{background:#edf3ef;color:#8aa092}.matrix-cell{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;width:100%;min-height:88px;border:0;border-radius:0;padding:9px 5px;font-weight:400;background:white}.matrix-cell strong{font-size:1.2rem;font-variant-numeric:tabular-nums}.matrix-cell.waiting strong{font-size:.9rem;color:#536c60}.matrix-cell.playing{background:#fff5d8;box-shadow:inset 0 3px #b58a20}.matrix-cell.finished{background:#eaf4ee}.matrix-state{font-size:.75rem}.matrix-cell small{font-size:.7rem}.matrix-cell:hover{background:#dcebe2}.matrix-cell:focus-visible{outline-offset:-4px}.league-scroll:focus-visible{outline:3px solid #d487a4;outline-offset:3px}
-#match-popup{width:min(620px,calc(100% - 24px));max-height:calc(100dvh - 24px);padding:20px;border:1px solid #9fb7a8;border-radius:14px;color:#203c36;background:#f5f8f6;overflow-y:auto;overscroll-behavior:contain}#match-popup::backdrop{background:rgba(14,36,29,.62)}.popup-header{display:flex;justify-content:space-between;align-items:center;gap:12px}.popup-header h2{font-size:22px;margin:0}.popup-header button{flex-shrink:0}#match-popup-help{margin:12px 0 16px}#match-popup .match{width:100%}#match-popup-message{font-size:.88rem;line-height:1.6;margin-bottom:0}#match-popup-message:empty{display:none}#match-popup-message.error{padding:10px;border-radius:5px}@media(max-width:600px){.league-matrix{min-width:660px}.league-matrix .matrix-team{width:112px;padding:10px}.matrix-cell{min-height:84px}#match-popup{padding:14px}.popup-header h2{font-size:19px}#match-popup .match-body{padding:14px}}
+@font-face{font-family:'Inter Variable';font-style:normal;font-display:swap;font-weight:100 900;src:url('../_astro/inter-latin-wght-normal.Dx4kXJAl.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Newsreader Variable';font-style:normal;font-display:swap;font-weight:200 800;src:url('../_astro/newsreader-latin-wght-normal.CCVVNp6i.woff2') format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+:root{font-family:'Inter Variable',ui-sans-serif,system-ui,-apple-system,'Segoe UI','Malgun Gothic',sans-serif;color:#0f172a;background:#fff;font-synthesis:none;--court:#0f172a;--line:#e2e8f0;--paper:#fff;--accent:#c8005f;--muted:#475569;--soft:#f8fafc}
+*{box-sizing:border-box}
+body{margin:0;line-height:1.6}
+button,input,select{font:inherit}
+button,a,input,select{touch-action:manipulation}
+button{min-height:44px;padding:10px 16px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#334155;cursor:pointer;font-weight:600;line-height:1.4}
+button:hover{background:var(--soft);border-color:#94a3b8}
+button:disabled{opacity:.45;cursor:default}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.primary:hover{background:#a90050;border-color:#a90050}
+button.danger{color:#a90050}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+input,select{min-height:44px;padding:9px 11px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#0f172a;max-width:100%}
+input[type=checkbox]{width:20px;min-height:20px;accent-color:var(--accent)}
+a{color:inherit;text-underline-offset:4px}
+header{border-bottom:1px solid var(--line)}
+.site-top{border-bottom:1px solid var(--line);background:#fff}
+.brand{max-width:1200px;min-height:72px;padding:12px 20px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:20px}
+.brand-logos{display:flex;align-items:center;gap:12px;min-width:0}
+.brand-logos a{display:inline-flex;align-items:center;text-decoration:none;gap:10px}
+.postech-logo{display:block;width:171px;height:32px;object-fit:contain}
+.brand-divider{width:1px;height:26px;background:#dbe4ec;flex-shrink:0}
+.iras-logo{display:block;width:44px;height:44px}
+.brand-name{font-family:'Newsreader Variable',Georgia,serif;font-size:23px;font-weight:600;line-height:1}
+.brand-links{display:flex;gap:8px;align-items:center;font-size:.875rem}
+.brand-links a{padding:8px 12px;border-radius:6px;text-decoration:none;color:var(--muted)}
+.brand-links a:hover{background:var(--soft);color:var(--accent)}
+.intro{background:radial-gradient(ellipse 58% 115% at 100% 0%,#dfedff 0%,transparent 75%),radial-gradient(ellipse 55% 110% at 0% 0%,#ffead7 0%,transparent 75%),#fff}
+.intro-inner{max-width:1200px;margin:auto;padding:44px 20px 48px}
+h1{font-size:clamp(30px,4.3vw,46px);font-weight:700;letter-spacing:-.04em;line-height:1.25;margin:0 0 14px;text-wrap:balance}
+header p{color:var(--muted);margin:0;line-height:1.8;max-width:65ch}
+main{max-width:1200px;margin:auto;padding:28px 20px 60px}
+main>nav{display:flex;gap:6px;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:20px;flex-wrap:wrap}
+main>nav button{border-color:transparent;background:transparent;color:var(--muted)}
+main>nav button:hover{background:var(--soft)}
+main>nav button[aria-pressed=true]{background:#fff0f6;border-color:#f5bfd8;color:#a90050}
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0}
+.toolbar label{display:grid;gap:6px;font-size:.875rem;font-weight:500;color:#334155}
+.toolbar .grow{flex:1;min-width:160px}
+h2{font-size:24px;font-weight:650;letter-spacing:-.025em;line-height:1.4;margin:0 0 16px}
+h3{font-size:18px}
+.sheet{padding:28px;background:#fff;border:1px solid var(--line);border-radius:10px;margin:22px 0}
+.note,small{color:var(--muted);font-size:.875rem;line-height:1.7}
+.notice{padding:14px 18px;border-left:3px solid var(--accent);background:#fff0f6;line-height:1.7}
+.empty{padding:32px 0;line-height:1.8;color:var(--muted)}
+.players{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.player{display:flex;gap:10px;align-items:center;padding:12px;background:var(--soft);border:1px solid var(--line);border-radius:6px;min-width:0}
+.player span{flex:1;overflow-wrap:anywhere}
+.player select{width:92px}
+.teams{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.team{border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:6px;padding:14px;background:var(--soft)}
+.team p{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.matches{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.match{background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;min-width:0}
+.match-head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;background:var(--soft)}
+.court{display:grid;grid-template-columns:1fr 1fr;position:relative;background:var(--court);color:#fff;padding:24px 16px;gap:24px}
+.court:after{content:'';position:absolute;left:50%;top:20px;bottom:20px;border-left:1px solid #475569;pointer-events:none}
+.side{text-align:center;min-width:0;overflow-wrap:anywhere}
+.side h3{margin:0;font-size:18px}
+.side .names{font-size:.82rem;min-height:38px;color:#cbd5e1;margin-top:8px}
+.points{display:block;font-size:clamp(48px,7vw,76px);font-weight:650;line-height:1.3;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.point{width:100%;font-size:20px;background:#fff;color:#a90050;border-color:#fff}
+.point:hover{background:#fff0f6;border-color:#f5bfd8}
+.match-body{padding:20px}
+.lineup{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px}
+.lineup select{max-width:100%;flex:1;min-width:80px}
+.interval{background:#fff7ed;border-left:3px solid #b45309;padding:16px;margin-bottom:12px}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;text-align:left;font-variant-numeric:tabular-nums}
+th,td{padding:14px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.85rem;color:var(--muted);background:var(--soft);font-weight:600}
+td:first-child{font-weight:700}
+#message{position:sticky;bottom:12px;background:#0f172a;color:#fff;padding:12px 16px;border-radius:6px;z-index:3;line-height:1.5}
+#message:empty{display:none}
+.error{background:#9f1239!important;color:#fff!important}
+#save-state{font-size:.85rem;color:var(--muted);margin-left:auto}
+.record{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:16px 0;border-bottom:1px solid var(--line)}
+.record strong{display:block}
+.file-label{display:inline-flex;align-items:center;padding:10px 16px;min-height:44px;border:1px solid #cbd5e1;border-radius:6px;cursor:pointer;background:#fff;font-weight:600}
+.file-label:hover{background:var(--soft)}
+.file-label:focus-within{outline:2px solid var(--accent);outline-offset:3px}
+.file-label input{position:absolute;width:1px;height:1px;min-height:0;opacity:0}
+.view[hidden]{display:none}
+footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;border-top:1px solid var(--line)}
+.league-scroll{max-width:100%;overflow:auto;border:1px solid var(--line);border-radius:8px;background:#fff;margin:16px 0;isolation:isolate}
+.league-matrix{table-layout:fixed;min-width:720px}
+.league-matrix caption{text-align:left;padding:14px 16px;color:var(--muted);font-size:.875rem;line-height:1.7}
+.league-matrix th,.league-matrix td{padding:0;text-align:center;white-space:normal;border:1px solid var(--line)}
+.league-matrix thead th{height:48px;padding:8px;background:#f1f5f9;color:#334155}
+.league-matrix .matrix-team{position:sticky;left:0;z-index:1;width:140px;padding:12px;background:var(--soft);text-align:left;box-shadow:2px 0 0 var(--line)}
+.matrix-team strong{display:block;color:#0f172a}
+.matrix-members{display:block;margin-top:6px;font-weight:400;font-size:.75rem;color:var(--muted);overflow-wrap:anywhere}
+.matrix-diagonal{background:#f1f5f9;color:#64748b}
+.matrix-cell{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;width:100%;min-height:94px;border:0;border-radius:0;padding:10px 5px;font-weight:400;background:#fff;color:#334155}
+.matrix-cell strong{font-size:1.2rem;font-weight:650;font-variant-numeric:tabular-nums}
+.matrix-cell.waiting strong{font-size:.9rem;color:var(--muted)}
+.matrix-cell.playing{background:#fff0f6;box-shadow:inset 0 3px var(--accent)}
+.matrix-cell.playing strong{color:#a90050}
+.matrix-cell.finished{background:#f1f5f9}
+.matrix-state{font-size:.75rem}
+.matrix-cell small{font-size:.7rem}
+.matrix-cell:hover{background:#fce7f3}
+.matrix-cell:focus-visible{outline-offset:-4px}
+.league-scroll:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+#match-popup{width:min(620px,calc(100% - 24px));max-height:calc(100dvh - 24px);padding:24px;border:1px solid #f5bfd8;border-top:4px solid var(--accent);border-radius:12px;color:#0f172a;background:#fff;overflow-y:auto;overscroll-behavior:contain;box-shadow:0 24px 80px #0f172a33}
+#match-popup::backdrop{background:rgba(15,23,42,.55)}
+.popup-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.popup-header h2{font-size:22px;margin:0}
+.popup-header button{flex-shrink:0}
+#match-popup-help{margin:12px 0 18px}
+#match-popup .match{width:100%}
+#match-popup-message{font-size:.875rem;line-height:1.6;margin-bottom:0}
+#match-popup-message:empty{display:none}
+#match-popup-message.error{padding:10px;border-radius:5px}
+@media(max-width:720px){
+  .brand{padding:12px 16px;gap:12px;flex-wrap:wrap}
+  .brand-links{gap:4px}.brand-links a{padding:6px 8px;font-size:.8rem}
+  .intro-inner{padding:32px 16px 36px}
+  main{padding:20px 12px 40px}.sheet{padding:18px}
+  .players,.teams{grid-template-columns:repeat(2,minmax(0,1fr))}.matches{grid-template-columns:1fr}
+  main>nav{gap:4px}main>nav button{padding:10px 12px}
+  .record{align-items:flex-start}#save-state{width:100%;margin:0}
+}
+@media(max-width:600px){
+  .postech-logo{width:106px;height:26px}.iras-logo{width:36px;height:36px}.brand-name{font-size:21px}.brand-logos{gap:8px}
+  .brand-divider{height:22px}.brand-links{width:100%;justify-content:flex-end}
+  .league-matrix{min-width:660px}.league-matrix .matrix-team{width:112px;padding:10px}.matrix-cell{min-height:88px}
+  #match-popup{padding:16px}.popup-header h2{font-size:19px}#match-popup .match-body{padding:14px}
+}
+@media(max-width:420px){
+  .players,.teams{grid-template-columns:1fr}.toolbar label{width:100%}.toolbar input,.toolbar select{width:100%}
+  .points{font-size:64px}
+}
 </style></head>
 <body>
-<header><div class="brand"><a href="../">IRAS 홈페이지</a><a href="../admin/">기록·티어 관리자</a></div><h1>우리 연구실, 오늘의 리그</h1><p>함께 팀을 꾸리고, 한 경기씩 기록합니다.</p></header>
+<header>
+<div class="site-top"><div class="brand">
+<div class="brand-logos"><a href="https://postech.ac.kr/eng/index.do" aria-label="POSTECH 홈페이지"><img class="postech-logo" src="../postech-logo.svg" alt="POSTECH" width="171" height="32"></a><span class="brand-divider" aria-hidden="true"></span><a href="../" aria-label="IRAS 홈페이지"><img class="iras-logo" src="../iras-logo.svg" alt="" width="44" height="44"><span class="brand-name">IRAS</span></a></div>
+<div class="brand-links"><a href="../">홈페이지</a><a href="../admin/">기록·티어 관리자</a></div>
+</div></div>
+<div class="intro"><div class="intro-inner"><h1>우리 연구실, 오늘의 리그</h1><p>함께 팀을 꾸리고, 한 경기씩 기록합니다.</p></div></div>
+</header>
 <main><nav aria-label="배드민턴 메뉴"><button data-tab="setup" aria-pressed="true">경기 준비</button><button data-tab="matches" aria-pressed="false">대진·점수</button><button data-tab="ranking" aria-pressed="false">순위</button><button data-tab="history" aria-pressed="false">지난 기록</button></nav>
 <div class="toolbar"><button id="export">MD 다운로드</button><label class="file-label">MD 불러오기<input id="import" type="file" accept=".md,text/markdown,text/plain"></label><button id="new" class="danger">새 모임</button><span id="save-state">이 브라우저에서 경기 기록</span></div>
 <section id="setup" class="view"><div class="sheet"><h2>오늘 누가 함께하나요?</h2><p class="note">2~6팀, 팀당 2~3명으로 편성합니다. 1티어가 가장 높은 단계입니다.</p><div class="toolbar"><label class="grow">모임 이름<input id="title" maxlength="80" value="IRAS 배드민턴 정기 모임"></label><label>날짜<input id="date" type="date"></label><label>팀 수<select id="team-count"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label><label>코트 수<select id="court-count"><option>1</option><option>2</option><option>3</option></select></label></div><div class="toolbar"><button id="refresh-roster" type="button">게시된 명단·티어 새로고침</button></div><div id="roster" class="players"></div><form id="add-player" class="toolbar"><label class="grow">선수 이름<input id="player-name" maxlength="80" required placeholder="새 선수 이름"></label><label>최초 티어<select id="player-tier"><option value="1">1티어</option><option value="2" selected>2티어</option><option value="3">3티어</option></select></label><button type="submit">선수 추가</button></form><div class="toolbar"><button id="balance" class="primary">균형 팀 편성</button><span id="attendance" class="note"></span></div><div id="teams" class="teams"></div><div class="toolbar"><button id="generate" class="primary">리그 대진 만들기</button></div><p id="locked" class="notice" hidden>경기가 시작되어 팀과 당시 티어를 보존합니다. 점수 수정은 대진·점수 화면에서 진행하세요.</p></div></section>
