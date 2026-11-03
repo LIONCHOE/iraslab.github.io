@@ -160,6 +160,36 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
 #member-status{margin:8px 0;font-size:.85rem;line-height:1.7;color:var(--muted)}
 @media(max-width:900px){.tiers{grid-template-columns:1fr}.tier-players{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px}.tiers .player:last-child{border-bottom:1px solid var(--line)}}
 @media(max-width:480px){.tier-players{grid-template-columns:1fr}.player-tier{max-width:none}}
+
+/* People 사진을 사용하는 선수 선택 카드 */
+.tier-players{padding:10px}
+.tiers .player,.tiers .player:last-child{padding:12px;margin:0 0 8px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
+.tiers .player.is-selected{border-color:#c8005f;background:#fff5f9}
+.player-profile{display:flex;align-items:center;gap:12px;width:100%;padding:0;border:0;background:transparent;text-align:left;color:#0f172a}
+.player-profile:hover{background:transparent;color:#a90050}
+.player-profile:focus-visible,.player-attendance:focus-within{outline:3px solid #c8005f;outline-offset:4px}
+.player-avatar{position:relative;display:grid;place-items:center;flex:none;width:64px;height:64px;overflow:hidden;border-radius:50%;background:#e8eef4;color:#475569;font-size:20px;font-weight:600}
+.player-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.player-profile-copy{min-width:0;display:grid;gap:4px}
+.player-profile-copy small{font-size:12px;font-weight:400;color:#64748b}
+.player-attendance{align-items:center;justify-content:center;gap:8px;margin:12px 0 0;padding:8px;border-radius:6px;background:#f1f5f9;font-size:13px}
+.is-selected .player-attendance{background:#c8005f;color:white}
+.player-attendance input{margin:0;accent-color:#c8005f}
+#player-popup{width:min(560px,calc(100% - 24px));max-height:calc(100dvh - 24px);padding:24px;border:1px solid #f5bfd8;border-top:4px solid #c8005f;border-radius:12px;background:#fff;color:#0f172a;overflow:auto;box-shadow:0 24px 80px #0f172a33}
+#player-popup::backdrop{background:rgba(15,23,42,.55)}
+.player-summary{display:flex;align-items:center;gap:16px;margin:20px 0}
+.player-summary .player-avatar{width:80px;height:80px}
+.player-summary h3{margin:0 0 6px;font-size:20px;overflow-wrap:anywhere}
+.player-edit{display:flex;align-items:end;gap:12px;padding:16px 0;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0}
+.player-edit label{flex:1}
+.recent-games{list-style:none;padding:0;margin:0}
+.recent-game{display:grid;grid-template-columns:1fr auto;gap:8px;padding:14px 0;border-bottom:1px solid #e2e8f0}
+.recent-game small{display:block;color:#64748b;margin-top:4px}
+.recent-result{text-align:right;white-space:nowrap;font-weight:600}
+.recent-result.win{color:#a90050}
+#player-popup-status{font-size:13px;line-height:1.6;color:#64748b}
+@media(max-width:480px){#player-popup{padding:16px}.player-avatar{width:56px;height:56px}.player-edit{flex-wrap:wrap}}
+
 </style></head>
 <body>
 <header>
@@ -176,6 +206,12 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
 <section id="ranking" class="view" hidden><div class="sheet"><h2>오늘의 순위</h2><p class="note">확정 경기만 반영 · 승수 → 득실차 → 총득점 · 같으면 공동 순위</p><div id="ranking-table" class="table-wrap"></div></div><div class="sheet"><h2>개인 출전 기록</h2><p class="note">승패는 출전한 경기의 팀 결과입니다. 개인 실력이나 기여도를 자동 평가하지 않습니다.</p><div id="stats" class="table-wrap"></div></div></section>
 <section id="history" class="view" hidden><div class="sheet"><h2>지난 모임</h2><p class="note">관리자가 게시한 기록입니다. 불러오면 현재 기록을 바꾸므로 먼저 MD를 내려받으세요.</p><div id="history-list"></div></div></section>
 <p id="message" role="status" aria-live="polite"></p><footer>경기 기록은 현재 브라우저에 임시 저장됩니다. 종료 후 MD를 내려받아 관리자에게 전달하세요. 다른 기기와 자동 동기화되지 않습니다.</footer></main>
+<dialog id="player-popup" aria-labelledby="player-popup-title">
+<div class="popup-header"><h2 id="player-popup-title" tabindex="-1">선수 기록</h2><button id="close-player-popup" type="button" aria-label="선수 기록 팝업 닫기">닫기 ×</button></div>
+<div id="player-summary"></div>
+<div class="player-edit"><label>티어<select id="popup-player-tier" aria-label="선수 티어"><option value="1">1티어</option><option value="2">2티어</option><option value="3">3티어</option></select></label><button id="save-player-tier" class="primary" type="button">티어 적용</button></div>
+<p id="player-tier-help" class="note"></p><h3>최근 5경기</h3><p class="note">확정된 출전 경기 · 같은 날은 모임 ID, 경기 순서 기준</p><p id="player-popup-status" role="status"></p><ol id="player-recent" class="recent-games"></ol>
+</dialog>
 <dialog id="match-popup" aria-labelledby="match-popup-title" aria-describedby="match-popup-help">
 <div class="popup-header"><h2 id="match-popup-title" tabindex="-1">경기 점수 입력</h2><button id="close-match-popup" type="button" aria-label="점수 입력 팝업 닫기">닫기 ×</button></div>
 <p id="match-popup-help" class="note">입력한 점수는 즉시 반영됩니다. 팝업을 닫아도 경기 기록은 유지됩니다.</p>
@@ -302,6 +338,28 @@ window.IRASBadminton = createBadmintonRules();
   let state=null, roster=[], selected=new Set(), teams=[], revision=null, view='setup', published={schemaVersion:1,sessions:[]};
 
   const provisional = new Set();
+  const photos = new Map(), recordCache = new Map();
+  let playerPopupId = null, playerRequest = 0, recordIndexReady = Promise.resolve(), recordIndexError = '';
+  function photoMarkup(p) {
+    const src=photos.get(nameKey(p.name));
+    const initials=p.name.trim().split(/\s+/).slice(0,2).map(n=>Array.from(n)[0]).join('');
+    return '<span class="player-avatar" aria-hidden="true"><span>'+esc(initials)+'</span>'+(src?'<img src="'+esc(src)+'" alt="" loading="lazy" decoding="async">':'')+'</span>';
+  }
+  document.addEventListener('error',e=>{if(e.target.matches?.('.player-avatar img'))e.target.remove();},true);
+  function readPhotos(people) {
+    for(const section of people.querySelectorAll('main section')){
+      if(section.querySelector('h2')?.textContent.trim().toLowerCase()==='alumni')continue;
+      for(const heading of section.querySelectorAll('h3')){
+        const container=heading.closest('[data-person-trigger],a') || heading.parentElement;
+        const raw=container.querySelector('img')?.getAttribute('src');
+        if(!raw)continue;
+        try{
+          const url=new URL(raw,new URL('../people/',location.href));
+          if(url.origin===location.origin && /^https?:$/.test(url.protocol))photos.set(nameKey(heading.textContent),url.href);
+        }catch{}
+      }
+    }
+  }
   let membersLoading = false;
   const nameKey = name => name.normalize('NFKC').replace(/,?\s*Ph\.?D\.?\s*$/i,'').replace(/\s+/g,' ').trim().toLocaleLowerCase('en');
   function memberId(name) {
@@ -317,6 +375,7 @@ window.IRASBadminton = createBadmintonRules();
       if(!response.ok)throw Error('현재 구성원을 불러오지 못했습니다. 기존 명단은 유지됩니다.');
       const text=await response.text();
       const people=new DOMParser().parseFromString(text,'text/html');
+      readPhotos(people);
       const sections=[...people.querySelectorAll('main section')];
       if(!sections.some(s=>s.querySelector('h2')?.textContent.trim().toLowerCase()==='alumni'))throw Error('People의 구성원 분류를 확인할 수 없습니다. 기존 명단은 유지됩니다.');
       const names=sections.filter(s=>s.querySelector('h2') && s.querySelector('h2').textContent.trim().toLowerCase()!=='alumni')
@@ -355,12 +414,11 @@ window.IRASBadminton = createBadmintonRules();
     $('#roster').innerHTML=[1,2,3].map(tier=>{
       const members=roster.filter(p=>p.tier===tier);
       return '<section class="tier-section" aria-labelledby="tier-heading-'+tier+'"><div class="tier-heading"><h3 id="tier-heading-'+tier+'">'+tier+'티어</h3><span>'+members.length+'명</span></div><div class="tier-players">'+
-        (members.map(p=>'<div class="player"><label class="player-attendance"><input type="checkbox" data-attend="'+p.id+'" '+(selected.has(p.id)?'checked ':'')+(lock?'disabled':'')+'><span class="player-name">'+esc(p.name)+'</span></label>'+
-          '<div class="player-tier"><label><span>티어</span><select aria-label="'+esc(p.name)+' 티어" data-tier="'+p.id+'" '+(lock?'disabled':'')+'>'+[1,2,3].map(n=>'<option value="'+n+'" '+(n===p.tier?'selected':'')+'>'+n+'티어</option>').join('')+'</select></label>'+
-          (provisional.has(p.id)?'<div class="provisional"><small>임시 2티어</small><button type="button" data-confirm-tier="'+p.id+'" aria-label="'+esc(p.name)+' 2티어 확정" '+(lock?'disabled':'')+'>티어 확정</button></div>':'')+'</div></div>').join('')||'<p class="tier-empty">이 티어에 등록된 선수가 없습니다.</p>')+'</div></section>';
+        (members.map(p=>'<div class="player '+(selected.has(p.id)?'is-selected':'')+'"><button type="button" class="player-profile" data-player="'+p.id+'" aria-label="'+esc(p.name)+' 티어와 최근 경기 보기">'+photoMarkup(p)+'<span class="player-profile-copy"><span class="player-name">'+esc(p.name)+'</span><small>'+(provisional.has(p.id)?'임시 2티어 · ':'')+'티어 · 경기 기록 보기</small></span></button>'+
+          '<label class="player-attendance"><input type="checkbox" aria-label="'+esc(p.name)+' 참석" data-attend="'+p.id+'" '+(selected.has(p.id)?'checked ':'')+(lock?'disabled':'')+'><span>'+(selected.has(p.id)?'참석 선택됨':'참석 선택')+'</span></label></div>').join('')||'<p class="tier-empty">이 티어에 등록된 선수가 없습니다.</p>')+'</div></section>';
     }).join('');
     $('#attendance').textContent=selected.size+' / 18명 참석 선택 · 전체 '+roster.length+'명';$('#teams').innerHTML=teams.map(t=>'<div class="team"><h3>'+esc(t.name)+'</h3>'+t.players.map(id=>'<p><span>'+esc(roster.find(p=>p.id===id)?.name)+' <small>'+roster.find(p=>p.id===id)?.tier+'티어</small></span><select data-move="'+id+'" aria-label="'+esc(roster.find(p=>p.id===id)?.name)+' 팀" '+(lock?'disabled':'')+'>'+teams.map(n=>'<option value="'+n.id+'" '+(n.id===t.id?'selected':'')+'>'+esc(n.name)+'</option>').join('')+'</select></p>').join('')+'</div>').join('');
-    document.querySelectorAll('#setup input:not([data-attend]),#setup select:not([data-tier]),#setup button').forEach(n=>n.disabled=!!lock);$('#generate').disabled=!!lock||!teams.length;$('#load-members').disabled=!!state||membersLoading;
+    document.querySelectorAll('#setup input:not([data-attend]),#setup select:not([data-tier]),#setup button:not([data-player])').forEach(n=>n.disabled=!!lock);$('#generate').disabled=!!lock||!teams.length;$('#load-members').disabled=!!state||membersLoading;
   }
   const options=(ids,chosen)=>ids.map(id=>'<option value="'+id+'" '+(id===chosen?'selected':'')+'>'+esc(player(id))+'</option>').join('');
   let activeMatchId = null, popupOrigin = null;
@@ -452,10 +510,75 @@ window.IRASBadminton = createBadmintonRules();
     const control=tier?$('#roster').querySelector('[data-tier="'+tier+'"]'):$('#roster').querySelector('[data-attend="'+attend+'"]');
     control?.focus();
   });
-  $('#roster').onclick=attempt(e=>{
-    const button=e.target.closest('[data-confirm-tier]');if(!button||started())return;
-    const id=button.dataset.confirmTier;provisional.delete(id);persist();renderSetup();$('#roster').querySelector('[data-tier="'+id+'"]')?.focus();
+  $('#roster').onclick=attempt(e=>{const button=e.target.closest('[data-player]');if(button) return openPlayerPopup(button.dataset.player);});
+  function closePlayerPopup(){
+    const id=playerPopupId;playerRequest++;playerPopupId=null;
+    if($('#player-popup').open)$('#player-popup').close();
+    $('#roster').querySelector('[data-player="'+id+'"]')?.focus();
+  }
+  $('#close-player-popup').onclick=closePlayerPopup;
+  $('#player-popup').addEventListener('cancel',e=>{e.preventDefault();closePlayerPopup();});
+  $('#player-popup').addEventListener('click',e=>{if(e.target===$('#player-popup')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closePlayerPopup();}});
+  $('#save-player-tier').onclick=attempt(()=>{
+    if(started()||!playerPopupId)return;
+    const p=roster.find(p=>p.id===playerPopupId),tier=Number($('#popup-player-tier').value);
+    if(!p||![1,2,3].includes(tier))throw Error('선수와 티어를 확인하세요.');
+    const changed=p.tier!==tier;p.tier=tier;provisional.delete(p.id);
+    if(changed)invalidate();else{persist();renderSetup();}
+    $('#player-summary .note').textContent=tier+'티어';
+    $('#player-tier-help').textContent=tier+'티어를 적용했습니다. 이 브라우저의 편성에 반영됩니다.';
+    $('#popup-player-tier').focus();
   });
+  function recentRows(s,p){
+    const participant=s.players.find(n=>n.id===p.id);
+    if(!participant)return [];
+    return s.matches.filter(m=>m.finished).flatMap((m,index)=>{
+      const r=R.replay(s,m);
+      const side=m.lineups.findIndex((ids,i)=>ids.includes(p.id)||r.after[i].includes(p.id));
+      if(side<0)return [];
+      return [{date:s.date,session:s.id,match:m.id,slot:m.slot,index,title:s.title,
+        opponent:s.teams.find(t=>t.id===m.teams[1-side]).name,
+        score:r.score[side]+' : '+r.score[1-side],win:r.score[side]>r.score[1-side]}];
+    });
+  }
+  const recentOrder=(a,b)=>b.date.localeCompare(a.date)||b.session.localeCompare(a.session)||b.slot-a.slot||b.index-a.index;
+  async function openPlayerPopup(id){
+    const p=roster.find(n=>n.id===id);if(!p)return;
+    const request=++playerRequest;playerPopupId=id;
+    $('#player-summary').innerHTML='<div class="player-summary">'+photoMarkup(p)+'<div><h3>'+esc(p.name)+'</h3><span class="note">'+(provisional.has(id)?'임시 2티어':'등록된 선수')+'</span></div></div>';
+    $('#popup-player-tier').value=String(p.tier);
+    $('#popup-player-tier').disabled=!!started();$('#save-player-tier').disabled=!!started();
+    $('#player-tier-help').textContent=started()?'경기가 시작되어 당시 티어를 보존합니다.':'티어 적용은 이 브라우저의 편성에 반영됩니다. 공개 티어는 관리자에서 게시하세요.';
+    $('#player-recent').replaceChildren();$('#player-popup-status').textContent='경기 기록을 불러오는 중입니다.';
+    if(!$('#player-popup').open)$('#player-popup').showModal();
+    $('#player-popup-title').focus();
+    await recordIndexReady;
+    if(recordIndexError){try{const res=await fetch('records.json',{cache:'no-store'});if(!res.ok)throw Error('기록 조회 실패');published=R.index(await res.json());recordIndexError='';}catch{}}
+    if(request!==playerRequest)return;
+    let rows=state?recentRows(state,p):[],failed=!!recordIndexError;
+    const sessions=published.sessions.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
+    for(const item of sessions){
+      if(request!==playerRequest)return;
+      if(state?.id===item.id)continue;
+      rows.sort(recentOrder);
+      if(rows.length>=5 && item.date<rows[4].date)break;
+      try{
+        let s=recordCache.get(item.id);
+        if(!s){
+          const res=await fetch(item.file,{cache:'no-store'});
+          if(!res.ok)throw Error('기록 조회 실패');
+          s=R.fromMarkdown(await res.text());
+          if(s.id!==item.id||s.date!==item.date)throw Error('기록 목록 불일치');
+          recordCache.set(item.id,s);
+        }
+        rows.push(...recentRows(s,p));
+      }catch{failed=true;}
+    }
+    if(request!==playerRequest)return;
+    rows.sort(recentOrder);rows=rows.slice(0,5);
+    $('#player-recent').innerHTML=rows.map(r=>'<li class="recent-game"><div>'+esc(r.opponent)+'<small>'+esc(r.date)+' · '+esc(r.title)+' · '+esc(r.match)+'</small></div><div class="recent-result '+(r.win?'win':'')+'">'+(r.win?'승':'패')+'<small>'+esc(r.score)+'</small></div></li>').join('');
+    $('#player-popup-status').textContent=failed?'일부 게시 기록을 불러오지 못했습니다. 확인된 경기만 표시합니다. 팝업을 다시 열어 재시도하세요.':rows.length?'최근 출전 '+rows.length+'경기':'아직 경기 기록이 없습니다.';
+  }
   $('#load-members').onclick=attempt(()=>loadMembers());
   $('#team-count').onchange=invalidate;$('#court-count').onchange=()=>{if(started())return;state=null;persist();render();};
   for(const id of ['title','date'])$('#'+id).onchange=()=>{if(started())return;if(state){state[id]=$('#'+id).value;}persist();};
@@ -483,6 +606,10 @@ window.IRASBadminton = createBadmintonRules();
   window.addEventListener('storage',e=>{if(e.key===key)message('다른 탭에서 임시 기록이 바뀌었습니다. 이 탭의 기록을 MD로 내려받고 새로고침하세요.',true);});
   try{const raw=localStorage.getItem(key);if(raw){const saved=JSON.parse(raw);revision=saved.revision;roster=R.roster({schemaVersion:1,players:saved.roster}).players;for(const id of Array.isArray(saved.provisional)?saved.provisional:[])if(roster.some(p=>p.id===id&&p.tier===2))provisional.add(id);selected=new Set(saved.selected);teams=saved.teams;state=saved.state?R.validate(saved.state):null;for(const [id,k] of [['title','title'],['date','date'],['team-count','count'],['court-count','courts']])if(saved.form?.[k])$('#'+id).value=saved.form[k];if(state)view='matches';message('이 브라우저의 임시 기록을 복구했습니다.');}}catch(e){message('임시 기록을 복구하지 못했습니다. 저장한 MD를 불러오세요. '+e.message,true);}
   render();
-  Promise.allSettled([fetch('players.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('선수 명단을 불러오지 못했습니다.');const data=R.roster(await r.json());if(!roster.length&&!state){roster=data.players;render();}}).catch(e=>{message(e.message,true);}).then(()=>loadMembers(false)),fetch('records.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('지난 기록 목록을 불러오지 못했습니다.');published=R.index(await r.json());$('#history-list').innerHTML=published.sessions.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(s=>'<div class="record"><div><strong>'+esc(s.title)+'</strong><small>'+esc(s.date)+'</small></div><button data-record="'+s.id+'">기록 불러오기</button></div>').join('')||'<p class="empty">아직 게시된 모임이 없습니다. 첫 리그의 MD를 관리자에서 등록하세요.</p>';})]).then(results=>{const errors=results.filter(r=>r.status==='rejected');if(errors.length)message(errors.map(r=>r.reason.message).join(' ')+' 로컬 경기와 MD는 계속 사용할 수 있습니다.',true);});
+  if(state)fetch('../people/',{cache:'no-store'}).then(async res=>{
+    if(!res.ok)return;
+    readPhotos(new DOMParser().parseFromString(await res.text(),'text/html'));renderSetup();
+  }).catch(()=>{});
+  Promise.allSettled([fetch('players.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('선수 명단을 불러오지 못했습니다.');const data=R.roster(await r.json());if(!roster.length&&!state){roster=data.players;render();}}).catch(e=>{message(e.message,true);}).then(()=>loadMembers(false)),(recordIndexReady=fetch('records.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('지난 기록 목록을 불러오지 못했습니다.');published=R.index(await r.json());$('#history-list').innerHTML=published.sessions.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(s=>'<div class="record"><div><strong>'+esc(s.title)+'</strong><small>'+esc(s.date)+'</small></div><button data-record="'+s.id+'">기록 불러오기</button></div>').join('')||'<p class="empty">아직 게시된 모임이 없습니다. 첫 리그의 MD를 관리자에서 등록하세요.</p>';}).catch(e=>{recordIndexError=e.message;message(e.message,true);}))]).then(results=>{const errors=results.filter(r=>r.status==='rejected');if(errors.length)message(errors.map(r=>r.reason.message).join(' ')+' 로컬 경기와 MD는 계속 사용할 수 있습니다.',true);});
 })();
 </script></body></html>
