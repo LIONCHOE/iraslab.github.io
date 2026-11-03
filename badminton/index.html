@@ -239,6 +239,13 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
 .tier-section.drop-target{border-color:#c8005f;background:#fff0f6;outline:2px solid #c8005f;outline-offset:2px}
 .tier-section.drop-target .tier-heading{background:#fce7f3}
 @media(prefers-reduced-motion:reduce){.tier-section[data-drop-tier]{transition:none}}
+
+/* 세 티어의 높이를 맞추고 선수 목록만 스크롤합니다. */
+.tier-section-1,.tier-section-2,.tier-section-3{display:flex;flex-direction:column;height:440px}
+.tier-section-1>.tier-heading,.tier-section-2>.tier-heading,.tier-section-3>.tier-heading{flex:none}
+.tier-section-1>.tier-players,.tier-section-2>.tier-players,.tier-section-3>.tier-players{flex:1;min-height:0;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-gutter:stable;align-content:start;grid-auto-rows:max-content}
+.tier-players:focus-visible{outline:2px solid #c8005f;outline-offset:-3px}
+@media(max-width:900px){.tier-section-1,.tier-section-2,.tier-section-3{height:360px}}
 </style></head>
 <body>
 <header>
@@ -470,13 +477,15 @@ window.IRASBadminton = createBadmintonRules();
 
   function renderSetup(){
     const lock=started();$('#locked').hidden=!lock;
+    const scrollPositions=new Map([1,2,3].map(tier=>[tier,$('.tier-section-'+tier+' .tier-players')?.scrollTop||0]));
     $('#roster').innerHTML=[1,2,3,'random','inactive'].map(tier=>{
       const title=tier==='random'?'랜덤':tier==='inactive'?'불참':tier+'티어';
       const members=roster.filter(p=>tier==='inactive'?!selected.has(p.id):selected.has(p.id)&&(tier==='random'?randomPlayers.has(p.id):!randomPlayers.has(p.id)&&p.tier===tier));
-      return '<section class="tier-section tier-section-'+tier+'" '+(tier!=='inactive'?'data-drop-tier="'+tier+'" ':'')+'aria-labelledby="tier-heading-'+tier+'"><div class="tier-heading"><h3 id="tier-heading-'+tier+'">'+title+'</h3><span>'+members.length+'명</span></div><div class="tier-players">'+
+      return '<section class="tier-section tier-section-'+tier+'" '+(tier!=='inactive'?'data-drop-tier="'+tier+'" ':'')+'aria-labelledby="tier-heading-'+tier+'"><div class="tier-heading"><h3 id="tier-heading-'+tier+'">'+title+'</h3><span>'+members.length+'명</span></div><div class="tier-players" '+(typeof tier==='number'?'tabindex="0" role="region" aria-label="'+tier+'티어 선수 목록"':'')+'>'+
         (members.map(p=>'<div class="player '+(selected.has(p.id)?'is-selected':'')+'" data-drag-player="'+p.id+'" draggable="'+(!lock&&selected.has(p.id))+'"><button type="button" class="player-profile" data-player="'+p.id+'" aria-label="'+esc(displayName(p.name))+' 티어와 최근 경기 보기">'+photoMarkup(p)+'<span class="player-profile-copy"><span class="player-name">'+esc(displayName(p.name))+'</span><small>'+(randomPlayers.has(p.id)?'랜덤 · 기존 '+p.tier+'티어':provisional.has(p.id)?'임시 2티어':p.tier+'티어')+' · 기록 보기</small></span></button>'+
           '<div class="attendance-row"><span class="attendance-state">'+(selected.has(p.id)?'참석':'불참')+'</span><button type="button" class="player-attendance" data-attend="'+p.id+'" data-present="'+selected.has(p.id)+'" aria-label="'+esc(displayName(p.name))+' '+(selected.has(p.id)?'불참으로 변경':'참석으로 변경')+'" '+(lock?'disabled':'')+'>'+(selected.has(p.id)?'불참으로 변경':'참석으로 변경')+'</button></div></div>').join('')||'<p class="tier-empty">선택된 선수가 없습니다.</p>')+'</div></section>';
     }).join('');
+    for(const [tier,top] of scrollPositions){const list=$('.tier-section-'+tier+' .tier-players');if(list)list.scrollTop=top;}
     $('#attendance').textContent='참석 '+selected.size+'명 · 불참 '+(roster.length-selected.size)+'명'+(selected.size>18?' · 팀 편성 전에 '+(selected.size-18)+'명 이상을 불참으로 변경하세요.':' · 최대 18명 편성');$('#teams').innerHTML=teams.map(t=>'<div class="team"><h3>'+esc(t.name)+'</h3>'+t.players.map(id=>'<p><span>'+esc(displayName(roster.find(p=>p.id===id)?.name))+' <small>'+roster.find(p=>p.id===id)?.tier+'티어</small></span><select data-move="'+id+'" aria-label="'+esc(displayName(roster.find(p=>p.id===id)?.name))+' 팀" '+(lock?'disabled':'')+'>'+teams.map(n=>'<option value="'+n.id+'" '+(n.id===t.id?'selected':'')+'>'+esc(n.name)+'</option>').join('')+'</select></p>').join('')+'</div>').join('');
     document.querySelectorAll('#setup input:not([data-attend]),#setup select:not([data-tier]),#setup button:not([data-player])').forEach(n=>n.disabled=!!lock);$('#generate').disabled=!!lock||!teams.length;
   }
@@ -584,9 +593,26 @@ window.IRASBadminton = createBadmintonRules();
     persist();renderPlayerAttendance();
     if(storageError)$('#popup-default-help').textContent='설정을 저장하지 못했습니다. '+storageError;
   });
-  let draggedPlayer=null;
+  let draggedPlayer=null, dragScrollTimer=null, dragScrollList=null, dragScrollStep=0;
+  function stopDragScroll(){
+    if(dragScrollTimer!==null)clearInterval(dragScrollTimer);
+    dragScrollTimer=null;dragScrollList=null;dragScrollStep=0;
+  }
+  function updateDragScroll(target,y){
+    const list=target?.querySelector('.tier-players[tabindex]');
+    if(!list||list.scrollHeight<=list.clientHeight){stopDragScroll();return;}
+    const rect=list.getBoundingClientRect(),edge=Math.min(48,rect.height/3);
+    const step=y>=rect.top&&y<rect.top+edge?-12:y<=rect.bottom&&y>rect.bottom-edge?12:0;
+    if(!step){stopDragScroll();return;}
+    if(dragScrollList!==list)stopDragScroll();
+    dragScrollList=list;dragScrollStep=step;
+    if(dragScrollTimer===null)dragScrollTimer=setInterval(()=>{
+      if(!draggedPlayer||started()||!dragScrollList?.isConnected){stopDragScroll();return;}
+      dragScrollList.scrollTop=Math.max(0,Math.min(dragScrollList.scrollHeight-dragScrollList.clientHeight,dragScrollList.scrollTop+dragScrollStep));
+    },30);
+  }
   function clearDrag(){
-    draggedPlayer=null;
+    stopDragScroll();draggedPlayer=null;
     $('#roster').querySelectorAll('.drop-target,.is-dragging').forEach(n=>n.classList.remove('drop-target','is-dragging'));
   }
   $('#roster').addEventListener('dragstart',e=>{
@@ -597,14 +623,15 @@ window.IRASBadminton = createBadmintonRules();
   });
   $('#roster').addEventListener('dragover',e=>{
     const target=e.target.closest('[data-drop-tier]');
-    if(started()||!draggedPlayer||!target)return;
+    if(started()||!draggedPlayer||!target){stopDragScroll();return;}
     e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='move';
-    $('#roster').querySelectorAll('.drop-target').forEach(n=>n.classList.remove('drop-target'));target.classList.add('drop-target');
+    $('#roster').querySelectorAll('.drop-target').forEach(n=>n.classList.remove('drop-target'));target.classList.add('drop-target');updateDragScroll(target,e.clientY);
   });
   $('#roster').addEventListener('dragleave',e=>{
-    const target=e.target.closest('[data-drop-tier]');if(target&&!target.contains(e.relatedTarget))target.classList.remove('drop-target');
+    const target=e.target.closest('[data-drop-tier]');if(target&&!target.contains(e.relatedTarget)){target.classList.remove('drop-target');stopDragScroll();}
   });
   $('#roster').addEventListener('dragend',clearDrag);
+  window.addEventListener('blur',clearDrag);
   $('#roster').addEventListener('drop',attempt(e=>{
     const target=e.target.closest('[data-drop-tier]'),id=draggedPlayer;clearDrag();
     if(started()||!id||!target||!selected.has(id))return;
