@@ -3,7 +3,7 @@
   const environment = window.IRASAdminEnvironment;
   let target = null;
   let REPO = '', BRANCH = '';
-  const paths = {people:'people/index.html', publications:'publications/index.html', news:'news/index.html', 'lab-life':'lab-life/index.html'};
+  const paths = {people:'people/index.html', publications:'publications/index.html', news:'news/index.html', 'lab-life':'lab-life/index.html', badminton:'badminton/records.json'};
   const $ = (s,root=document) => root.querySelector(s);
   let token = '', page = 'people', source = '', sha = '', doc = null, selected = null, pending = null, user = '';
   const rules = window.IRASContentRules;
@@ -24,6 +24,7 @@
     for (const control of document.querySelectorAll('#editor button, #editor input, #editor select, #editor textarea')) control.disabled = value;
     $('#editor').setAttribute('aria-busy', String(value));
     updateDraftStatus();
+    if (!value && page === 'badminton' && badmintonImport) for (const control of document.querySelectorAll('[data-badminton-tier], [data-badminton-reason], #badminton-stage-tiers')) control.disabled = true;
   }
   function guardForm() {
     return !formDirty || confirm('아직 변경사항에 반영하지 않은 입력이 있습니다. 이 입력을 취소하고 이동할까요?');
@@ -50,7 +51,7 @@
     environment.assertRequest(target, path, options);
     const response = await fetch(`https://api.github.com${path}`, { ...options, headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28',...(options.headers||{})} });
     const body = await response.json().catch(()=>({}));
-    if (!response.ok) throw new Error(body.message||`GitHub HTTP ${response.status}`);
+    if (!response.ok) { const error = new Error(body.message||`GitHub HTTP ${response.status}`); error.status = response.status; throw error; }
     return body;
   }
   const contentPath = p => `/repos/${REPO}/contents/${p}`;
@@ -70,7 +71,10 @@
     const g=page==='lab-life'?gallery()[index]:null;
     return {title:$('h3',n)?.textContent.trim()||'',date:$('p.text-sm',n)?.textContent.trim()||'',description:page==='lab-life'?($('h3 + p',n)?.textContent.trim()||''):'',photo:g?.images?.[0]||$('[data-lightbox]',n)?.dataset.full||$('img',n)?.getAttribute('src')||'',photos:g?.images?.join('\n')||[...n.querySelectorAll('[data-lightbox]')].map(b=>b.dataset.full).join('\n'),index};
   }
-  function render(){const q=$('#search').value.toLowerCase().trim();const items=list().filter(x=>!q||JSON.stringify(data(x)).toLowerCase().includes(q));$('#count').textContent=`${items.length}개 항목`;
+  function render(){
+    $('#search').closest('.toolbar').hidden = page === 'badminton';
+    if (page === 'badminton') return renderBadminton();
+    const q=$('#search').value.toLowerCase().trim();const items=list().filter(x=>!q||JSON.stringify(data(x)).toLowerCase().includes(q));$('#count').textContent=`${items.length}개 항목`;
     $('#items').replaceChildren(...items.map(item=>{const d=data(item);const row=document.createElement('div');row.className=page==='publications'?'item publication-item':'item';const body=document.createElement('div');body.innerHTML=`<strong>${safe(d.name||d.title)}</strong><small>${safe(d.section||d.type||d.date)} ${safe(d.role||d.year||'')}</small>`;const actions=document.createElement('div');actions.className='actions';for(const [label,fn,cls] of [['수정',()=>form(item)],['↑',()=>move(item,-1)],['↓',()=>move(item,1)],['삭제',()=>remove(item),'danger']]){const b=document.createElement('button');b.type='button';b.textContent=label;b.className=cls||'';b.onclick=fn;actions.append(b)}if(page!=='publications'){const image=document.createElement('img');image.src=images.get(d.photo)?.preview||environment.previewUrl(window.location.href,d.photo||'');image.alt='';image.onerror=()=>image.removeAttribute('src');row.append(image)}row.append(body,actions);return row}));}
   const types=rules.types;
   function updateClassificationButtons(picker) {
@@ -341,16 +345,19 @@
       stage(); $('#form-area').hidden = true; selected = null; pending = null; formDirty = false;
     } catch (e) { doc = parse(backup); drafts.get(paths[page]).doc = doc; render(); status(e.message, true); }
   }
-  async function getDraft(path, ref = BRANCH) {
+  async function getDraft(path, ref = BRANCH, allowMissing = false) {
     if (drafts.has(path)) return drafts.get(path);
-    const r = await api(contentPath(path) + `?ref=${ref}`);
-    const source = decode(r.content);
-    const state = {source, sha:r.sha, doc:parse(source), dirty:false};
+    let r;
+    try { r = await api(contentPath(path) + '?ref=' + ref); }
+    catch (e) { if (!allowMissing || e.status !== 404 || !/^badminton\/records\/[a-zA-Z0-9-]+\.md$/.test(path)) throw e; r={content:'',sha:null}; }
+    const source = decode(r.content), raw = path.startsWith('badminton/');
+    const state = {source, sha:r.sha, doc:raw ? null : parse(source), dirty:false, raw, text:raw ? source : undefined};
     drafts.set(path, state);
     return state;
   }
   async function load() {
     status('목록을 불러오는 중…');
+    if (page === 'badminton') await loadBadminton();
     const state = await getDraft(paths[page]);
     doc = state.doc; source = state.source; sha = state.sha;
     selected = null; pending = null; formDirty = false; $('#form-area').hidden = true;
@@ -380,13 +387,15 @@
       const entries = dirtyDrafts();
       // Check the exact revision being used as parent before creating any objects.
       const current = await Promise.all(entries.map(async ([path, state]) => {
-        const remote = await api(contentPath(path) + `?ref=${baseHead}`);
-        return {path, expected:state.sha, actual:remote.sha};
+        let actual;
+        try { actual = (await api(contentPath(path) + `?ref=${baseHead}`)).sha; }
+        catch (e) { if (state.raw && state.sha === null && e.status === 404) actual = null; else throw e; }
+        return {path, expected:state.sha, actual};
       }));
       const conflicts = current.filter(x => x.expected !== x.actual).map(x => x.path);
       if (conflicts.length) throw Error(`다른 곳에서 수정된 파일이 있습니다: ${conflicts.join(', ')}. 임시 수정은 유지했습니다. 수정 내용을 따로 보관한 뒤 변경사항 취소 → 연결 해제 → 다시 연결해 최신 파일에서 반영하세요.`);
       const parent = await api(`/repos/${REPO}/git/commits/${baseHead}`);
-      const snapshots = new Map(entries.map(([path, state]) => [path, serialize(state.doc)]));
+      const snapshots = new Map(entries.map(([path, state]) => [path, state.raw ? state.text : serialize(state.doc)]));
       const tree = [...snapshots].map(([path, content]) => ({path, mode:'100644', type:'blob', content}));
       const usedImages = [...images.entries()].filter(([path]) => [...snapshots.values()].some(html => html.includes(path)));
       // Blob uploads do not update the branch or start a Pages deployment.
@@ -416,7 +425,7 @@
         if (!committed) throw Error('업로드 중 다른 변경이 반영되었거나 게시가 실패했습니다. 임시 수정은 유지했습니다. ' + e.message);
       }
       for (const [path, state] of entries) {
-        state.source = snapshots.get(path); state.doc = parse(state.source); state.dirty = false;
+        state.source = snapshots.get(path); state.doc = state.raw ? null : parse(state.source); if (state.raw) state.text = state.source; state.dirty = false;
         // Git blob SHA: needed for the next conflict check without another read.
         const raw = new TextEncoder().encode(state.source);
         const prefix = new TextEncoder().encode(`blob ${raw.length}\0`);
@@ -434,11 +443,236 @@
   }
   function discardAll() {
     if (busy || !confirm('아직 업로드하지 않은 모든 변경사항을 취소할까요?')) return;
-    for (const state of drafts.values()) {state.doc = parse(state.source); state.dirty = false;}
+    for (const [path,state] of drafts) { if (state.raw && state.sha === null) {drafts.delete(path); continue;} state.doc = state.raw ? null : parse(state.source); if (state.raw) state.text = state.source; state.dirty = false;}
+    badmintonImport = null;
     clearImages(); operationCount = 0; selected = null; pending = null; formDirty = false;
     doc = drafts.get(paths[page]).doc; $('#form-area').hidden = true;
     render(); updateDraftStatus(); status('업로드 전 변경사항을 모두 취소했습니다.');
   }
+
+  // The rules factory is also embedded in badminton/index.html for standalone scoring.
+  // Regression checks require both copies to stay identical.
+  /* BADMINTON_CORE_START */
+function createBadmintonRules() {
+  'use strict';
+  const copy = x => JSON.parse(JSON.stringify(x));
+  const fail = message => { throw Error(message); };
+  const check = (ok, message) => { if (!ok) fail(message); };
+  const idOk = x => typeof x === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(x);
+  const nameOk = x => typeof x === 'string' && x.trim().length > 0 && x.length <= 80 && !/[\r\n]/.test(x);
+  const rules = '21-deuce-30-interval-11-v1';
+  function roster(value) {
+    check(value && value.schemaVersion === 1 && Array.isArray(value.players) && value.players.length <= 500, '선수 명단 형식이 올바르지 않습니다.');
+    const ids = new Set();
+    const players = value.players.map(p => {
+      check(p && idOk(p.id) && !ids.has(p.id) && nameOk(p.name) && [1,2,3].includes(p.tier), '선수 ID·이름·티어를 확인하세요.'); ids.add(p.id);
+      const history = Array.isArray(p.history) ? p.history.map(h => {
+        check(h && [1,2,3].includes(h.to) && (h.from === null || [1,2,3].includes(h.from)) && typeof h.at === 'string' && Number.isFinite(Date.parse(h.at)) && typeof h.reason === 'string' && h.reason.length <= 500, '티어 변경 이력이 올바르지 않습니다.');
+        return {from:h.from, to:h.to, at:h.at, reason:h.reason};
+      }) : [];
+      return {id:p.id, name:p.name.trim(), tier:p.tier, history};
+    });
+    return {schemaVersion:1, players};
+  }
+  function balanced(players, count) {
+    check(Number.isInteger(count) && count >= 2 && count <= 6 && players.length >= count*2 && players.length <= count*3, '팀당 2~3명, 전체 2~6팀으로 설정하세요.');
+    const ordered = [...players].sort((a,b)=>a.tier-b.tier || a.name.localeCompare(b.name,'ko'));
+    const teams = Array.from({length:count},(_,i)=>({id:'t'+(i+1),name:String.fromCharCode(65+i)+'팀',players:[]}));
+    ordered.forEach((p,i)=>{const round=Math.floor(i/count), col=i%count; teams[round%2 ? count-1-col : col].players.push(p.id);});
+    const tier=id=>players.find(p=>p.id===id).tier;
+    const cost=()=>{const avg=teams.map(t=>t.players.reduce((n,id)=>n+tier(id),0)/t.players.length); return Math.max(...avg)-Math.min(...avg);};
+    for(let pass=0;pass<20;pass++) {let best=cost(), swap=null; for(let a=0;a<count;a++)for(let b=a+1;b<count;b++)for(let i=0;i<teams[a].players.length;i++)for(let j=0;j<teams[b].players.length;j++) {const A=teams[a].players,B=teams[b].players; [A[i],B[j]]=[B[j],A[i]]; const c=cost(); [A[i],B[j]]=[B[j],A[i]]; if(c<best-0.001){best=c;swap=[a,b,i,j];}} if(!swap)break;const [a,b,i,j]=swap; [teams[a].players[i],teams[b].players[j]]=[teams[b].players[j],teams[a].players[i]];}
+    return teams;
+  }
+  function schedule(teams,courts) {
+    let ring=teams.map(t=>t.id); if(ring.length%2)ring.push(null);
+    const matches=[]; let slot=0;
+    for(let round=1;round<ring.length;round++) {
+      const pairs=[];for(let i=0;i<ring.length/2;i++){const a=ring[i],b=ring[ring.length-1-i];if(a&&b)pairs.push([a,b]);}
+      pairs.forEach((teamIds,i)=>matches.push({id:'m'+(matches.length+1),round,slot:slot+Math.floor(i/courts)+1,court:i%courts+1,teams:teamIds,lineups:null,events:[],finished:false,revisions:[]}));
+      slot+=Math.ceil(pairs.length/courts); ring=[ring[0],ring.at(-1),...ring.slice(1,-1)];
+    }
+    return matches;
+  }
+  function pairOk(pair,team) {return Array.isArray(pair)&&pair.length===2&&new Set(pair).size===2&&pair.every(id=>team.players.includes(id));}
+  function won(score) {const hi=Math.max(...score),lo=Math.min(...score);return hi===30 || hi>=21&&hi-lo>=2;}
+  function replay(session,match) {
+    const teams=match.teams.map(id=>session.teams.find(t=>t.id===id));
+    check(teams.every(Boolean),'경기의 팀을 찾을 수 없습니다.');
+    const score=[0,0]; let interval=null, pending=false, after=null;
+    if(match.lineups===null) {check(match.events.length===0&&!match.finished,'시작하지 않은 경기에는 점수가 없어야 합니다.');return {score,pending:false,over:false,interval:null,after:null};}
+    check(Array.isArray(match.lineups)&&match.lineups.length===2&&match.lineups.every((p,i)=>pairOk(p,teams[i])),'경기 시작 출전자 2명을 확인하세요.');
+    for(const event of match.events) {
+      check(!won(score),'승리 점수 이후의 득점은 허용하지 않습니다.');
+      if(event.type==='point') {check(!pending && [0,1].includes(event.team),'11점 코트 변경과 교체를 먼저 확인하세요.');score[event.team]++; if(!interval&&Math.max(...score)===11){pending=true;interval=[...score];}}
+      else if(event.type==='interval') {
+        check(pending&&!after&&Array.isArray(event.lineups)&&event.lineups.length===2,'코트 변경 시점이 올바르지 않습니다.');
+        event.lineups.forEach((p,i)=>{check(pairOk(p,teams[i]),'교체 후 출전자 2명을 확인하세요.');const shared=p.filter(id=>match.lineups[i].includes(id)).length;check(shared===(teams[i].players.length===3?1:2),'3인 팀은 대기 선수와 1명을 교체해야 합니다.');});
+        after=copy(event.lineups);pending=false;
+      } else fail('알 수 없는 점수 기록입니다.');
+    }
+    check(!match.finished || won(score)&&!pending,'종료 점수가 아닌 경기를 확정할 수 없습니다.');
+    return {score,pending,over:won(score),interval,after};
+  }
+  function validate(input) {
+    check(input&&input.schemaVersion===1&&input.rules===rules&&idOk(input.id)&&nameOk(input.title),'지원하지 않는 모임 형식입니다.');
+    check(typeof input.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(input.date)&&new Date(input.date+'T00:00:00Z').toISOString().slice(0,10)===input.date,'모임 날짜를 확인하세요.');
+    check(Number.isInteger(input.courts)&&input.courts>=1&&input.courts<=3,'코트 수는 1~3개입니다.');
+    const players=roster({schemaVersion:1,players:input.players}).players.map(({history,...p})=>p);
+    check(players.length>=4&&players.length<=18,'참석자는 4~18명입니다.');
+    check(Array.isArray(input.teams)&&input.teams.length>=2&&input.teams.length<=6,'팀 수는 2~6개입니다.');
+    const teamIds=new Set(),assigned=new Set();
+    const teams=input.teams.map(t=>{check(t&&idOk(t.id)&&!teamIds.has(t.id)&&nameOk(t.name)&&Array.isArray(t.players)&&t.players.length>=2&&t.players.length<=3,'팀 구성을 확인하세요.');teamIds.add(t.id);for(const id of t.players){check(players.some(p=>p.id===id)&&!assigned.has(id),'선수가 중복되거나 누락되었습니다.');assigned.add(id);}return {id:t.id,name:t.name.trim(),players:[...t.players]};});
+    check(assigned.size===players.length,'모든 참석자를 팀에 배정하세요.');
+    const expected=teams.length*(teams.length-1)/2;
+    check(Array.isArray(input.matches)&&input.matches.length===expected,'리그 전체 대진이 필요합니다.');
+    const pairs=new Set(),matchIds=new Set(),slots=new Map();
+    const matches=input.matches.map(m=>{
+      check(m&&idOk(m.id)&&!matchIds.has(m.id)&&Array.isArray(m.teams)&&m.teams.length===2&&m.teams[0]!==m.teams[1]&&m.teams.every(id=>teamIds.has(id)),'경기 ID·대진을 확인하세요.');matchIds.add(m.id);
+      const key=[...m.teams].sort().join('/');check(!pairs.has(key),'중복 대진이 있습니다.');pairs.add(key);
+      check([m.round,m.slot,m.court].every(Number.isInteger)&&m.round>=1&&m.round<=7&&m.slot>=1&&m.slot<=15&&m.court>=1&&m.court<=input.courts,'경기 배치를 확인하세요.');
+      const sl=slots.get(m.slot)||{courts:new Set(),teams:new Set()};check(!sl.courts.has(m.court)&&m.teams.every(id=>!sl.teams.has(id)),'같은 시간대에 팀 또는 코트가 중복됩니다.');sl.courts.add(m.court);m.teams.forEach(id=>sl.teams.add(id));slots.set(m.slot,sl);
+      check(Array.isArray(m.events)&&m.events.length<=60&&typeof m.finished==='boolean','점수 기록 형식이 올바르지 않습니다.');
+      const events=m.events.map(e=>e?.type==='point'?{type:'point',team:e.team}:e?.type==='interval'?{type:'interval',lineups:copy(e.lineups)}:fail('알 수 없는 점수 기록입니다.'));
+      const revisions=Array.isArray(m.revisions)?m.revisions.map(r=>{check(r&&typeof r.at==='string'&&Number.isFinite(Date.parse(r.at))&&typeof r.reason==='string'&&r.reason.trim()&&r.reason.length<=500&&Array.isArray(r.score)&&r.score.length===2&&r.score.every(n=>Number.isInteger(n)&&n>=0&&n<=30),'결과 수정 이력이 올바르지 않습니다.');return {at:r.at,reason:r.reason,score:[...r.score]};}):[];
+      return {id:m.id,round:m.round,slot:m.slot,court:m.court,teams:[...m.teams],lineups:m.lineups===null?null:copy(m.lineups),events,finished:m.finished,revisions};
+    });
+    const result={schemaVersion:1,id:input.id,title:input.title.trim(),date:input.date,courts:input.courts,rules,players,teams,matches};
+    matches.forEach(m=>replay(result,m));
+    const active=matches.filter(m=>m.lineups&&!m.finished);check(active.every((m,i)=>active.slice(i+1).every(n=>m.court!==n.court&&!m.teams.some(id=>n.teams.includes(id)))),'진행 중 경기의 팀 또는 코트가 중복됩니다.');
+    return result;
+  }
+  function standings(s) {
+    const rows=s.teams.map(t=>({id:t.id,name:t.name,played:0,wins:0,losses:0,for:0,against:0,diff:0}));
+    for(const m of s.matches.filter(m=>m.finished)){const {score}=replay(s,m);m.teams.forEach((id,i)=>{const r=rows.find(r=>r.id===id);r.played++;r.wins+=Number(score[i]>score[1-i]);r.losses+=Number(score[i]<score[1-i]);r.for+=score[i];r.against+=score[1-i];r.diff=r.for-r.against;});}
+    rows.sort((a,b)=>b.wins-a.wins||b.diff-a.diff||b.for-a.for||a.name.localeCompare(b.name,'ko'));
+    rows.forEach((r,i)=>{const prev=rows[i-1];r.rank=prev&&r.wins===prev.wins&&r.diff===prev.diff&&r.for===prev.for?prev.rank:i+1;});return rows;
+  }
+  function stats(sessions) {
+    const out=new Map();
+    for(const s of sessions)for(const m of s.matches.filter(m=>m.finished)){const r=replay(s,m);m.teams.forEach((id,i)=>{const before=m.lineups[i],after=r.after[i];for(const pid of new Set([...before,...after])){const p=s.players.find(p=>p.id===pid);const row=out.get(pid)||{id:pid,name:p.name,played:0,wins:0,losses:0,first:0,second:0};row.played++;row.wins+=Number(r.score[i]>r.score[1-i]);row.losses+=Number(r.score[i]<r.score[1-i]);row.first+=Number(before.includes(pid));row.second+=Number(after.includes(pid));out.set(pid,row);}});}return [...out.values()];
+  }
+  const cell=x=>String(x).replace(/[|\r\n]/g,' ').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  function markdown(input) {
+    const s=validate(input), ranks=standings(s), complete=s.matches.every(m=>m.finished);
+    const lines=['# '+cell(s.title),'', '날짜: '+s.date,'모임 ID: '+s.id,'상태: '+(complete?'완료':'진행 중'),'규칙: 21점 단판 · 듀스 · 30점 상한 · 최초 11점 코트 변경 및 3인 팀 교체','','## 팀 구성','','| 팀 | 선수 (당시 티어) |','| --- | --- |',...s.teams.map(t=>'| '+cell(t.name)+' | '+t.players.map(id=>{const p=s.players.find(p=>p.id===id);return cell(p.name)+' ('+p.tier+'티어)';}).join(', ')+' |'),'','## 팀 순위','','| 순위 | 팀 | 경기 | 승 | 패 | 득점 | 실점 | 득실차 |','| --- | --- | --- | --- | --- | --- | --- | --- |',...ranks.map(r=>'| '+[r.rank,cell(r.name),r.played,r.wins,r.losses,r.for,r.against,r.diff].join(' | ')+' |'),'','## 경기 결과','','| 경기 | 대진 | 점수 | 상태 |','| --- | --- | --- | --- |',...s.matches.map(m=>'| '+[m.id,m.teams.map(id=>cell(s.teams.find(t=>t.id===id).name)).join(' vs '),replay(s,m).score.join(' : '),m.finished?'확정':m.lineups?'진행':'대기'].join(' | ')+' |'),'','## 개인 출전 통계','','| 선수 | 경기 | 팀 승 | 팀 패 | 전반 | 후반 |','| --- | --- | --- | --- | --- | --- |',...stats([s]).map(p=>'| '+[cell(p.name),p.played,p.wins,p.losses,p.first,p.second].join(' | ')+' |'),'','## 다시 불러오기용 원본','','아래 데이터가 원본입니다. 표는 원본에서 다시 계산합니다.','','~~~json iras-badminton-v1',JSON.stringify(s,null,2),'~~~',''];return lines.join('\n');
+  }
+  function fromMarkdown(text) {check(typeof text==='string'&&text.length<=1024*1024,'MD는 1MB 이하이어야 합니다.');const parts=[...text.matchAll(/^~~~json iras-badminton-v1\r?\n([\s\S]*?)\r?\n~~~\s*$/gm)];check(parts.length===1,'지원하는 배드민턴 MD 원본 블록이 하나 필요합니다.');return validate(JSON.parse(parts[0][1]));}
+  function index(value) {check(value&&value.schemaVersion===1&&Array.isArray(value.sessions)&&value.sessions.length<=2000,'기록 목록 형식이 올바르지 않습니다.');const ids=new Set();return {schemaVersion:1,sessions:value.sessions.map(s=>{check(s&&idOk(s.id)&&!ids.has(s.id)&&nameOk(s.title)&&/^\d{4}-\d{2}-\d{2}$/.test(s.date)&&s.file==='records/'+s.id+'.md','기록 경로 또는 ID가 올바르지 않습니다.');ids.add(s.id);return {id:s.id,title:s.title,date:s.date,file:s.file};})};}
+  return {copy,rules,roster,index,balanced,schedule,replay,validate,standings,stats,markdown,fromMarkdown};
+}
+
+  /* BADMINTON_CORE_END */
+  const badminton = createBadmintonRules();
+  const badmintonPaths = {players:'badminton/players.json', index:'badminton/records.json'};
+  let badmintonImport = null;
+  function badmintonData() {
+    const players = badminton.roster(JSON.parse(drafts.get(badmintonPaths.players).text));
+    const index = badminton.index(JSON.parse(drafts.get(badmintonPaths.index).text));
+    const sessions = index.sessions.map(s => {
+      const session = badminton.fromMarkdown(drafts.get('badminton/' + s.file).text);
+      if (session.id !== s.id) throw Error('목록과 기록 ID가 다릅니다.');
+      return session;
+    });
+    return {players, index, sessions};
+  }
+  async function loadBadminton() {
+    await getDraft(badmintonPaths.players);
+    const indexState = await getDraft(badmintonPaths.index);
+    const index = badminton.index(JSON.parse(indexState.text));
+    for (let i = 0; i < index.sessions.length; i += 4) {
+      await Promise.all(index.sessions.slice(i, i + 4).map(s => getDraft('badminton/' + s.file)));
+    }
+    badmintonImport = null;
+    badmintonData();
+  }
+  function stageBadminton(path, text) {
+    const state = drafts.get(path);
+    if (!state || !state.raw) throw Error('기록 원본을 먼저 불러오세요.');
+    state.text = text; state.dirty = state.text !== state.source;
+  }
+  function badmintonStatsTable(sessions) {
+    const rows = badminton.stats(sessions);
+    return '<div class="badminton-table"><table><thead><tr><th>선수</th><th>출전</th><th>팀 승</th><th>팀 패</th><th>전반</th><th>후반</th></tr></thead><tbody>' + rows.map(p => '<tr>' + [p.name,p.played,p.wins,p.losses,p.first,p.second].map(x => '<td>' + safe(x) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>';
+  }
+  function renderBadminton() {
+    const {players,index,sessions} = badmintonData();
+    const candidate = badmintonImport;
+    const replaced = candidate && sessions.find(s => s.id === candidate.id);
+    const statsSessions = candidate ? [...sessions.filter(s => s.id !== candidate.id),candidate] : sessions;
+    $('#count').textContent = index.sessions.length + '개 모임 · ' + players.players.length + '명';
+    $('#items').innerHTML = '<div class="badminton-admin"><h2>배드민턴 기록·티어</h2><p class="note">확정된 리그 MD를 가져와 게시합니다. 기록과 티어는 공개됩니다. <a href="../badminton/" target="_blank" rel="noopener">경기 운영 페이지 열기</a></p>' +
+      '<label>결과 MD 가져오기<input type="file" id="badminton-import" accept=".md,text/markdown,text/plain"></label>' +
+      (candidate ? '<div class="badminton-preview"><h3>' + safe(candidate.title) + '</h3><p>' + safe(candidate.date) + ' · ' + candidate.matches.length + '경기 확정 · ' + (replaced ? '기존 모임 수정' : '새 모임') + '</p>' + (replaced ? '<p class="note">동일 모임 ID입니다. 기존 결과와 비교한 뒤 교체하세요.</p><details><summary>기존 경기 결과</summary>' + badmintonResultTable(replaced) + '</details>' : '') + '<h4>가져온 경기 결과</h4>' + badmintonResultTable(candidate) + '<button id="badminton-stage-record" type="button">기록을 변경사항에 반영</button> <button id="badminton-cancel-import" type="button">가져오기 취소</button></div>' : '') +
+      '<h3>' + (candidate ? '이번 결과 포함 누적 출전 통계 (반영 전)' : '누적 출전 통계') + '</h3><p class="note">팀 승패와 전·후반 출전 기록입니다. 개인 실력 점수로 자동 환산하지 않습니다.</p>' + badmintonStatsTable(statsSessions) +
+      '<h3>선수 티어</h3><p class="note">1티어가 가장 높은 단계입니다. 변경 사유를 적고 반영한 뒤 상단에서 업로드하세요. 과거 경기의 당시 티어는 바뀌지 않습니다.</p>' +
+      '<div class="badminton-tier-list">' + players.players.map(p => '<div class="badminton-tier-row" data-player-id="' + p.id + '"><strong>' + safe(p.name) + '</strong><label>티어<select data-badminton-tier="' + p.id + '" ' + (candidate ? 'disabled' : '') + '>' + [1,2,3].map(n => '<option value="' + n + '" ' + (n === p.tier ? 'selected' : '') + '>' + n + '티어</option>').join('') + '</select></label><label>변경 사유<input data-badminton-reason="' + p.id + '" ' + (candidate ? 'disabled' : '') + ' maxlength="500" placeholder="경기 기록을 참고한 판단"></label><details><summary>변경 이력 ' + p.history.length + '건</summary>' + p.history.map(h => '<p class="note">' + safe(h.at) + ' / ' + (h.from ?? '신규') + ' → ' + h.to + ' / ' + safe(h.reason) + '</p>').join('') + '</details></div>').join('') + '</div>' +
+      (players.players.length ? '<button id="badminton-stage-tiers" type="button">티어를 변경사항에 반영</button>' : '<p class="note">첫 경기 MD를 반영하면 선수 명단이 등록됩니다. 경기 운영 페이지에서 신규 선수를 추가하세요.</p>') +
+      '<h3>저장된 모임</h3>' + index.sessions.slice().sort((a,b) => b.date.localeCompare(a.date)).map(s => '<details class="badminton-record"><summary>' + safe(s.date + ' · ' + s.title) + '</summary>' + badmintonResultTable(sessions.find(x => x.id === s.id)) + '</details>').join('') + '</div>';
+    $('#badminton-import').onchange = async e => {
+      if (busy) return;
+      const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+      if (!guardForm()) return;
+      setBusy(true);
+      try {
+        if (file.size > 1024 * 1024) throw Error('MD 파일은 1MB 이하로 선택하세요.');
+        const imported = badminton.fromMarkdown(await file.text());
+        if (!imported.matches.every(m => m.finished)) throw Error('모든 경기를 확정한 MD만 게시할 수 있습니다. 경기 운영 페이지에서 마무리하세요.');
+        // Loading an existing unindexed path is not permission to overwrite it.
+        const path = 'badminton/records/' + imported.id + '.md';
+        const original = await getDraft(path, BRANCH, true);
+        if (original.sha && !index.sessions.some(s => s.id === imported.id)) throw Error('같은 ID의 파일이 이미 있지만 목록에 없습니다. 원본을 확인하세요.');
+        const existingPlayers = new Map(players.players.map(p => [p.id,p]));
+        for (const p of imported.players) {
+          if (existingPlayers.has(p.id) && existingPlayers.get(p.id).name !== p.name) throw Error('기존 선수 ID와 이름이 다릅니다: ' + p.name);
+          if (!existingPlayers.has(p.id) && players.players.some(q => q.name === p.name)) throw Error('같은 이름의 다른 선수 ID가 있습니다. 게시된 명단을 사용해 MD의 선수를 확인하세요: ' + p.name);
+        }
+        badmintonImport = imported; formDirty = true; renderBadminton(); status('가져온 결과를 확인하고 기록을 변경사항에 반영하세요.');
+      } catch (e) { status(e.message,true); }
+      finally { setBusy(false); }
+    };
+    const cancel = $('#badminton-cancel-import');
+    if (cancel) cancel.onclick = () => { badmintonImport = null; formDirty = false; renderBadminton(); };
+    const stageRecord = $('#badminton-stage-record');
+    if (stageRecord) stageRecord.onclick = () => {
+      if (busy || !badmintonImport) return;
+      try {
+        const imported = badminton.validate(badmintonImport), data = badmintonData();
+        const filename = 'records/' + imported.id + '.md';
+        const entry = {id:imported.id,title:imported.title,date:imported.date,file:filename};
+        data.index.sessions = [...data.index.sessions.filter(s => s.id !== imported.id),entry];
+        for (const p of imported.players) if (!data.players.players.some(q => q.id === p.id)) data.players.players.push({...p,history:[{from:null,to:p.tier,at:new Date().toISOString(),reason:'첫 경기 기록에서 등록'}]});
+        stageBadminton('badminton/' + filename,badminton.markdown(imported));
+        stageBadminton(badmintonPaths.index,JSON.stringify(badminton.index(data.index),null,2)+'\n');
+        stageBadminton(badmintonPaths.players,JSON.stringify(badminton.roster(data.players),null,2)+'\n');
+        operationCount++; badmintonImport = null; formDirty = false; renderBadminton(); updateDraftStatus(); status('기록을 반영했습니다. 티어를 검토한 뒤 상단에서 업로드하세요.');
+      } catch (e) { status(e.message,true); }
+    };
+    const stageTiers = $('#badminton-stage-tiers');
+    if (stageTiers) stageTiers.onclick = () => {
+      if (busy) return;
+      if (badmintonImport) return status('가져온 기록을 먼저 반영하거나 취소하세요.',true);
+      try {
+        const data = badmintonData(); let count = 0;
+        for (const p of data.players.players) {
+          const tier = Number($('[data-badminton-tier="' + p.id + '"]').value);
+          if (tier === p.tier) continue;
+          const reason = $('[data-badminton-reason="' + p.id + '"]').value.trim();
+          if (!reason) throw Error(p.name + ': 티어 변경 사유를 입력하세요.');
+          p.history.push({from:p.tier,to:tier,at:new Date().toISOString(),reason}); p.tier=tier; count++;
+        }
+        if (!count) {formDirty=false;return status('변경된 티어가 없습니다.');}
+        stageBadminton(badmintonPaths.players,JSON.stringify(badminton.roster(data.players),null,2)+'\n');
+        operationCount++; formDirty=false; renderBadminton(); updateDraftStatus(); status(count+'명의 티어를 반영했습니다. 상단에서 업로드하세요.');
+      } catch (e) { status(e.message,true); }
+    };
+    $('#items').oninput = e => { if (page==='badminton' && (e.target.dataset.badmintonTier || e.target.dataset.badmintonReason)) formDirty=true; };
+    $('#items').onchange = $('#items').oninput;
+  }
+  function badmintonResultTable(s) {
+    return '<div class="badminton-table"><table><thead><tr><th>경기</th><th>대진</th><th>점수</th></tr></thead><tbody>' + s.matches.map(m => '<tr><td>' + safe(m.id) + '</td><td>' + m.teams.map(id => safe(s.teams.find(t => t.id===id).name)).join(' vs ') + '</td><td>' + badminton.replay(s,m).score.join(' : ') + '</td></tr>').join('') + '</tbody></table></div>';
+  }
+
   $('#login-form').onsubmit = async e => {
     e.preventDefault(); if (busy) return;
     try { environment.assertReady(target, window); }
@@ -458,17 +692,19 @@
   $('#logout').onclick = () => {
     if (busy) return;
     if ((dirtyDrafts().length || formDirty) && !confirm('업로드하지 않은 변경사항이 있습니다. 취소하고 연결을 해제할까요?')) return;
+    badmintonImport = null;
     lookupRequest?.abort();lookupRequest=null;token = ''; $('#token').value = ''; doc = null; source = ''; sha = ''; user = ''; selected = null; pending = null; drafts.clear(); clearImages(); operationCount = 0; formDirty = false;
     $('#editor').hidden = true; $('#login').hidden = false; updateDraftStatus(); status('연결을 해제했습니다.');
   };
   $('#tabs').onclick = async e => {
     const button = e.target.closest('[data-page]');
     if (busy || !button || button.dataset.page === page || !guardForm()) return;
+    badmintonImport = null;
     lookupRequest?.abort();lookupRequest=null;const previous = page; page = button.dataset.page; setBusy(true);
     try {
       $('#search').value = ''; await load();
       for (const b of $('#tabs').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b === button));
-    } catch (err) { page = previous; status(err.message, true); }
+    } catch (err) { page = previous; render(); status(err.message, true); }
     finally { setBusy(false); }
   };
   $('#content-form').oninput = e => {

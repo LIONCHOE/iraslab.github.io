@@ -35,7 +35,8 @@
         const separator = suffix.indexOf('?');
         const file = suffix.slice(0, separator);
         const query = separator >= 0 ? new URLSearchParams(suffix.slice(separator + 1)) : null;
-        if (contentFiles.includes(file) && query && [...query].length === 1 && query.has('ref') && (query.get('ref') === target.branch || isSha(query.get('ref')))) return;
+        const badmintonFile = ['badminton/players.json', 'badminton/records.json'].includes(file) || /^badminton\/records\/[a-zA-Z0-9-]+\.md$/.test(file);
+        if ((contentFiles.includes(file) || badmintonFile) && query && [...query].length === 1 && query.has('ref') && (query.get('ref') === target.branch || isSha(query.get('ref')))) return;
       }
       if (path.startsWith(prefix + '/git/commits/') && isSha(path.slice((prefix + '/git/commits/').length))) return;
       if (path.startsWith(prefix + '/compare/')) {

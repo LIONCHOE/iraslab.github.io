@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#174f46"><title>Badminton · IRAS</title>
+<style>
+:root{font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;color:#203c36;background:#edf3ef;font-synthesis:none;--court:#174f46;--line:#ccdcd2;--paper:#fff;--accent:#a51d53}*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button,a,input,select{touch-action:manipulation}button{min-height:44px;padding:10px 16px;border:1px solid #a7bfb1;border-radius:6px;background:white;color:var(--court);cursor:pointer;font-weight:700}button:hover{background:#e3eee7}button:disabled{opacity:.45;cursor:default}button.primary{background:var(--court);color:white;border-color:var(--court)}button.danger{color:#a51d53}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #d487a4;outline-offset:3px}input,select{min-height:44px;padding:9px;border:1px solid #a7bfb1;border-radius:5px;background:white;color:#203c36;max-width:100%}input[type=checkbox]{width:20px;min-height:20px}a{color:inherit;text-underline-offset:4px}header{background:var(--court);color:white;padding:24px max(20px,calc((100% - 1160px)/2));border-bottom:6px solid #c8dd9e}header .brand{display:flex;justify-content:space-between;gap:16px;font-size:.88rem}h1{font-size:clamp(30px,5vw,48px);letter-spacing:-1.5px;margin:24px 0 8px}header p{color:#d1e3d9;margin:0;line-height:1.7}main{max-width:1200px;margin:auto;padding:24px 20px 60px}nav{display:flex;gap:8px;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:20px;flex-wrap:wrap}nav button[aria-pressed=true]{background:var(--court);color:white}.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0}.toolbar label{display:grid;gap:6px}.toolbar .grow{flex:1;min-width:160px}h2{font-size:24px;margin:0 0 16px}h3{font-size:18px}.sheet{padding:24px;background:white;border:1px solid var(--line);border-radius:10px;margin:18px 0}.note,small{color:#536c60;font-size:.88rem;line-height:1.6}.notice{padding:14px 18px;border-left:4px solid #738e49;background:#f4f8e9;line-height:1.7}.empty{padding:32px 0;line-height:1.8}.players{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.player{display:flex;gap:10px;align-items:center;padding:12px;background:#f3f7f4;min-width:0}.player span{flex:1;overflow-wrap:anywhere}.player select{width:92px}.teams{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.team{border-top:4px solid #739c8b;padding:12px;background:#f3f7f4}.team p{display:flex;justify-content:space-between;align-items:center;gap:8px}.matches{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.match{background:white;border:1px solid var(--line);border-radius:10px;overflow:hidden;min-width:0}.match-head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;background:#f5f8f6}.court{display:grid;grid-template-columns:1fr 1fr;position:relative;background:var(--court);color:white;padding:22px 12px;gap:20px}.court:after{content:'';position:absolute;left:50%;top:12px;bottom:12px;border-left:1px dashed #c3dacc;pointer-events:none}.side{text-align:center;min-width:0;overflow-wrap:anywhere}.side h3{margin:0}.side .names{font-size:.82rem;min-height:38px;color:#d9e8df;margin-top:8px}.points{display:block;font-size:clamp(48px,7vw,76px);font-weight:800;line-height:1.3;font-variant-numeric:tabular-nums}.point{width:100%;font-size:20px;background:#edf3ef}.match-body{padding:18px}.lineup{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px}.lineup select{max-width:100%;flex:1;min-width:80px}.interval{background:#f5f1da;padding:16px;margin-bottom:12px}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;text-align:left;font-variant-numeric:tabular-nums}th,td{padding:14px 10px;border-bottom:1px solid var(--line);white-space:nowrap}th{font-size:.85rem;color:#536c60}td:first-child{font-weight:700}#message{position:sticky;bottom:12px;background:#203c36;color:white;padding:12px 16px;border-radius:6px;z-index:3;line-height:1.5}#message:empty{display:none}.error{background:#8e244a!important;color:white!important}#save-state{font-size:.85rem;color:#536c60;margin-left:auto}.record{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:16px 0;border-bottom:1px solid var(--line)}.record strong{display:block}.file-label{display:inline-flex;align-items:center;padding:10px 16px;min-height:44px;border:1px solid #a7bfb1;border-radius:6px;cursor:pointer;background:white;font-weight:700}.file-label:focus-within{outline:3px solid #d487a4}.file-label input{position:absolute;width:1px;height:1px;min-height:0;opacity:0}.view[hidden]{display:none}footer{font-size:.85rem;color:#536c60;margin-top:28px}@media(max-width:720px){main{padding:16px 12px 40px}.sheet{padding:18px}.players,.teams{grid-template-columns:repeat(2,minmax(0,1fr))}.matches{grid-template-columns:1fr}nav{gap:6px}nav button{padding:10px 12px}.brand a{font-size:.8rem}.record{align-items:flex-start}#save-state{width:100%;margin:0}}@media(max-width:420px){.players,.teams{grid-template-columns:1fr}.toolbar label{width:100%}.toolbar input,.toolbar select{width:100%}.points{font-size:64px}}
+
+/* 리그 전체 표와 경기 점수 팝업 */
+.league-scroll{max-width:100%;overflow:auto;border:1px solid var(--line);border-radius:10px;background:white;margin:16px 0;isolation:isolate}.league-matrix{table-layout:fixed;min-width:720px}.league-matrix caption{text-align:left;padding:14px 16px;color:#536c60;font-size:.88rem;line-height:1.6}.league-matrix th,.league-matrix td{padding:0;text-align:center;white-space:normal;border:1px solid var(--line)}.league-matrix thead th{height:44px;padding:8px;background:#e3eee7;color:var(--court)}.league-matrix .matrix-team{position:sticky;left:0;z-index:1;width:140px;padding:12px;background:#f0f5f1;text-align:left;box-shadow:2px 0 0 var(--line)}.matrix-team strong{display:block}.matrix-members{display:block;margin-top:6px;font-weight:400;font-size:.75rem;color:#536c60;overflow-wrap:anywhere}.matrix-diagonal{background:#edf3ef;color:#8aa092}.matrix-cell{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;width:100%;min-height:88px;border:0;border-radius:0;padding:9px 5px;font-weight:400;background:white}.matrix-cell strong{font-size:1.2rem;font-variant-numeric:tabular-nums}.matrix-cell.waiting strong{font-size:.9rem;color:#536c60}.matrix-cell.playing{background:#fff5d8;box-shadow:inset 0 3px #b58a20}.matrix-cell.finished{background:#eaf4ee}.matrix-state{font-size:.75rem}.matrix-cell small{font-size:.7rem}.matrix-cell:hover{background:#dcebe2}.matrix-cell:focus-visible{outline-offset:-4px}.league-scroll:focus-visible{outline:3px solid #d487a4;outline-offset:3px}
+#match-popup{width:min(620px,calc(100% - 24px));max-height:calc(100dvh - 24px);padding:20px;border:1px solid #9fb7a8;border-radius:14px;color:#203c36;background:#f5f8f6;overflow-y:auto;overscroll-behavior:contain}#match-popup::backdrop{background:rgba(14,36,29,.62)}.popup-header{display:flex;justify-content:space-between;align-items:center;gap:12px}.popup-header h2{font-size:22px;margin:0}.popup-header button{flex-shrink:0}#match-popup-help{margin:12px 0 16px}#match-popup .match{width:100%}#match-popup-message{font-size:.88rem;line-height:1.6;margin-bottom:0}#match-popup-message:empty{display:none}#match-popup-message.error{padding:10px;border-radius:5px}@media(max-width:600px){.league-matrix{min-width:660px}.league-matrix .matrix-team{width:112px;padding:10px}.matrix-cell{min-height:84px}#match-popup{padding:14px}.popup-header h2{font-size:19px}#match-popup .match-body{padding:14px}}
+</style></head>
+<body>
+<header><div class="brand"><a href="../">IRAS 홈페이지</a><a href="../admin/">기록·티어 관리자</a></div><h1>우리 연구실, 오늘의 리그</h1><p>함께 팀을 꾸리고, 한 경기씩 기록합니다.</p></header>
+<main><nav aria-label="배드민턴 메뉴"><button data-tab="setup" aria-pressed="true">경기 준비</button><button data-tab="matches" aria-pressed="false">대진·점수</button><button data-tab="ranking" aria-pressed="false">순위</button><button data-tab="history" aria-pressed="false">지난 기록</button></nav>
+<div class="toolbar"><button id="export">MD 다운로드</button><label class="file-label">MD 불러오기<input id="import" type="file" accept=".md,text/markdown,text/plain"></label><button id="new" class="danger">새 모임</button><span id="save-state">이 브라우저에서 경기 기록</span></div>
+<section id="setup" class="view"><div class="sheet"><h2>오늘 누가 함께하나요?</h2><p class="note">2~6팀, 팀당 2~3명으로 편성합니다. 1티어가 가장 높은 단계입니다.</p><div class="toolbar"><label class="grow">모임 이름<input id="title" maxlength="80" value="IRAS 배드민턴 정기 모임"></label><label>날짜<input id="date" type="date"></label><label>팀 수<select id="team-count"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label><label>코트 수<select id="court-count"><option>1</option><option>2</option><option>3</option></select></label></div><div class="toolbar"><button id="refresh-roster" type="button">게시된 명단·티어 새로고침</button></div><div id="roster" class="players"></div><form id="add-player" class="toolbar"><label class="grow">선수 이름<input id="player-name" maxlength="80" required placeholder="새 선수 이름"></label><label>최초 티어<select id="player-tier"><option value="1">1티어</option><option value="2" selected>2티어</option><option value="3">3티어</option></select></label><button type="submit">선수 추가</button></form><div class="toolbar"><button id="balance" class="primary">균형 팀 편성</button><span id="attendance" class="note"></span></div><div id="teams" class="teams"></div><div class="toolbar"><button id="generate" class="primary">리그 대진 만들기</button></div><p id="locked" class="notice" hidden>경기가 시작되어 팀과 당시 티어를 보존합니다. 점수 수정은 대진·점수 화면에서 진행하세요.</p></div></section>
+<section id="matches" class="view" hidden><h2 id="match-title">대진·점수</h2><p class="note">21점 단판 · 듀스 · 30점 상한. 최초 11점에 코트를 바꾸고 3인 팀은 1명을 교체합니다.</p><div id="round-rest" class="note"></div><div id="match-list" class="league-scroll" role="region" aria-label="전체 리그 대진표" tabindex="0"></div></section>
+<section id="ranking" class="view" hidden><div class="sheet"><h2>오늘의 순위</h2><p class="note">확정 경기만 반영 · 승수 → 득실차 → 총득점 · 같으면 공동 순위</p><div id="ranking-table" class="table-wrap"></div></div><div class="sheet"><h2>개인 출전 기록</h2><p class="note">승패는 출전한 경기의 팀 결과입니다. 개인 실력이나 기여도를 자동 평가하지 않습니다.</p><div id="stats" class="table-wrap"></div></div></section>
+<section id="history" class="view" hidden><div class="sheet"><h2>지난 모임</h2><p class="note">관리자가 게시한 기록입니다. 불러오면 현재 기록을 바꾸므로 먼저 MD를 내려받으세요.</p><div id="history-list"></div></div></section>
+<p id="message" role="status" aria-live="polite"></p><footer>경기 기록은 현재 브라우저에 임시 저장됩니다. 종료 후 MD를 내려받아 관리자에게 전달하세요. 다른 기기와 자동 동기화되지 않습니다.</footer></main>
+<dialog id="match-popup" aria-labelledby="match-popup-title" aria-describedby="match-popup-help">
+<div class="popup-header"><h2 id="match-popup-title" tabindex="-1">경기 점수 입력</h2><button id="close-match-popup" type="button" aria-label="점수 입력 팝업 닫기">닫기 ×</button></div>
+<p id="match-popup-help" class="note">입력한 점수는 즉시 반영됩니다. 팝업을 닫아도 경기 기록은 유지됩니다.</p>
+<div id="match-popup-body"></div><p id="match-popup-message" role="status" aria-live="polite"></p>
+</dialog>
+<script id="badminton-core">
+function createBadmintonRules() {
+  'use strict';
+  const copy = x => JSON.parse(JSON.stringify(x));
+  const fail = message => { throw Error(message); };
+  const check = (ok, message) => { if (!ok) fail(message); };
+  const idOk = x => typeof x === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(x);
+  const nameOk = x => typeof x === 'string' && x.trim().length > 0 && x.length <= 80 && !/[\r\n]/.test(x);
+  const rules = '21-deuce-30-interval-11-v1';
+  function roster(value) {
+    check(value && value.schemaVersion === 1 && Array.isArray(value.players) && value.players.length <= 500, '선수 명단 형식이 올바르지 않습니다.');
+    const ids = new Set();
+    const players = value.players.map(p => {
+      check(p && idOk(p.id) && !ids.has(p.id) && nameOk(p.name) && [1,2,3].includes(p.tier), '선수 ID·이름·티어를 확인하세요.'); ids.add(p.id);
+      const history = Array.isArray(p.history) ? p.history.map(h => {
+        check(h && [1,2,3].includes(h.to) && (h.from === null || [1,2,3].includes(h.from)) && typeof h.at === 'string' && Number.isFinite(Date.parse(h.at)) && typeof h.reason === 'string' && h.reason.length <= 500, '티어 변경 이력이 올바르지 않습니다.');
+        return {from:h.from, to:h.to, at:h.at, reason:h.reason};
+      }) : [];
+      return {id:p.id, name:p.name.trim(), tier:p.tier, history};
+    });
+    return {schemaVersion:1, players};
+  }
+  function balanced(players, count) {
+    check(Number.isInteger(count) && count >= 2 && count <= 6 && players.length >= count*2 && players.length <= count*3, '팀당 2~3명, 전체 2~6팀으로 설정하세요.');
+    const ordered = [...players].sort((a,b)=>a.tier-b.tier || a.name.localeCompare(b.name,'ko'));
+    const teams = Array.from({length:count},(_,i)=>({id:'t'+(i+1),name:String.fromCharCode(65+i)+'팀',players:[]}));
+    ordered.forEach((p,i)=>{const round=Math.floor(i/count), col=i%count; teams[round%2 ? count-1-col : col].players.push(p.id);});
+    const tier=id=>players.find(p=>p.id===id).tier;
+    const cost=()=>{const avg=teams.map(t=>t.players.reduce((n,id)=>n+tier(id),0)/t.players.length); return Math.max(...avg)-Math.min(...avg);};
+    for(let pass=0;pass<20;pass++) {let best=cost(), swap=null; for(let a=0;a<count;a++)for(let b=a+1;b<count;b++)for(let i=0;i<teams[a].players.length;i++)for(let j=0;j<teams[b].players.length;j++) {const A=teams[a].players,B=teams[b].players; [A[i],B[j]]=[B[j],A[i]]; const c=cost(); [A[i],B[j]]=[B[j],A[i]]; if(c<best-0.001){best=c;swap=[a,b,i,j];}} if(!swap)break;const [a,b,i,j]=swap; [teams[a].players[i],teams[b].players[j]]=[teams[b].players[j],teams[a].players[i]];}
+    return teams;
+  }
+  function schedule(teams,courts) {
+    let ring=teams.map(t=>t.id); if(ring.length%2)ring.push(null);
+    const matches=[]; let slot=0;
+    for(let round=1;round<ring.length;round++) {
+      const pairs=[];for(let i=0;i<ring.length/2;i++){const a=ring[i],b=ring[ring.length-1-i];if(a&&b)pairs.push([a,b]);}
+      pairs.forEach((teamIds,i)=>matches.push({id:'m'+(matches.length+1),round,slot:slot+Math.floor(i/courts)+1,court:i%courts+1,teams:teamIds,lineups:null,events:[],finished:false,revisions:[]}));
+      slot+=Math.ceil(pairs.length/courts); ring=[ring[0],ring.at(-1),...ring.slice(1,-1)];
+    }
+    return matches;
+  }
+  function pairOk(pair,team) {return Array.isArray(pair)&&pair.length===2&&new Set(pair).size===2&&pair.every(id=>team.players.includes(id));}
+  function won(score) {const hi=Math.max(...score),lo=Math.min(...score);return hi===30 || hi>=21&&hi-lo>=2;}
+  function replay(session,match) {
+    const teams=match.teams.map(id=>session.teams.find(t=>t.id===id));
+    check(teams.every(Boolean),'경기의 팀을 찾을 수 없습니다.');
+    const score=[0,0]; let interval=null, pending=false, after=null;
+    if(match.lineups===null) {check(match.events.length===0&&!match.finished,'시작하지 않은 경기에는 점수가 없어야 합니다.');return {score,pending:false,over:false,interval:null,after:null};}
+    check(Array.isArray(match.lineups)&&match.lineups.length===2&&match.lineups.every((p,i)=>pairOk(p,teams[i])),'경기 시작 출전자 2명을 확인하세요.');
+    for(const event of match.events) {
+      check(!won(score),'승리 점수 이후의 득점은 허용하지 않습니다.');
+      if(event.type==='point') {check(!pending && [0,1].includes(event.team),'11점 코트 변경과 교체를 먼저 확인하세요.');score[event.team]++; if(!interval&&Math.max(...score)===11){pending=true;interval=[...score];}}
+      else if(event.type==='interval') {
+        check(pending&&!after&&Array.isArray(event.lineups)&&event.lineups.length===2,'코트 변경 시점이 올바르지 않습니다.');
+        event.lineups.forEach((p,i)=>{check(pairOk(p,teams[i]),'교체 후 출전자 2명을 확인하세요.');const shared=p.filter(id=>match.lineups[i].includes(id)).length;check(shared===(teams[i].players.length===3?1:2),'3인 팀은 대기 선수와 1명을 교체해야 합니다.');});
+        after=copy(event.lineups);pending=false;
+      } else fail('알 수 없는 점수 기록입니다.');
+    }
+    check(!match.finished || won(score)&&!pending,'종료 점수가 아닌 경기를 확정할 수 없습니다.');
+    return {score,pending,over:won(score),interval,after};
+  }
+  function validate(input) {
+    check(input&&input.schemaVersion===1&&input.rules===rules&&idOk(input.id)&&nameOk(input.title),'지원하지 않는 모임 형식입니다.');
+    check(typeof input.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(input.date)&&new Date(input.date+'T00:00:00Z').toISOString().slice(0,10)===input.date,'모임 날짜를 확인하세요.');
+    check(Number.isInteger(input.courts)&&input.courts>=1&&input.courts<=3,'코트 수는 1~3개입니다.');
+    const players=roster({schemaVersion:1,players:input.players}).players.map(({history,...p})=>p);
+    check(players.length>=4&&players.length<=18,'참석자는 4~18명입니다.');
+    check(Array.isArray(input.teams)&&input.teams.length>=2&&input.teams.length<=6,'팀 수는 2~6개입니다.');
+    const teamIds=new Set(),assigned=new Set();
+    const teams=input.teams.map(t=>{check(t&&idOk(t.id)&&!teamIds.has(t.id)&&nameOk(t.name)&&Array.isArray(t.players)&&t.players.length>=2&&t.players.length<=3,'팀 구성을 확인하세요.');teamIds.add(t.id);for(const id of t.players){check(players.some(p=>p.id===id)&&!assigned.has(id),'선수가 중복되거나 누락되었습니다.');assigned.add(id);}return {id:t.id,name:t.name.trim(),players:[...t.players]};});
+    check(assigned.size===players.length,'모든 참석자를 팀에 배정하세요.');
+    const expected=teams.length*(teams.length-1)/2;
+    check(Array.isArray(input.matches)&&input.matches.length===expected,'리그 전체 대진이 필요합니다.');
+    const pairs=new Set(),matchIds=new Set(),slots=new Map();
+    const matches=input.matches.map(m=>{
+      check(m&&idOk(m.id)&&!matchIds.has(m.id)&&Array.isArray(m.teams)&&m.teams.length===2&&m.teams[0]!==m.teams[1]&&m.teams.every(id=>teamIds.has(id)),'경기 ID·대진을 확인하세요.');matchIds.add(m.id);
+      const key=[...m.teams].sort().join('/');check(!pairs.has(key),'중복 대진이 있습니다.');pairs.add(key);
+      check([m.round,m.slot,m.court].every(Number.isInteger)&&m.round>=1&&m.round<=7&&m.slot>=1&&m.slot<=15&&m.court>=1&&m.court<=input.courts,'경기 배치를 확인하세요.');
+      const sl=slots.get(m.slot)||{courts:new Set(),teams:new Set()};check(!sl.courts.has(m.court)&&m.teams.every(id=>!sl.teams.has(id)),'같은 시간대에 팀 또는 코트가 중복됩니다.');sl.courts.add(m.court);m.teams.forEach(id=>sl.teams.add(id));slots.set(m.slot,sl);
+      check(Array.isArray(m.events)&&m.events.length<=60&&typeof m.finished==='boolean','점수 기록 형식이 올바르지 않습니다.');
+      const events=m.events.map(e=>e?.type==='point'?{type:'point',team:e.team}:e?.type==='interval'?{type:'interval',lineups:copy(e.lineups)}:fail('알 수 없는 점수 기록입니다.'));
+      const revisions=Array.isArray(m.revisions)?m.revisions.map(r=>{check(r&&typeof r.at==='string'&&Number.isFinite(Date.parse(r.at))&&typeof r.reason==='string'&&r.reason.trim()&&r.reason.length<=500&&Array.isArray(r.score)&&r.score.length===2&&r.score.every(n=>Number.isInteger(n)&&n>=0&&n<=30),'결과 수정 이력이 올바르지 않습니다.');return {at:r.at,reason:r.reason,score:[...r.score]};}):[];
+      return {id:m.id,round:m.round,slot:m.slot,court:m.court,teams:[...m.teams],lineups:m.lineups===null?null:copy(m.lineups),events,finished:m.finished,revisions};
+    });
+    const result={schemaVersion:1,id:input.id,title:input.title.trim(),date:input.date,courts:input.courts,rules,players,teams,matches};
+    matches.forEach(m=>replay(result,m));
+    const active=matches.filter(m=>m.lineups&&!m.finished);check(active.every((m,i)=>active.slice(i+1).every(n=>m.court!==n.court&&!m.teams.some(id=>n.teams.includes(id)))),'진행 중 경기의 팀 또는 코트가 중복됩니다.');
+    return result;
+  }
+  function standings(s) {
+    const rows=s.teams.map(t=>({id:t.id,name:t.name,played:0,wins:0,losses:0,for:0,against:0,diff:0}));
+    for(const m of s.matches.filter(m=>m.finished)){const {score}=replay(s,m);m.teams.forEach((id,i)=>{const r=rows.find(r=>r.id===id);r.played++;r.wins+=Number(score[i]>score[1-i]);r.losses+=Number(score[i]<score[1-i]);r.for+=score[i];r.against+=score[1-i];r.diff=r.for-r.against;});}
+    rows.sort((a,b)=>b.wins-a.wins||b.diff-a.diff||b.for-a.for||a.name.localeCompare(b.name,'ko'));
+    rows.forEach((r,i)=>{const prev=rows[i-1];r.rank=prev&&r.wins===prev.wins&&r.diff===prev.diff&&r.for===prev.for?prev.rank:i+1;});return rows;
+  }
+  function stats(sessions) {
+    const out=new Map();
+    for(const s of sessions)for(const m of s.matches.filter(m=>m.finished)){const r=replay(s,m);m.teams.forEach((id,i)=>{const before=m.lineups[i],after=r.after[i];for(const pid of new Set([...before,...after])){const p=s.players.find(p=>p.id===pid);const row=out.get(pid)||{id:pid,name:p.name,played:0,wins:0,losses:0,first:0,second:0};row.played++;row.wins+=Number(r.score[i]>r.score[1-i]);row.losses+=Number(r.score[i]<r.score[1-i]);row.first+=Number(before.includes(pid));row.second+=Number(after.includes(pid));out.set(pid,row);}});}return [...out.values()];
+  }
+  const cell=x=>String(x).replace(/[|\r\n]/g,' ').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  function markdown(input) {
+    const s=validate(input), ranks=standings(s), complete=s.matches.every(m=>m.finished);
+    const lines=['# '+cell(s.title),'', '날짜: '+s.date,'모임 ID: '+s.id,'상태: '+(complete?'완료':'진행 중'),'규칙: 21점 단판 · 듀스 · 30점 상한 · 최초 11점 코트 변경 및 3인 팀 교체','','## 팀 구성','','| 팀 | 선수 (당시 티어) |','| --- | --- |',...s.teams.map(t=>'| '+cell(t.name)+' | '+t.players.map(id=>{const p=s.players.find(p=>p.id===id);return cell(p.name)+' ('+p.tier+'티어)';}).join(', ')+' |'),'','## 팀 순위','','| 순위 | 팀 | 경기 | 승 | 패 | 득점 | 실점 | 득실차 |','| --- | --- | --- | --- | --- | --- | --- | --- |',...ranks.map(r=>'| '+[r.rank,cell(r.name),r.played,r.wins,r.losses,r.for,r.against,r.diff].join(' | ')+' |'),'','## 경기 결과','','| 경기 | 대진 | 점수 | 상태 |','| --- | --- | --- | --- |',...s.matches.map(m=>'| '+[m.id,m.teams.map(id=>cell(s.teams.find(t=>t.id===id).name)).join(' vs '),replay(s,m).score.join(' : '),m.finished?'확정':m.lineups?'진행':'대기'].join(' | ')+' |'),'','## 개인 출전 통계','','| 선수 | 경기 | 팀 승 | 팀 패 | 전반 | 후반 |','| --- | --- | --- | --- | --- | --- |',...stats([s]).map(p=>'| '+[cell(p.name),p.played,p.wins,p.losses,p.first,p.second].join(' | ')+' |'),'','## 다시 불러오기용 원본','','아래 데이터가 원본입니다. 표는 원본에서 다시 계산합니다.','','~~~json iras-badminton-v1',JSON.stringify(s,null,2),'~~~',''];return lines.join('\n');
+  }
+  function fromMarkdown(text) {check(typeof text==='string'&&text.length<=1024*1024,'MD는 1MB 이하이어야 합니다.');const parts=[...text.matchAll(/^~~~json iras-badminton-v1\r?\n([\s\S]*?)\r?\n~~~\s*$/gm)];check(parts.length===1,'지원하는 배드민턴 MD 원본 블록이 하나 필요합니다.');return validate(JSON.parse(parts[0][1]));}
+  function index(value) {check(value&&value.schemaVersion===1&&Array.isArray(value.sessions)&&value.sessions.length<=2000,'기록 목록 형식이 올바르지 않습니다.');const ids=new Set();return {schemaVersion:1,sessions:value.sessions.map(s=>{check(s&&idOk(s.id)&&!ids.has(s.id)&&nameOk(s.title)&&/^\d{4}-\d{2}-\d{2}$/.test(s.date)&&s.file==='records/'+s.id+'.md','기록 경로 또는 ID가 올바르지 않습니다.');ids.add(s.id);return {id:s.id,title:s.title,date:s.date,file:s.file};})};}
+  return {copy,rules,roster,index,balanced,schedule,replay,validate,standings,stats,markdown,fromMarkdown};
+}
+
+window.IRASBadminton = createBadmintonRules();
+</script>
+<script>
+(() => {
+  'use strict';
+  const R=window.IRASBadminton, $=s=>document.querySelector(s), key='iras-badminton-v1';
+  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
+  let state=null, roster=[], selected=new Set(), teams=[], revision=null, view='setup', published={schemaVersion:1,sessions:[]};
+  let storageError = '';
+  const message=(s,error=false)=>{$('#message').textContent=s + (storageError && !error ? ' 임시 저장 실패: '+storageError+' MD를 내려받으세요.' : '');$('#message').classList.toggle('error',error || !!storageError);if($('#match-popup').open){$('#match-popup-message').textContent=$('#message').textContent;$('#match-popup-message').classList.toggle('error',error || !!storageError);}};
+  const started=()=>state?.matches.some(m=>m.lineups);
+  const team=id=>state.teams.find(t=>t.id===id), player=id=>(state?.players||roster).find(p=>p.id===id)?.name||id;
+  function persist(){try{const raw=localStorage.getItem(key);if(raw&&revision!==null&&JSON.parse(raw).revision!==revision)throw Error('다른 탭에서 기록이 바뀌었습니다. 현재 기록을 MD로 내보낸 후 새로고침하세요.');const nextRevision=uid();localStorage.setItem(key,JSON.stringify({revision:nextRevision,state,roster,selected:[...selected],teams,form:{title:$('#title').value,date:$('#date').value,count:$('#team-count').value,courts:$('#court-count').value}}));revision=nextRevision;storageError='';$('#save-state').textContent='이 브라우저에 임시 저장됨';}catch(e){storageError=e.message;$('#save-state').textContent='임시 저장 실패 · MD를 내려받으세요';message(e.message,true);}}
+  function attempt(fn){return async(...args)=>{try{await fn(...args);}catch(e){message(e.message,true);}};}
+  function chooseTab(id){view=id;document.querySelectorAll('.view').forEach(n=>n.hidden=n.id!==id);document.querySelectorAll('[data-tab]').forEach(n=>n.setAttribute('aria-pressed',String(n.dataset.tab===id)));}
+  function renderSetup(){const lock=started();$('#locked').hidden=!lock;$('#roster').innerHTML=roster.map(p=>'<label class="player"><input type="checkbox" data-attend="'+p.id+'" '+(selected.has(p.id)?'checked ':'')+(lock?'disabled':'')+'><span>'+esc(p.name)+'</span><select aria-label="'+esc(p.name)+' 티어" data-tier="'+p.id+'" '+(lock?'disabled':'')+'>'+[1,2,3].map(n=>'<option value="'+n+'" '+(n===p.tier?'selected':'')+'>'+n+'티어</option>').join('')+'</select></label>').join('')||'<p class="note">선수를 추가하거나 게시된 명단을 불러오세요.</p>';
+    $('#attendance').textContent=selected.size+'명 선택';$('#teams').innerHTML=teams.map(t=>'<div class="team"><h3>'+esc(t.name)+'</h3>'+t.players.map(id=>'<p><span>'+esc(roster.find(p=>p.id===id)?.name)+' <small>'+roster.find(p=>p.id===id)?.tier+'티어</small></span><select data-move="'+id+'" aria-label="'+esc(roster.find(p=>p.id===id)?.name)+' 팀" '+(lock?'disabled':'')+'>'+teams.map(n=>'<option value="'+n.id+'" '+(n.id===t.id?'selected':'')+'>'+esc(n.name)+'</option>').join('')+'</select></p>').join('')+'</div>').join('');
+    document.querySelectorAll('#setup input:not([data-attend]),#setup select:not([data-tier]),#setup button').forEach(n=>n.disabled=!!lock);$('#generate').disabled=!!lock||!teams.length;
+  }
+  const options=(ids,chosen)=>ids.map(id=>'<option value="'+id+'" '+(id===chosen?'selected':'')+'>'+esc(player(id))+'</option>').join('');
+  let activeMatchId = null, popupOrigin = null;
+  function matchCard(m) { const r=R.replay(state,m), order=r.after?[1,0]:[0,1];let body='';
+      if(!m.lineups){body=m.teams.map((id,i)=>'<label>'+esc(team(id).name)+' 출전자</label><div class="lineup">'+[0,1].map(j=>'<select aria-label="'+esc(team(id).name)+' 출전자 '+(j+1)+'" data-lineup="'+m.id+'-'+i+'-'+j+'">'+options(team(id).players,team(id).players[j])+'</select>').join('')+'</div>').join('')+'<div class="toolbar"><button class="primary" data-action="start" data-id="'+m.id+'">경기 시작</button><button data-action="move" data-id="'+m.id+'">대기 경기 순서 변경</button></div>';}
+      else if(r.pending){body='<div class="interval"><strong>11점 · 코트 변경</strong><p class="note">3인 팀은 나갈 선수를 선택하세요. 대기 선수가 들어옵니다.</p>'+m.teams.map((id,i)=>team(id).players.length===3?'<label>'+esc(team(id).name)+' 교체할 선수<select data-out="'+m.id+'-'+i+'">'+options(m.lineups[i],m.lineups[i][0])+'</select></label>':'<p>'+esc(team(id).name)+': 출전자 유지</p>').join('')+'<button class="primary" data-action="interval" data-id="'+m.id+'">코트 변경·교체 완료</button></div>';}
+      if(m.lineups&&!m.finished)body+='<div class="toolbar"><button data-action="undo" data-id="'+m.id+'" '+(!m.events.length?'disabled':'')+'>직전 입력 취소</button>'+(r.over?'<button class="primary" data-action="finish" data-id="'+m.id+'">결과 확정</button>':'')+'</div>';
+      if(m.finished)body+='<p>결과 확정 · '+esc(team(m.teams[r.score[0]>r.score[1]?0:1]).name)+' 승리</p><button data-action="reopen" data-id="'+m.id+'">결과 정정</button>';
+      if(m.revisions.length)body+='<details><summary>정정 이력 '+m.revisions.length+'건</summary>'+m.revisions.map(x=>'<p class="note">'+esc(x.at)+' · '+esc(x.reason)+' · 이전 '+x.score.join(':')+'</p>').join('')+'</details>';
+      return '<article class="match"><div class="match-head"><strong>'+m.round+'라운드 / '+m.slot+'차례 / 코트 '+m.court+'</strong><span>'+(!m.lineups?'대기':m.finished?'확정':'진행 중')+'</span></div><div class="court">'+order.map(i=>'<div class="side"><h3>'+esc(team(m.teams[i]).name)+'</h3><div class="names">'+(m.lineups?(r.after||m.lineups)[i]:team(m.teams[i]).players).map(id=>esc(player(id))).join(' · ')+'</div><span class="points">'+r.score[i]+'</span><button class="point" data-action="point" data-id="'+m.id+'" data-side="'+i+'" aria-label="'+esc(team(m.teams[i]).name)+' 1점 추가" '+(!m.lineups||r.pending||r.over||m.finished?'disabled':'')+'>+1</button></div>').join('')+'</div><div class="match-body">'+body+'</div></article>'; }
+  function closeMatchPopup() {
+    const dialog = $('#match-popup');
+    if (dialog.open) dialog.close();
+    activeMatchId = null;
+    $('#match-popup-body').replaceChildren();
+    if (popupOrigin) document.querySelector('[data-open-match="'+popupOrigin.id+'"][data-row-team="'+popupOrigin.row+'"]')?.focus({preventScroll:true});
+    popupOrigin = null;
+  }
+  function renderMatchPopup() {
+    if (!activeMatchId) return;
+    const match = state?.matches.find(m=>m.id===activeMatchId);
+    if (!match) { closeMatchPopup(); return; }
+    const focused = document.activeElement;
+    const restore = focused?.closest('#match-popup-body') && focused.dataset.action ? {action:focused.dataset.action,side:focused.dataset.side} : null;
+    $('#match-popup-title').textContent = match.teams.map(id=>team(id).name).join(' vs ') + ' · 점수 입력';
+    $('#match-popup-body').innerHTML = matchCard(match);
+    if (restore) {
+      const selector = '[data-action="'+restore.action+'"]' + (restore.side===undefined?'':'[data-side="'+restore.side+'"]');
+      const target = $('#match-popup-body').querySelector(selector);
+      if (target && !target.disabled) target.focus({preventScroll:true});
+      else ($('#match-popup-body').querySelector('[data-action="interval"], [data-action="finish"]') || $('#match-popup-title')).focus({preventScroll:true});
+    }
+  }
+  function openMatchPopup(id,row) {
+    if (!state?.matches.some(m=>m.id===id)) return;
+    activeMatchId = id; popupOrigin = {id,row};
+    $('#match-popup-message').textContent = '';
+    renderMatchPopup();
+    if (!$('#match-popup').open) $('#match-popup').showModal();
+    $('#match-popup-title').focus();
+  }
+  function renderMatches() {
+    if (!state) {
+      $('#round-rest').textContent = '';
+      $('#match-list').innerHTML = '<p class="empty">경기 준비에서 참석자를 선택하고 리그 대진을 만들어 주세요.</p>';
+      closeMatchPopup(); return;
+    }
+    $('#match-title').textContent = state.title+' · '+state.matches.filter(m=>m.finished).length+'/'+state.matches.length+'경기';
+    $('#round-rest').textContent = state.teams.length%2 ? [...new Set(state.matches.map(m=>m.round))].map(round=>{const played=new Set(state.matches.filter(m=>m.round===round).flatMap(m=>m.teams));return round+'라운드 휴식: '+state.teams.filter(t=>!played.has(t.id)).map(t=>t.name).join(', ');}).join(' / ') : '';
+    const heading = '<thead><tr><th scope="col" class="matrix-team">우리 팀 / 상대 팀</th>'+state.teams.map(t=>'<th scope="col">'+esc(t.name)+'</th>').join('')+'</tr></thead>';
+    const rows = state.teams.map(row=>'<tr><th scope="row" class="matrix-team"><strong>'+esc(row.name)+'</strong><span class="matrix-members">'+row.players.map(id=>esc(player(id))).join(' · ')+'</span></th>'+state.teams.map(col=>{
+      if (row.id===col.id) return '<td class="matrix-diagonal" aria-label="같은 팀">—</td>';
+      const m = state.matches.find(m=>m.teams.includes(row.id)&&m.teams.includes(col.id));
+      const r = R.replay(state,m), side = m.teams.indexOf(row.id);
+      const label = !m.lineups?'경기 대기':m.finished?'확정':r.pending?'11점 · 교체':r.over?'확정 대기':'진행 중';
+      const score = m.lineups?r.score[side]+' : '+r.score[1-side]:'경기 대기';
+      return '<td><button type="button" class="matrix-cell '+(!m.lineups?'waiting':m.finished?'finished':'playing')+'" data-open-match="'+m.id+'" data-row-team="'+row.id+'" aria-haspopup="dialog" aria-controls="match-popup" aria-label="'+esc(row.name+' 대 '+col.name+', '+score+', '+label+', 점수 입력 열기')+'"><strong>'+score+'</strong><span class="matrix-state">'+(m.lineups?label:m.round+'라운드')+'</span><small>'+m.slot+'차례 · 코트 '+m.court+'</small></button></td>';
+    }).join('')+'</tr>').join('');
+    $('#match-list').innerHTML = '<table class="league-matrix"><caption>전체 리그 대진 · 점수는 왼쪽 행의 팀 기준입니다. 경기 칸을 눌러 점수를 입력하세요.</caption>'+heading+'<tbody>'+rows+'</tbody></table>';
+    renderMatchPopup();
+  }
+  function table(head,rows){return '<table><thead><tr>'+head.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}
+  function renderRank(){if(!state){$('#ranking-table').textContent='대진 생성 후 순위를 확인할 수 있습니다.';$('#stats').textContent='확정된 경기의 출전 기록을 표시합니다.';return;}$('#ranking-table').innerHTML=table(['순위','팀','경기','승','패','득점','실점','득실차'],R.standings(state).map(r=>[r.rank,r.name,r.played,r.wins,r.losses,r.for,r.against,r.diff]));$('#stats').innerHTML=table(['선수','경기','팀 승','팀 패','전반','후반'],R.stats([state]).map(p=>[p.name,p.played,p.wins,p.losses,p.first,p.second]));}
+  function render(){renderSetup();renderMatches();renderRank();$('#export').disabled=!state;chooseTab(view);}
+  function adopt(s){state=R.validate(s);teams=R.copy(state.teams);roster=R.copy(state.players);selected=new Set(roster.map(p=>p.id));$('#title').value=s.title;$('#date').value=s.date;$('#team-count').value=s.teams.length;$('#court-count').value=s.courts;view='matches';persist();render();}
+  function invalidate(){state=null;teams=[];persist();render();}
+  function download(){if(!state)throw Error('대진을 먼저 만들어 주세요.');const blob=new Blob([R.markdown(state)],{type:'text/markdown;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=state.date+'-'+state.id+'.md';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);message('MD 다운로드를 요청했습니다. 저장한 파일을 확인해 주세요.');}
+  $('#date').value=new Date(Date.now()+9*3600000).toISOString().slice(0,10);
+  document.querySelector('nav').onclick=e=>{const b=e.target.closest('[data-tab]');if(b)chooseTab(b.dataset.tab);};
+  $('#add-player').onsubmit=attempt(e=>{e.preventDefault();if(started())return;const name=$('#player-name').value.trim();if(!name)return;roster.push({id:'p-'+uid(),name,tier:Number($('#player-tier').value)});selected.add(roster.at(-1).id);$('#player-name').value='';invalidate();});
+  $('#roster').onchange=attempt(e=>{if(started())return;if(e.target.dataset.attend){e.target.checked?selected.add(e.target.dataset.attend):selected.delete(e.target.dataset.attend);}if(e.target.dataset.tier)roster.find(p=>p.id===e.target.dataset.tier).tier=Number(e.target.value);invalidate();});
+  $('#team-count').onchange=invalidate;$('#court-count').onchange=()=>{if(started())return;state=null;persist();render();};
+  for(const id of ['title','date'])$('#'+id).onchange=()=>{if(started())return;if(state){state[id]=$('#'+id).value;}persist();};
+  $('#refresh-roster').onclick=attempt(async()=>{if(started())return;if((state||selected.size)&&!confirm('현재 편성을 비우고 게시된 명단과 티어를 불러올까요?'))return;const res=await fetch('players.json',{cache:'no-store'});if(!res.ok)throw Error('명단을 불러오지 못했습니다. 현재 기록은 보존했습니다.');const data=R.roster(await res.json());roster=data.players;selected.clear();invalidate();message('게시된 선수 명단과 티어를 불러왔습니다.');});
+  $('#balance').onclick=attempt(()=>{if(started())return;teams=R.balanced(roster.filter(p=>selected.has(p.id)),Number($('#team-count').value));state=null;persist();render();message('티어를 고려한 편성입니다. 팀 선택으로 직접 조정할 수 있습니다.');});
+  $('#teams').onchange=attempt(e=>{if(started()||!e.target.dataset.move)return;const id=e.target.dataset.move;teams.forEach(t=>t.players=t.players.filter(p=>p!==id));teams.find(t=>t.id===e.target.value).players.push(id);state=null;persist();render();});
+  $('#generate').onclick=attempt(()=>{if(started())return;const players=roster.filter(p=>selected.has(p.id));adopt({schemaVersion:1,id:'meet-'+uid(),title:$('#title').value,date:$('#date').value,courts:Number($('#court-count').value),rules:R.rules,players,teams,matches:R.schedule(teams,Number($('#court-count').value))});message('리그 대진을 만들었습니다. 출전자를 선택해 경기를 시작하세요.');});
+  $('#match-popup-body').onclick=attempt(e=>{const b=e.target.closest('[data-action]');if(!b||!state)return;const next=R.copy(state),m=next.matches.find(m=>m.id===b.dataset.id),r=R.replay(next,m),action=b.dataset.action;if(!m)return;
+    if(action==='start'){if(m.lineups)throw Error('이미 시작한 경기입니다.');m.lineups=m.teams.map((_,i)=>[0,1].map(j=>$('[data-lineup="'+m.id+'-'+i+'-'+j+'"]').value));}
+    if(action==='point'){if(m.finished||!m.lineups)throw Error('진행 중 경기만 입력할 수 있습니다.');m.events.push({type:'point',team:Number(b.dataset.side)});}
+    if(action==='interval'){m.events.push({type:'interval',lineups:m.teams.map((id,i)=>{const t=next.teams.find(t=>t.id===id);if(t.players.length===2)return [...m.lineups[i]];const out=$('[data-out="'+m.id+'-'+i+'"]').value, incoming=t.players.find(id=>!m.lineups[i].includes(id));return m.lineups[i].map(id=>id===out?incoming:id);})});}
+    if(action==='undo'){if(m.finished)throw Error('정정 모드에서 취소하세요.');m.events.pop();}
+    if(action==='finish')m.finished=true;
+    if(action==='reopen'){const reason=prompt('결과 정정 사유를 입력하세요.');if(!reason?.trim())return;m.revisions.push({at:new Date().toISOString(),reason:reason.trim(),score:r.score});m.finished=false;}
+    if(action==='move'){const waiting=next.matches.filter(n=>!n.lineups&&n.id!==m.id);const targetId=prompt('순서를 바꿀 대기 경기 ID를 입력하세요.\n'+waiting.map(n=>n.id+': '+n.teams.map(id=>team(id).name).join(' vs ')).join('\n'));if(!targetId)return;const other=waiting.find(n=>n.id===targetId.trim());if(!other)throw Error('대기 경기 ID를 확인하세요.');[m.slot,other.slot]=[other.slot,m.slot];[m.court,other.court]=[other.court,m.court];}
+    state=R.validate(next);persist();render();if(action==='finish')message('결과를 확정하고 순위를 갱신했습니다.');else if(action==='reopen')message('정정 모드입니다. 직전 입력 취소 후 점수를 다시 입력하고 확정하세요.');else message('기록했습니다.');
+  });
+  $('#match-list').onclick = e => { const b=e.target.closest('[data-open-match]'); if(b)openMatchPopup(b.dataset.openMatch,b.dataset.rowTeam); };
+  $('#close-match-popup').onclick = closeMatchPopup;
+  $('#match-popup').oncancel = e => { e.preventDefault(); closeMatchPopup(); };
+  $('#export').onclick=attempt(download);
+  $('#import').onchange=attempt(async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;if(f.size>1024*1024)throw Error('MD는 1MB 이하로 선택하세요.');const s=R.fromMarkdown(await f.text());if(state&&!confirm('현재 기록을 바꿉니다. MD 백업을 내려받았나요?'))return;adopt(s);message('MD 원본을 검증하고 불러왔습니다.');});
+  $('#new').onclick=()=>{if((state||selected.size)&&!confirm('현재 임시 기록을 비우고 새 모임을 시작할까요? 필요한 MD를 먼저 내려받으세요.'))return;state=null;teams=[];selected.clear();view='setup';$('#date').value=new Date(Date.now()+9*3600000).toISOString().slice(0,10);persist();render();};
+  $('#history-list').onclick=attempt(async e=>{const b=e.target.closest('[data-record]');if(!b)return;const item=published.sessions.find(s=>s.id===b.dataset.record);const res=await fetch(item.file,{cache:'no-store'});if(!res.ok)throw Error('기록을 불러오지 못했습니다.');const s=R.fromMarkdown(await res.text());if(s.id!==item.id)throw Error('기록 ID가 목록과 다릅니다.');if(state&&!confirm('현재 기록을 바꿉니다. MD 백업을 내려받았나요?'))return;adopt(s);});
+  window.addEventListener('storage',e=>{if(e.key===key)message('다른 탭에서 임시 기록이 바뀌었습니다. 이 탭의 기록을 MD로 내려받고 새로고침하세요.',true);});
+  try{const raw=localStorage.getItem(key);if(raw){const saved=JSON.parse(raw);revision=saved.revision;roster=R.roster({schemaVersion:1,players:saved.roster}).players;selected=new Set(saved.selected);teams=saved.teams;state=saved.state?R.validate(saved.state):null;for(const [id,k] of [['title','title'],['date','date'],['team-count','count'],['court-count','courts']])if(saved.form?.[k])$('#'+id).value=saved.form[k];if(state)view='matches';message('이 브라우저의 임시 기록을 복구했습니다.');}}catch(e){message('임시 기록을 복구하지 못했습니다. 저장한 MD를 불러오세요. '+e.message,true);}
+  render();
+  Promise.allSettled([fetch('players.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('선수 명단을 불러오지 못했습니다.');const data=R.roster(await r.json());if(!roster.length&&!state){roster=data.players;render();}}),fetch('records.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('지난 기록 목록을 불러오지 못했습니다.');published=R.index(await r.json());$('#history-list').innerHTML=published.sessions.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(s=>'<div class="record"><div><strong>'+esc(s.title)+'</strong><small>'+esc(s.date)+'</small></div><button data-record="'+s.id+'">기록 불러오기</button></div>').join('')||'<p class="empty">아직 게시된 모임이 없습니다. 첫 리그의 MD를 관리자에서 등록하세요.</p>';})]).then(results=>{const errors=results.filter(r=>r.status==='rejected');if(errors.length)message(errors.map(r=>r.reason.message).join(' ')+' 로컬 경기와 MD는 계속 사용할 수 있습니다.',true);});
+})();
+</script></body></html>

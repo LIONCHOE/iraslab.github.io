@@ -38,6 +38,10 @@ def allowed(name):
         return False
     if name in ROOT_FILES or name in ADMIN:
         return True
+    if name in {'badminton/index.html', 'badminton/players.json', 'badminton/records.json'}:
+        return True
+    if re.fullmatch(r'badminton/records/[a-zA-Z0-9-]+\.md', name):
+        return True
     if len(p.parts) == 2 and p.parts[0] in PAGES and p.name == 'index.html':
         return True
     if len(p.parts) == 3 and p.parts[0] == 'people' and p.name == 'index.html':
