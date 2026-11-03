@@ -24,10 +24,10 @@ header{border-bottom:1px solid var(--line)}
 .brand{max-width:1200px;min-height:72px;padding:12px 20px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:20px}
 .brand-logos{display:flex;align-items:center;gap:12px;min-width:0}
 .brand-logos a{display:inline-flex;align-items:center;text-decoration:none;gap:10px}
-.postech-logo{display:block;width:171px;height:32px;object-fit:contain}
+.postech-logo{display:block;width:140px;height:auto;object-fit:contain}
 .brand-divider{width:1px;height:26px;background:#dbe4ec;flex-shrink:0}
-.iras-logo{display:block;width:44px;height:44px}
-.brand-name{font-family:'Newsreader Variable',Georgia,serif;font-size:23px;font-weight:600;line-height:1}
+.iras-logo{display:block;width:36px;height:auto}
+.brand-name{font-family:'Newsreader Variable',Georgia,serif;font-size:18px;font-weight:600;line-height:1}
 .brand-links{display:flex;gap:8px;align-items:center;font-size:.875rem}
 .brand-links a{padding:8px 12px;border-radius:6px;text-decoration:none;color:var(--muted)}
 .brand-links a:hover{background:var(--soft);color:var(--accent)}
@@ -130,7 +130,7 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
   .record{align-items:flex-start}#save-state{width:100%;margin:0}
 }
 @media(max-width:600px){
-  .postech-logo{width:106px;height:26px}.iras-logo{width:36px;height:36px}.brand-name{font-size:21px}.brand-logos{gap:8px}
+  .postech-logo{width:106px;height:auto}.iras-logo{width:32px;height:auto}.brand-name{font-size:18px}.brand-logos{gap:8px}
   .brand-divider{height:22px}.brand-links{width:100%;justify-content:flex-end}
   .league-matrix .matrix-team{width:64px;padding:8px 3px}
   .league-matrix thead th{font-size:12px;padding:5px 2px}
@@ -310,11 +310,53 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
 .history-preview-body h4{margin:22px 0 8px}
 .history-preview-body .note{margin-top:0}
 @media(max-width:600px){.history-preview>summary,.history-preview-body{padding:14px}.history-preview th,.history-preview td{padding:10px 8px}}
+
+.matches-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.matches-heading h2{margin:0}
+#print-meta{margin:8px 0 16px}
+@media print{
+  @page{size:A4 landscape;margin:12mm}
+  html,body{background:#fff!important;color:#000!important;font-size:10pt}
+  header,footer,main>nav,main>.toolbar,#message,dialog,dialog::backdrop,#print-matches{display:none!important}
+  main{max-width:none;margin:0;padding:0}
+  .view{display:none!important}
+  #matches{display:block!important}
+  .matches-heading{display:block}
+  #match-title{font-size:16pt;margin:0 0 3mm}
+  #print-meta{font-size:10pt;margin:0 0 4mm}
+  #matches>.note:not(#print-meta){display:none}
+  #round-rest{font-size:9pt;margin-bottom:3mm}
+  .match-layout{display:block;margin:0}
+  .match-panel{margin:0;break-inside:auto}
+  .match-panel+.match-panel{break-before:page}
+  .match-panel h3{font-size:13pt;margin:0 0 2mm}
+  .match-panel>.note{font-size:9pt;margin:0 0 3mm}
+  .league-scroll{overflow:visible;border:0;border-radius:0;margin:0}
+  .league-matrix,.schedule-table{width:100%;min-width:0;table-layout:fixed}
+  .league-matrix caption,.schedule-table caption{font-size:9pt;padding:2mm}
+  thead{display:table-header-group}
+  tr{break-inside:avoid;page-break-inside:avoid}
+  .league-matrix th,.league-matrix td,.schedule-table th,.schedule-table td{border:1px solid #777;background:#fff!important;color:#000}
+  .schedule-table thead th,.league-matrix thead th{height:auto;padding:2mm;font-size:10pt}
+  .schedule-table .schedule-slot{width:16mm}
+  .schedule-game{display:flex;flex-direction:row;flex-wrap:wrap;justify-content:space-around;min-height:8mm;padding:1.5mm;gap:1mm 3mm}
+  .schedule-teams{font-size:9pt}
+  .schedule-score{font-size:11pt}
+  .schedule-game small{font-size:8pt}
+  .matrix-cell{min-height:20mm;padding:2mm}
+  .matrix-cell strong,.matrix-cell.waiting strong{font-size:12pt}
+  .matrix-state,.matrix-cell small{display:block;font-size:8pt}
+  .league-matrix .matrix-team{width:32mm;padding:2mm}
+  .matrix-members{font-size:9pt}
+  .matrix-member{white-space:normal;overflow:visible;text-overflow:clip}
+  .matrix-cell,.schedule-game{background:#fff!important;box-shadow:none!important;color:#000;border:0}
+  .matrix-team strong,.matrix-cell.playing strong,.matrix-cell.waiting strong{color:#000}
+}
 </style></head>
 <body>
 <header>
 <div class="site-top"><div class="brand">
-<div class="brand-logos"><a href="https://postech.ac.kr/eng/index.do" aria-label="POSTECH 홈페이지"><img class="postech-logo" src="../postech-logo.svg" alt="POSTECH" width="171" height="32"></a><span class="brand-divider" aria-hidden="true"></span><a href="../" aria-label="IRAS 홈페이지"><img class="iras-logo" src="../iras-logo.svg" alt="" width="44" height="44"><span class="brand-name">IRAS</span></a></div>
+<div class="brand-logos"><a href="https://postech.ac.kr/eng/index.do" aria-label="POSTECH 홈페이지"><img class="postech-logo" src="../postech-logo.svg" alt="POSTECH" width="140" height="20"></a><span class="brand-divider" aria-hidden="true"></span><a href="../" aria-label="IRAS 홈페이지"><img class="iras-logo" src="../iras-logo.svg" alt="" width="36" height="36"><span class="brand-name">IRAS</span></a></div>
 <div class="brand-links"><a href="../">홈페이지</a><a href="../admin/">기록·티어 관리자</a></div>
 </div></div>
 <div class="intro"><div class="intro-inner"><h1>우리 연구실, 오늘의 리그</h1><p>함께 팀을 꾸리고, 한 경기씩 기록합니다.</p></div></div>
@@ -322,7 +364,7 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
 <main><nav aria-label="배드민턴 메뉴"><button data-tab="setup" aria-pressed="true">경기 준비</button><button data-tab="matches" aria-pressed="false">대진·점수</button><button data-tab="ranking" aria-pressed="false">순위</button><button data-tab="history" aria-pressed="false">지난 기록</button></nav>
 <div class="toolbar"><button id="export">MD 다운로드</button><label class="file-label">MD 불러오기<input id="import" type="file" accept=".md,text/markdown,text/plain"></label><button id="new" class="danger">새 모임</button><span id="save-state">이 브라우저에서 경기 기록</span></div>
 <section id="setup" class="view"><div class="sheet"><h2>오늘 누가 함께하나요?</h2><p class="note">2~6팀, 팀당 2~3명으로 편성합니다. 1티어가 가장 높은 단계입니다.</p><div class="toolbar"><label class="grow">모임 이름<input id="title" maxlength="80" value="IRAS 배드민턴 정기 모임"></label><label>날짜<input id="date" type="date"></label><label>팀 수<select id="team-count"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label><label>코트 수<select id="court-count"><option>1</option><option>2</option><option>3</option></select></label></div><p id="member-status" role="status">새 모임은 기본 참석으로 시작합니다. 불참자를 지정한 뒤 최대 18명으로 팀을 편성하세요.</p><p class="note">티어·랜덤 변경은 이번 모임에만 적용됩니다. 새 모임은 관리자에 게시된 기본 티어로 시작합니다. 카드를 드래그하거나 사진 팝업에서 변경하세요.</p><form id="add-player" class="toolbar"><label class="grow">선수 이름<input id="player-name" maxlength="80" required placeholder="새 선수 이름"></label><label>최초 티어<select id="player-tier"><option value="1">1티어</option><option value="2" selected>2티어</option><option value="3">3티어</option></select></label><button type="submit">선수 추가</button></form><div id="roster" class="tiers"></div><div class="toolbar"><button id="balance" class="primary">균형 팀 편성</button><span id="attendance" class="note"></span></div><div id="teams" class="teams"></div><div class="toolbar"><button id="generate" class="primary">리그 대진 만들기</button></div><p id="locked" class="notice" hidden>경기가 시작되어 팀과 당시 티어를 보존합니다. 점수 수정은 대진·점수 화면에서 진행하세요.</p></div></section>
-<section id="matches" class="view" hidden><h2 id="match-title">대진·점수</h2><p class="note">21점 단판 · 듀스 · 30점 상한. 경기 칸을 눌러 두 팀의 최종 점수를 저장하세요.</p><div id="round-rest" class="note"></div><div id="match-list" class="match-layout"></div></section>
+<section id="matches" class="view" hidden><div class="matches-heading"><h2 id="match-title">대진·점수</h2><button id="print-matches" type="button" disabled>인쇄 / PDF 저장</button></div><p id="print-meta" class="note"></p><p class="note">21점 단판 · 듀스 · 30점 상한. 경기 칸을 눌러 두 팀의 최종 점수를 저장하세요.</p><div id="round-rest" class="note"></div><div id="match-list" class="match-layout"></div></section>
 <section id="ranking" class="view" hidden><div class="sheet"><h2>오늘의 순위</h2><p class="note">확정 경기만 반영 · 전체 승수 → 동률 팀 간 승수(승자승) → 동률 팀 간 득실차 → 동률 팀 간 총득점 · 모두 같으면 공동 순위</p><div id="ranking-table" class="table-wrap"></div></div></section>
 <section id="history" class="view" hidden><div class="sheet"><h2>지난 모임</h2><p class="note">관리자가 게시한 기록입니다. 불러오면 현재 기록을 바꾸므로 먼저 MD를 내려받으세요.</p><div id="history-sample"></div><h3>게시된 기록</h3><div id="history-list"></div></div></section>
 <p id="message" role="status" aria-live="polite"></p><footer>경기 기록은 현재 브라우저에 임시 저장됩니다. 종료 후 MD를 내려받아 관리자에게 전달하세요. 다른 기기와 자동 동기화되지 않습니다.</footer></main>
@@ -612,6 +654,8 @@ window.IRASBadminton = createBadmintonRules();
     $('#result-0').focus();
   }
   function renderMatches() {
+    $('#print-matches').disabled=!state;
+    $('#print-meta').textContent=state?state.date+' · '+state.teams.length+'팀 · '+state.players.length+'명 · '+state.courts+'코트':'';
     if (!state) {
       $('#round-rest').textContent = '';
       $('#match-list').innerHTML = '<p class="empty">경기 준비에서 참석자를 선택하고 리그 대진을 만들어 주세요.</p>';
@@ -898,6 +942,7 @@ window.IRASBadminton = createBadmintonRules();
   $('#match-list').onclick = e => { const b=e.target.closest('[data-open-match]'); if(b)openMatchPopup(b.dataset.openMatch,b.dataset.rowTeam,b.dataset.matchSource); };
   $('#close-match-popup').onclick = closeMatchPopup;
   $('#match-popup').oncancel = e => { e.preventDefault(); closeMatchPopup(); };
+  $('#print-matches').onclick=()=>{if(state)window.print();};
   $('#export').onclick=attempt(download);
   $('#import').onchange=attempt(async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;if(f.size>1024*1024)throw Error('MD는 1MB 이하로 선택하세요.');const s=R.fromMarkdown(await f.text());if(state&&!confirm('현재 기록을 바꿉니다. MD 백업을 내려받았나요?'))return;adopt(s);message('MD 원본을 검증하고 불러왔습니다.');});
   $('#new').onclick=async()=>{
