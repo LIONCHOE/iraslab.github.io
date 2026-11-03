@@ -321,6 +321,7 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
 @media(max-width:480px){.brand-links{display:none}}
 .site-top.root-brand .iras-logo{width:44px;height:44px}
 @media(max-width:640px){.site-top.root-brand .iras-logo{width:40px;height:40px}}
+.print-score{display:none}
 @media print{
   @page{size:A4 landscape;margin:8mm}
   html,body{margin:0!important;padding:0!important;background:#fff!important;color:#000!important;font-size:9pt}
@@ -342,7 +343,12 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
   .schedule-teams{font-size:8pt;gap:0 1mm;line-height:1.2}
   .schedule-teams i{font-size:7pt}
   .schedule-score{font-size:9pt;line-height:1.2}
-  .schedule-game small{display:none}
+  .schedule-game small,.schedule-score,.matrix-cell>strong,.matrix-state{display:none!important}
+  .print-score{display:flex;align-items:flex-end;justify-content:center;gap:1.5mm;height:5mm;font-size:11pt;line-height:1;font-weight:400}
+  .print-score>span{display:block;width:8mm;height:5mm;border-bottom:.25mm solid #555}
+  .print-score>b{font-weight:400;padding-bottom:.5mm}
+  .matrix-cell .print-score{height:7mm;margin-bottom:1mm}
+  .matrix-cell .print-score>span{height:7mm}
   .matrix-cell{height:calc(164mm / var(--team-count,6));min-height:0;padding:1mm;gap:1mm}
   .matrix-cell strong,.matrix-cell.waiting strong{font-size:11pt;white-space:nowrap}
   .matrix-state,.matrix-cell small{display:block;font-size:8pt;line-height:1.3}
@@ -659,6 +665,7 @@ window.IRASBadminton = createBadmintonRules();
     if (!$('#match-popup').open) $('#match-popup').showModal();
     $('#result-0').focus();
   }
+  const printScore='<span class="print-score" aria-hidden="true"><span></span><b>:</b><span></span></span>';
   function renderMatches() {
     $('#print-matches').disabled=!state;
     $('#print-meta').textContent=state?state.date+' · '+state.teams.length+'팀 · '+state.players.length+'명 · '+state.courts+'코트':'';
@@ -676,7 +683,7 @@ window.IRASBadminton = createBadmintonRules();
       const r = R.replay(state,m), side = m.teams.indexOf(row.id);
       const label = m.finished?'확정':!m.lineups?'경기 대기':r.pending?'11점 · 교체':r.over?'확정 대기':'진행 중';
       const score = (m.lineups||m.finished)?r.score[side]+' : '+r.score[1-side]:'대기';
-      return '<td><button type="button" class="matrix-cell '+(m.finished?'finished':!m.lineups?'waiting':'playing')+'" data-match-source="matrix" data-open-match="'+m.id+'" data-row-team="'+row.id+'" aria-haspopup="dialog" aria-controls="match-popup" aria-label="'+esc(row.name+' 대 '+col.name+', '+score+', '+label+', 점수 입력 열기')+'"><strong>'+score+'</strong><span class="matrix-state">'+(m.lineups||m.finished?label:m.round+'라운드')+'</span><small>'+m.slot+'차례 · 코트 '+m.court+'</small></button></td>';
+      return '<td><button type="button" class="matrix-cell '+(m.finished?'finished':!m.lineups?'waiting':'playing')+'" data-match-source="matrix" data-open-match="'+m.id+'" data-row-team="'+row.id+'" aria-haspopup="dialog" aria-controls="match-popup" aria-label="'+esc(row.name+' 대 '+col.name+', '+score+', '+label+', 점수 입력 열기')+'"><strong>'+score+'</strong>'+printScore+'<span class="matrix-state">'+(m.lineups||m.finished?label:m.round+'라운드')+'</span><small>'+m.slot+'차례 · 코트 '+m.court+'</small></button></td>';
     }).join('')+'</tr>').join('');
     const slots=[...new Set(state.matches.map(m=>m.slot))].sort((a,b)=>a-b);
     const courts=Array.from({length:state.courts},(_,i)=>i+1);
@@ -688,7 +695,7 @@ window.IRASBadminton = createBadmintonRules();
       const r=R.replay(state,m),label=m.finished?'완료':m.lineups?'진행 중':'대기';
       const score=m.finished||m.lineups?r.score.join(' : '):'—';
       const names=m.teams.map(id=>team(id).name);
-      return '<td><button type="button" class="schedule-game '+(m.finished?'finished':m.lineups?'playing':'waiting')+'" data-match-source="schedule" data-open-match="'+m.id+'" data-row-team="'+m.teams[0]+'" aria-haspopup="dialog" aria-controls="match-popup" aria-label="'+esc(slot+'차례, 코트 '+court+', '+names.join(' 대 ')+', '+score+', '+label+', 점수 입력 열기')+'"><span class="schedule-teams"><span>'+esc(names[0])+'</span><i>vs</i><span>'+esc(names[1])+'</span></span><strong class="schedule-score">'+score+'</strong><small>'+label+' · '+m.round+'라운드</small></button></td>';
+      return '<td><button type="button" class="schedule-game '+(m.finished?'finished':m.lineups?'playing':'waiting')+'" data-match-source="schedule" data-open-match="'+m.id+'" data-row-team="'+m.teams[0]+'" aria-haspopup="dialog" aria-controls="match-popup" aria-label="'+esc(slot+'차례, 코트 '+court+', '+names.join(' 대 ')+', '+score+', '+label+', 점수 입력 열기')+'"><span class="schedule-teams"><span>'+esc(names[0])+'</span><i>vs</i><span>'+esc(names[1])+'</span></span><strong class="schedule-score">'+score+'</strong>'+printScore+'<small>'+label+' · '+m.round+'라운드</small></button></td>';
     }).join('')+'</tr>').join('');
     const schedule='<section class="match-panel" aria-labelledby="schedule-heading"><h3 id="schedule-heading">전체 경기 일정</h3><p class="note">첫 경기부터 마지막 경기까지 · '+slots.length+'차례 · '+state.matches.length+'경기</p><div class="league-scroll"><table class="schedule-table"><caption>같은 차례의 경기는 코트별로 동시에 진행합니다. 경기 칸을 눌러 결과를 입력하세요.</caption><thead><tr><th scope="col" class="schedule-slot">차례</th>'+courts.map(court=>'<th scope="col">코트 '+court+'</th>').join('')+'</tr></thead><tbody>'+scheduleRows+'</tbody></table></div></section>';
     const matrix='<section class="match-panel" aria-labelledby="matrix-heading"><h3 id="matrix-heading">팀별 대진표</h3><p class="note">상대 팀별 결과 · 일정표와 같은 점수로 갱신됩니다.</p><div class="league-scroll"><table class="league-matrix"><caption>점수는 왼쪽 행의 팀 기준입니다. 경기 칸을 눌러 결과를 입력하세요.</caption>'+heading+'<tbody>'+rows+'</tbody></table></div></section>';
