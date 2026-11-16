@@ -52,7 +52,7 @@ h3{font-size:18px}
 .empty{padding:32px 0;line-height:1.8;color:var(--muted)}
 .players{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .player{display:flex;gap:10px;align-items:center;padding:12px;background:var(--soft);border:1px solid var(--line);border-radius:6px;min-width:0}
-.player span{overflow-wrap:anywhere}
+.player span{word-break:keep-all;overflow-wrap:anywhere}
 .player select{width:92px}
 .teams{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 .team{border:1px solid var(--line);border-top:3px solid var(--accent);border-radius:6px;padding:14px;background:var(--soft)}
@@ -160,7 +160,7 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
 .tiers .player:last-child{border-bottom:0}
 .player-attendance{display:flex;align-items:flex-start;gap:10px;cursor:pointer}
 .player-attendance input{flex:none;margin:3px 0 0}
-.player-name{font-size:.95rem;font-weight:600;line-height:1.5;overflow-wrap:anywhere}
+.player-name{font-size:.95rem;font-weight:600;line-height:1.5;word-break:keep-all;overflow-wrap:anywhere}
 .player-tier{margin:12px 0 0 30px}
 .player-tier>label{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.8rem;color:var(--muted)}
 .player-tier select{width:100px;font-size:.8rem}
@@ -363,6 +363,22 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
 }
 
 .individual-controls{display:flex;gap:16px;align-items:end;flex-wrap:wrap;margin:20px 0}.individual-controls label{min-width:140px}.individual-person{display:flex;gap:10px;align-items:center;white-space:nowrap}.individual-person .player-avatar{width:36px;height:36px;flex:0 0 36px}.rank-badge{color:var(--accent);font-weight:600}.rank-history{padding:16px 0;border-bottom:1px solid var(--line)}.rank-history summary{cursor:pointer;font-weight:600}
+/* 화면용 한글 흐름: 인쇄의 기존 A4 배치를 보존 */
+@media screen{
+  main,dialog{word-break:keep-all;overflow-wrap:anywhere}
+  main :is(input,select),dialog :is(input,select){min-width:0;max-width:100%}
+  .toolbar>*,.player-profile-copy,.individual-person{min-width:0}
+  .toolbar label{max-width:100%}
+  .individual-person{white-space:normal}
+  .individual-person>span{word-break:keep-all;overflow-wrap:anywhere}
+  th,td{font-variant-numeric:tabular-nums}
+  .matrix-member{white-space:normal;word-break:keep-all;overflow-wrap:anywhere;overflow:visible;text-overflow:clip}
+  dialog h3{word-break:keep-all;overflow-wrap:anywhere}
+}
+@media screen and (max-width:380px){
+  .toolbar .grow{flex-basis:100%;width:100%}
+  dialog :is(input,select){font-size:16px}
+}
 </style></head>
 <body>
 <header>
