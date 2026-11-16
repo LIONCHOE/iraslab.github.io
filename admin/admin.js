@@ -678,7 +678,14 @@ function createBadmintonRules() {
   let badmintonManual=null, badmintonResumeAfterMembers=false;
   const badmintonPhotos=new Map();
   const badmintonDisplay=name=>badmintonNameKey(name);
-  function badmintonPhoto(p){const url=badmintonPhotos.get(badmintonNameKey(p.name));return url?'<img class="badminton-avatar" src="'+safe(url)+'" alt="" loading="lazy">':'<span class="badminton-avatar badminton-initial" aria-hidden="true">'+safe(badmintonDisplay(p.name).slice(-2))+'</span>';}
+  function badmintonPhoto(p){const url=badmintonPhotos.get(badmintonNameKey(p.name));return '<span class="badminton-avatar" aria-hidden="true"><span class="badminton-initial">'+safe(badmintonDisplay(p.name).slice(-2))+'</span>'+(url?'<img src="'+safe(url)+'" alt="" width="42" height="42" loading="lazy" decoding="async">':'')+'</span>';}
+  // GitHub에서 읽은 원본의 루트 경로를 현재 배포 경로에 맞춥니다.
+  function badmintonPhotoUrl(raw){
+    const base=new URL('../',location.href);
+    const url=raw.startsWith('/')&&!raw.startsWith('//')?new URL(raw.startsWith(base.pathname)&&base.pathname!=='/'?raw:base.pathname+raw.slice(1),location.origin):new URL(raw,new URL('people/',base));
+    return url.origin===location.origin&&/^https?:$/.test(url.protocol)?url.href:null;
+  }
+  document.addEventListener('error',e=>{if(e.target.matches?.('.badminton-avatar img'))e.target.remove();},true);
   function badmintonMemberKey(name){const key=badmintonNameKey(name);return [...badmintonKoreanNames].find(([,ko])=>ko===key)?.[0]||key;}
   function badmintonMemberId(name){let hash=2166136261;for(const c of badmintonMemberKey(name)){hash^=c.codePointAt(0);hash=Math.imul(hash,16777619);}return 'member-'+(hash>>>0).toString(16);}
   async function badmintonMemberCandidates(){
@@ -691,7 +698,7 @@ function createBadmintonRules() {
         const name=heading.textContent.replace(/,?\s*Ph\.?D\.?\s*$/i,'').replace(/\s+/g,' ').trim(),key=badmintonNameKey(name);
         if(!name||seen.has(key))continue;seen.add(key);
         const card=heading.closest('[data-person-trigger],a')||heading.parentElement,raw=card.querySelector('img')?.getAttribute('src');
-        if(raw){try{const url=new URL(raw,new URL('../people/',location.href));if(url.origin===location.origin&&/^https?:$/.test(url.protocol))badmintonPhotos.set(key,url.href);}catch{}}
+        if(raw){try{const url=badmintonPhotoUrl(raw);if(url)badmintonPhotos.set(key,url);}catch{}}
         const id=badmintonMemberId(name),matches=existing.filter(p=>p.id===id||badmintonNameKey(p.name)===key);
         if(matches.length){if(matches.length!==1||matches[0].id!==id||badmintonNameKey(matches[0].name)!==key)candidates.push({id,name,tier:2,conflict:true});continue;}
         candidates.push({id,name,tier:2});
