@@ -1,2 +1,2 @@
 // Only a public Supabase URL and publishable key belong in this file.
-window.IRASLeagueConfig = Object.freeze({url: '', key: ''});
+window.IRASLeagueConfig = Object.freeze({url: 'https://vhgbxmnkibdwhxxoulfd.supabase.co', key: 'sb_publishable_zUp0ARK_j1LYki74F43SeQ_2DH1iChK'});
