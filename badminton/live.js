@@ -34,16 +34,18 @@
   }
 
   const main=$('main');main.className='league-live';
-  main.innerHTML='<section class="league-head"><div><p id="league-date"></p><h1 id="league-title">공유 모임</h1></div><span id="connection" role="status">연결 중</span><p id="summary"></p></section><nav aria-label="모임 보기"><button data-pane="games" aria-pressed="true">점수 입력</button><button data-pane="ranks" aria-pressed="false">현재 순위</button></nav><p id="league-message" role="status"></p><section id="games"><h2>코트별 다음 경기</h2><div id="upcoming"></div><div class="league-tools"><h2>경기 일정</h2><label>내 조 <select id="team-filter"><option value="">전체 조</option></select></label><label>코트 <select id="court-filter"><option value="">전체 코트</option></select></label></div><div id="schedule"></div></section><section id="ranks" hidden><h2>조 순위</h2><div id="rank-table"></div></section><div class="league-tools" id="actions" hidden><button id="print-league">경기지 인쇄</button><span id="host-code"></span><button id="close-league" hidden>모임 마감</button><button id="league-md" hidden>확정 기록 MD 다운로드</button></div><dialog id="league-dialog"><form id="score-form"><h2 id="game-title"></h2><div id="score-inputs"></div><label id="code-field">모임 코드<input id="entry-code" autocomplete="off" maxlength="16"></label><p id="score-status" role="status"></p><button type="button" id="cancel-score">닫기</button><button class="primary" id="save-score">결과 저장</button></form></dialog><section id="league-paper"></section>';
+  main.innerHTML='<section class="league-head"><div><p id="league-date"></p><h1 id="league-title">공유 모임</h1></div><span id="connection" role="status">연결 중</span><p id="summary"></p></section><nav aria-label="모임 보기"><button data-pane="games" aria-pressed="true">점수 입력</button><button data-pane="ranks" aria-pressed="false">현재 순위</button></nav><p id="league-message" role="status"></p><section id="games"><h2>코트별 다음 경기</h2><div id="upcoming"></div><div class="league-tools"><h2>경기 일정</h2><label>내 조 <select id="team-filter"><option value="">전체 조</option></select></label><label>코트 <select id="court-filter"><option value="">전체 코트</option></select></label></div><div id="schedule"></div></section><section id="ranks" hidden><h2>조 순위</h2><div id="rank-table"></div></section><div class="league-tools" id="actions" hidden><button id="print-league">경기지 인쇄</button><span id="print-help"></span><button id="close-league" hidden>모임 마감</button><button id="league-md" hidden>확정 기록 MD 다운로드</button></div><dialog id="league-dialog"><form id="score-form"><h2 id="game-title"></h2><div id="score-inputs"></div><p id="score-status" role="status"></p><button type="button" id="cancel-score">닫기</button><button class="primary" id="save-score">결과 저장</button></form></dialog><section id="league-paper"></section>';
   if(!client){$('#connection').textContent='연결 설정 필요';return;}
   let row, session, hostCode, active, opener, subscribed=false, defaultPane=true;
-  const joinedKey='league-writer-'+mid;
+  const entryCode = new URLSearchParams(location.hash.slice(1)).get('entry');
+  let joined = false;
+  const canScore = () => !row.closed && Boolean(hostCode || joined);
   const team=id=>session.teams.find(t=>t.id===id);
   const names=t=>t.players.map(id=>session.players.find(p=>p.id===id).name).join(' · ');
   function pane(v){$('#games').hidden=v!=='games';$('#ranks').hidden=v!=='ranks';main.querySelectorAll('[data-pane]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.pane===v)));}
   main.querySelectorAll('[data-pane]').forEach(b=>b.onclick=()=>pane(b.dataset.pane));
   function gameButton(m,i){const label=m.teams.map(t=>esc(team(t).name)).join(' — ');
-    return '<button class="league-game" data-game="'+esc(m.id)+'"><small>'+i+'경기 · '+m.slot+'차례 · 코트 '+m.court+'</small><strong>'+label+'</strong><span>'+(m.finished?m.result.join(' : ')+' · 기록 완료':'점수 입력')+'</span></button>';}
+    return '<button class="league-game" data-game="'+esc(m.id)+'"'+(canScore()?'':' disabled')+'><small>'+i+'경기 · '+m.slot+'차례 · 코트 '+m.court+'</small><strong>'+label+'</strong><span>'+(m.finished?m.result.join(' : ')+' · 기록 완료':canScore()?'점수 입력':'대기')+'</span></button>';}
   function draw(){
     const games=session.matches,done=games.filter(m=>m.finished).length;
     $('#league-title').textContent=session.title;$('#league-date').textContent=session.date;
@@ -54,11 +56,14 @@
     $('#schedule').innerHTML=games.map((m,i)=>(!$('#team-filter').value||m.teams.includes($('#team-filter').value))&&(!$('#court-filter').value||m.court===Number($('#court-filter').value))?gameButton(m,i+1):'').join('')||'해당 경기가 없습니다.';
     $('#rank-table').innerHTML='<table><thead><tr><th>순위</th><th>조</th><th>승</th><th>패</th><th>득실</th></tr></thead><tbody>'+R.standings(session).map(r=>'<tr>'+[r.rank,r.name,r.wins,r.losses,r.diff].map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
     $('#actions').hidden=false;$('#close-league').hidden=!hostCode||row.closed;$('#league-md').hidden=!row.closed;
-    $('#host-code').textContent=hostCode&&!row.closed?'입력 코드 '+hostCode:'';
+    $('[data-pane="games"]').textContent=canScore()?'점수 입력':'경기 일정';
+    $('#print-help').textContent=hostCode&&!row.closed?'인쇄한 QR로 참가자가 점수를 입력할 수 있습니다.':'';
     if(defaultPane&&row.closed)pane('ranks');defaultPane=false;
     if(row.closed){$('#league-message').textContent='마감된 모임 · 최종 결과';$('#league-dialog').open&&$('#league-dialog').close();}
-    const qr=window.qrcode(0,'M');qr.addData(url(mid));qr.make();
-    $('#league-paper').innerHTML='<header><div><h1>'+esc(session.title)+'</h1><p>'+esc(session.date)+' · '+session.teams.length+'조 · '+session.courts+'코트</p></div><figure>'+qr.createSvgTag({cellSize:4,margin:16})+'<figcaption>점수 입력 · 현재 순위</figcaption></figure></header><table><thead><tr><th>경기</th><th>차례 / 코트</th><th>우리 조</th><th>상대 조</th><th>점수</th></tr></thead><tbody>'+games.map((m,i)=>'<tr><td>'+(i+1)+'</td><td>'+m.slot+' / '+m.court+'</td>'+m.teams.map(id=>'<td><b>'+esc(team(id).name)+'</b> '+esc(names(team(id)))+'</td>').join('')+'<td>'+(m.finished?m.result.join(' : '):'_____ : _____')+'</td></tr>').join('')+'</tbody></table>';
+    const printUrl=new URL(url(mid));
+    if(hostCode && !row.closed)printUrl.hash=new URLSearchParams({entry:hostCode}).toString();
+    const qr=window.qrcode(0,'M');qr.addData(printUrl.href);qr.make();
+    $('#league-paper').innerHTML='<header><div><h1>'+esc(session.title)+'</h1><p>'+esc(session.date)+' · '+session.teams.length+'조 · '+session.courts+'코트</p></div><figure>'+qr.createSvgTag({cellSize:4,margin:16})+'<figcaption>'+(printUrl.hash?'점수 입력 · 현재 순위':'경기 일정 · 순위')+'</figcaption></figure></header><table><thead><tr><th>경기</th><th>차례 / 코트</th><th>우리 조</th><th>상대 조</th><th>점수</th></tr></thead><tbody>'+games.map((m,i)=>'<tr><td>'+(i+1)+'</td><td>'+m.slot+' / '+m.court+'</td>'+m.teams.map(id=>'<td><b>'+esc(team(id).name)+'</b> '+esc(names(team(id)))+'</td>').join('')+'<td>'+(m.finished?m.result.join(' : '):'_____ : _____')+'</td></tr>').join('')+'</tbody></table>';
   }
   async function refresh(){
     const data=await checked(client.from('league_meetings').select('*').eq('id',mid).single());
@@ -66,20 +71,18 @@
     session=R.validate(data.session);row=data;draw();$('#connection').textContent=subscribed?'실시간 연결':'재연결 대기';
   }
   $('#team-filter').onchange=$('#court-filter').onchange=draw;
-  main.addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(!b||row.closed)return;
+  main.addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(!b||!canScore())return;
     opener=b;const m=row.session.matches.find(g=>g.id===b.dataset.game);active={id:m.id,version:m.version||0};
     $('#game-title').textContent=(session.matches.findIndex(g=>g.id===m.id)+1)+'경기 점수';
     $('#score-inputs').innerHTML=m.teams.map((id,i)=>'<label>'+esc(team(id).name)+'<small>'+esc(names(team(id)))+'</small><input type="number" min="0" max="30" inputmode="numeric" required value="'+(m.result?.[i]??'')+'"></label>').join('');
-    $('#code-field').hidden=!!hostCode||sessionStorage.getItem(joinedKey)==='1';$('#score-status').textContent='';$('#league-dialog').showModal();$('#score-inputs input').focus();});
+    $('#score-status').textContent='';$('#league-dialog').showModal();$('#score-inputs input').focus();});
   $('#cancel-score').onclick=()=>$('#league-dialog').close();
   $('#league-dialog').onclose=()=>{const next=main.querySelector('[data-game="'+active?.id+'"]');(opener?.isConnected?opener:next)?.focus();};
   $('#score-form').onsubmit=async e=>{e.preventDefault();const btn=$('#save-score');btn.disabled=true;
     try{if(!navigator.onLine)throw Error('연결이 끊겼습니다. 입력값을 유지합니다.');
-      {const auth=await checked(client.auth.getSession());if(!auth.session)await checked(client.auth.signInAnonymously());}
-      if(!$('#code-field').hidden){await rpc('join',{mid,entry_code:$('#entry-code').value.trim()});sessionStorage.setItem(joinedKey,'1');$('#code-field').hidden=true;$('#entry-code').value='';}
       const [a,b]=[...$('#score-inputs').querySelectorAll('input')].map(el=>el.valueAsNumber);
       await rpc('score',{mid,game:active.id,a,b,expected:active.version});$('#league-dialog').close();$('#league-message').textContent='결과를 저장했습니다.';await refresh();
-    }catch(e){let msg=e.message;if(msg.includes('코드')){$('#code-field').hidden=false;sessionStorage.removeItem(joinedKey);}
+    }catch(e){let msg=e.message;
       if(msg.includes('최신 점수')){await refresh();const m=row.session.matches.find(g=>g.id===active.id);active.version=m.version||0;msg+=' 저장된 결과 '+(m.result||[]).join(' : ');}
       $('#score-status').textContent=msg;
     }finally{btn.disabled=false;}};
@@ -90,5 +93,21 @@
   window.addEventListener('offline',()=>{$('#connection').textContent='오프라인';});window.addEventListener('online',sync);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync();});
   client.channel('league-'+mid).on('postgres_changes',{event:'UPDATE',schema:'public',table:'league_meetings',filter:'id=eq.'+mid},sync).subscribe(status=>{subscribed=status==='SUBSCRIBED';if(subscribed)sync();else $('#connection').textContent='재연결 대기';});
-  await action(async()=>{const auth=await checked(client.auth.getSession());if(auth.session)hostCode=await rpc('host_code',{mid});await refresh();})();
+  await action(async()=>{
+    await refresh();
+    if(row.closed)return;
+    const auth=await checked(client.auth.getSession());
+    if(auth.session)hostCode=await rpc('host_code',{mid});
+    if(!hostCode && entryCode!==null){
+      if(!/^[0-9a-f]{16}$/.test(entryCode))throw Error('점수 입력 QR을 다시 스캔해 주세요.');
+      if(!auth.session){
+        const {error}=await client.auth.signInAnonymously();
+        if(error?.code==='anonymous_provider_disabled')throw Error('점수 입력을 열 수 없습니다. 개설자에게 익명 로그인 설정을 확인해 달라고 요청하세요.');
+        if(error)throw Error(error.message);
+      }
+      await rpc('join',{mid,entry_code:entryCode});
+      joined=true;
+    }
+    draw();
+  })();
 })();
