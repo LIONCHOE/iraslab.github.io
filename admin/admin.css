@@ -88,3 +88,9 @@
 .manual-board-scores thead{background:#eaf0f6}.manual-board-scores label{margin:0}.manual-board-scores small{display:block;font-size:.8rem;word-break:keep-all;color:#52657b}
 .manual-board-scores input{width:4em;min-height:42px;text-align:center;font-variant-numeric:tabular-nums}
 @media(max-width:760px){.manual-board{grid-template-columns:minmax(0,1fr);gap:4px}}
+
+.manual-seat{align-items:flex-start}.seat-search{flex:1;min-width:0}.seat-search input{box-sizing:border-box;width:100%;min-height:42px;margin:0}
+.seat-options{max-height:12rem;overflow-y:auto;overscroll-behavior:contain;border:1px solid #b5c3d1;border-radius:6px;background:#fff;margin-top:3px}
+.seat-options [role=option],.seat-empty{padding:9px 10px;line-height:1.4;overflow-wrap:anywhere}
+.seat-options [role=option]{cursor:pointer}.seat-options [role=option]:hover,.seat-options [aria-selected=true]{color:#193e67;background:#e8f2ff}
+.seat-empty{color:#52657b}
