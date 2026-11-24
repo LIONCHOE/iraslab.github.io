@@ -76,3 +76,15 @@
 
 .badminton-candidate[data-member]{grid-template-columns:42px minmax(0,1fr) auto}.badminton-candidate .badminton-tier-field{display:flex;gap:4px;grid-area:auto}.tier-group .badminton-tier-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"player tier" "records records"}.badminton-candidate-warning{grid-column:auto}
 @media(max-width:600px){.badminton-candidate[data-member]{grid-template-columns:42px minmax(0,1fr)}.badminton-candidate .badminton-tier-field,.badminton-candidate-warning{grid-column:2}.tier-group .badminton-tier-row{grid-template-columns:1fr;grid-template-areas:"player" "tier" "records"}}
+
+.manual-board{display:grid;grid-template-columns:minmax(210px,2fr) minmax(0,3fr);gap:20px;align-items:start}
+.manual-board>div,.manual-seat select{min-width:0}
+.manual-board fieldset{border:1px solid #cbd5e1;border-radius:8px;margin:0 0 12px;padding:8px 12px 12px}
+.manual-board legend{font-weight:700;padding:0 5px}
+.manual-seat{display:flex;gap:6px;margin-top:6px}.manual-seat select{margin:0;min-height:42px}
+.manual-seat [data-seat]{flex:1}.manual-seat [data-slot-tier]{flex:0 0 78px}
+.manual-board-scores{width:100%;border-collapse:collapse;background:white;border:1px solid #dbe3ec}
+.manual-board-scores th,.manual-board-scores td{padding:8px;border-bottom:1px solid #dbe3ec;text-align:left;vertical-align:top}
+.manual-board-scores thead{background:#eaf0f6}.manual-board-scores label{margin:0}.manual-board-scores small{display:block;font-size:.8rem;word-break:keep-all;color:#52657b}
+.manual-board-scores input{width:4em;min-height:42px;text-align:center;font-variant-numeric:tabular-nums}
+@media(max-width:760px){.manual-board{grid-template-columns:minmax(0,1fr);gap:4px}}
