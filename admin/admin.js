@@ -512,6 +512,7 @@
   }
   function discardAll() {
     if (busy || !confirm('아직 업로드하지 않은 모든 변경사항을 취소할까요?')) return;
+    badmintonManual=null;
     for (const [path,state] of drafts) { if (state.raw && state.sha === null) {drafts.delete(path); continue;} state.doc = state.raw ? null : parse(state.source); if (state.raw) state.text = state.source; state.dirty = false;}
     clearImages(); operationCount = 0; selected = null; pending = null; formDirty = false;
     doc = drafts.get(paths[page]).doc; $('#form-area').hidden = true;
@@ -543,7 +544,7 @@ function createBadmintonRules() {
     return {schemaVersion:1, players};
   }
   function balanced(players, count) {
-    check(Number.isInteger(count) && count >= 2 && count <= 6 && players.length >= count*2 && players.length <= count*3, '팀당 2~3명, 전체 2~6팀으로 설정하세요.');
+    check(Number.isInteger(count) && count >= 2 && count <= 7 && players.length >= count*2 && players.length <= count*3, '팀당 2~3명, 전체 2~7팀으로 설정하세요.');
     const ordered = [...players].sort((a,b)=>a.tier-b.tier || a.name.localeCompare(b.name,'ko'));
     const teams = Array.from({length:count},(_,i)=>({id:'t'+(i+1),name:String.fromCharCode(65+i)+'팀',players:[]}));
     ordered.forEach((p,i)=>{const round=Math.floor(i/count), col=i%count; teams[round%2 ? count-1-col : col].players.push(p.id);});
@@ -595,8 +596,8 @@ function createBadmintonRules() {
     check(typeof input.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(input.date)&&new Date(input.date+'T00:00:00Z').toISOString().slice(0,10)===input.date,'모임 날짜를 확인하세요.');
     check(Number.isInteger(input.courts)&&input.courts>=1&&input.courts<=3,'코트 수는 1~3개입니다.');
     const players=roster({schemaVersion:1,players:input.players}).players.map(({history,...p})=>p);
-    check(players.length>=4&&players.length<=18,'참석자는 4~18명입니다.');
-    check(Array.isArray(input.teams)&&input.teams.length>=2&&input.teams.length<=6,'팀 수는 2~6개입니다.');
+    check(players.length>=4&&players.length<=21,'참석자는 4~21명입니다.');
+    check(Array.isArray(input.teams)&&input.teams.length>=2&&input.teams.length<=7,'팀 수는 2~7개입니다.');
     const teamIds=new Set(),assigned=new Set();
     const teams=input.teams.map(t=>{check(t&&idOk(t.id)&&!teamIds.has(t.id)&&nameOk(t.name)&&Array.isArray(t.players)&&t.players.length>=2&&t.players.length<=3,'팀 구성을 확인하세요.');teamIds.add(t.id);for(const id of t.players){check(players.some(p=>p.id===id)&&!assigned.has(id),'선수가 중복되거나 누락되었습니다.');assigned.add(id);}return {id:t.id,name:t.name.trim(),players:[...t.players]};});
     check(assigned.size===players.length,'모든 참석자를 팀에 배정하세요.');
@@ -606,7 +607,7 @@ function createBadmintonRules() {
     const matches=input.matches.map(m=>{
       check(m&&idOk(m.id)&&!matchIds.has(m.id)&&Array.isArray(m.teams)&&m.teams.length===2&&m.teams[0]!==m.teams[1]&&m.teams.every(id=>teamIds.has(id)),'경기 ID·대진을 확인하세요.');matchIds.add(m.id);
       const key=[...m.teams].sort().join('/');check(!pairs.has(key),'중복 대진이 있습니다.');pairs.add(key);
-      check([m.round,m.slot,m.court].every(Number.isInteger)&&m.round>=1&&m.round<=7&&m.slot>=1&&m.slot<=15&&m.court>=1&&m.court<=input.courts,'경기 배치를 확인하세요.');
+      check([m.round,m.slot,m.court].every(Number.isInteger)&&m.round>=1&&m.round<=7&&m.slot>=1&&m.slot<=21&&m.court>=1&&m.court<=input.courts,'경기 배치를 확인하세요.');
       const sl=slots.get(m.slot)||{courts:new Set(),teams:new Set()};check(!sl.courts.has(m.court)&&m.teams.every(id=>!sl.teams.has(id)),'같은 시간대에 팀 또는 코트가 중복됩니다.');sl.courts.add(m.court);m.teams.forEach(id=>sl.teams.add(id));slots.set(m.slot,sl);
       check(Array.isArray(m.events)&&m.events.length<=60&&typeof m.finished==='boolean','점수 기록 형식이 올바르지 않습니다.');
       const events=m.events.map(e=>e?.type==='point'?{type:'point',team:e.team}:e?.type==='interval'?{type:'interval',lineups:copy(e.lineups)}:fail('알 수 없는 점수 기록입니다.'));
@@ -636,6 +637,34 @@ function createBadmintonRules() {
     rows.forEach((r,i)=>{r.rank=i&&compare(rows[i-1],r)===0?rows[i-1].rank:i+1;});
     return rows;
   }
+  function individualStandings(sessions, defaults=[], through=null) {
+    const unique=new Map(sessions.map(s=>[s.id,s]));
+    const ordered=[...unique.values()].filter(s=>s.matches.every(m=>m.finished)).sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id));
+    const rows=new Map(), timeline=[];
+    const compare=(a,b)=>b.points-a.points||b.points/b.meetings-a.points/a.meetings||b.titles-a.titles;
+    for(const s of ordered){
+      if(through&&(s.date>through.date||(s.date===through.date&&s.id>through.id)))continue;
+      const before=new Map([...rows.values()].map(r=>[r.id,r.rank]));
+      const ranks=standings(s);
+      for(const t of s.teams){
+        const place=ranks.find(r=>r.id===t.id).rank;
+        // 2~7팀에서 100점을 정확하게 분배하기 위한 1/60점 정수 단위.
+        const points=6000*(s.teams.length-place)/(s.teams.length-1);
+        for(const id of t.players){const p=s.players.find(p=>p.id===id);const r=rows.get(id)||{id,name:p.name,tier:p.tier,points:0,meetings:0,titles:0,history:[]};
+          r.name=p.name;r.tier=p.tier;r.points+=points;r.meetings++;r.titles+=Number(place===1);r.history.push({id:s.id,date:s.date,title:s.title,place,points:points/60});rows.set(id,r);
+        }
+      }
+      const list=[...rows.values()].sort((a,b)=>compare(a,b)||a.id.localeCompare(b.id));
+      list.forEach((r,i)=>{r.rank=i&&compare(list[i-1],r)===0?list[i-1].rank:i+1;r.change=before.has(r.id)?before.get(r.id)-r.rank:null;});
+      for(const tier of [1,2,3]){const group=list.filter(r=>r.tier===tier);group.forEach((r,i)=>r.tierRank=i&&compare(group[i-1],r)===0?group[i-1].tierRank:i+1);}
+      timeline.push({id:s.id,date:s.date,title:s.title,rows:copy(list)});
+    }
+    const list=[...rows.values()].sort((a,b)=>compare(a,b)||a.id.localeCompare(b.id));
+    const current=new Map(defaults.map(p=>[p.id,p]));
+    for(const r of list){if(current.has(r.id)){r.tier=current.get(r.id).tier;r.name=current.get(r.id).name;}}
+    for(const tier of [1,2,3]){const group=list.filter(r=>r.tier===tier);group.forEach((r,i)=>r.tierRank=i&&compare(group[i-1],r)===0?group[i-1].tierRank:i+1);}
+    return {rows:list.map(r=>({...r,points:r.points/60,average:r.points/60/r.meetings})),timeline:timeline.map(s=>({...s,rows:s.rows.map(r=>({...r,points:r.points/60,average:r.points/60/r.meetings}))}))};
+  }
   function stats(sessions) {
     const out=new Map();
     for(const s of sessions)for(const m of s.matches.filter(m=>m.finished)){const r=replay(s,m);if(m.result!==undefined)continue;m.teams.forEach((id,i)=>{const before=m.lineups[i],after=r.after[i];for(const pid of new Set([...before,...after])){const p=s.players.find(p=>p.id===pid);const row=out.get(pid)||{id:pid,name:p.name,played:0,wins:0,losses:0,first:0,second:0};row.played++;row.wins+=Number(r.score[i]>r.score[1-i]);row.losses+=Number(r.score[i]<r.score[1-i]);row.first+=Number(before.includes(pid));row.second+=Number(after.includes(pid));out.set(pid,row);}});}return [...out.values()];
@@ -647,7 +676,7 @@ function createBadmintonRules() {
   }
   function fromMarkdown(text) {check(typeof text==='string'&&text.length<=1024*1024,'MD는 1MB 이하이어야 합니다.');const parts=[...text.matchAll(/^~~~json iras-badminton-v1\r?\n([\s\S]*?)\r?\n~~~\s*$/gm)];check(parts.length===1,'지원하는 배드민턴 MD 원본 블록이 하나 필요합니다.');return validate(JSON.parse(parts[0][1]));}
   function index(value) {check(value&&value.schemaVersion===1&&Array.isArray(value.sessions)&&value.sessions.length<=2000,'기록 목록 형식이 올바르지 않습니다.');const ids=new Set();return {schemaVersion:1,sessions:value.sessions.map(s=>{check(s&&idOk(s.id)&&!ids.has(s.id)&&nameOk(s.title)&&/^\d{4}-\d{2}-\d{2}$/.test(s.date)&&s.file==='records/'+s.id+'.md','기록 경로 또는 ID가 올바르지 않습니다.');ids.add(s.id);return {id:s.id,title:s.title,date:s.date,file:s.file};})};}
-  return {copy,rules,roster,index,balanced,schedule,replay,validate,standings,stats,markdown,fromMarkdown};
+  return {copy,rules,roster,index,balanced,schedule,replay,validate,standings,individualStandings,stats,markdown,fromMarkdown};
 }
 
   /* BADMINTON_CORE_END */
@@ -671,6 +700,7 @@ function createBadmintonRules() {
       await Promise.all(index.sessions.slice(i, i + 4).map(s => getDraft('badminton/' + s.file)));
     }
     badmintonData();
+    try { await badmintonMemberCandidates(); } catch { /* 명단 읽기 실패 시 이니셜 사용, 등록 버튼에서 상세 오류 표시 */ }
   }
   function stageBadminton(path, text) {
     const state = drafts.get(path);
@@ -696,16 +726,409 @@ function createBadmintonRules() {
     })).sort((a,b)=>b.date.localeCompare(a.date)||b.session.localeCompare(a.session)||b.slot-a.slot).slice(0,5);
     return '<details><summary>최근 팀 경기 '+rows.length+'건</summary>'+(rows.length?rows.map(r=>'<p class="note">'+safe(r.date)+' · '+safe(r.opponent)+' · '+r.score+' · '+(r.win?'승':'패')+'</p>').join(''):'<p class="note">저장된 팀 경기 결과가 없습니다.</p>')+'</details>';
   }
+  async function commitBadmintonSession(input) {
+    const imported=badminton.validate(input),data=badmintonData();
+    if(!imported.matches.every(m=>m.finished))throw Error("모든 경기를 확정한 MD만 게시할 수 있습니다. 전체 점수를 입력하세요.");
+    // Loading an existing unindexed path is not permission to overwrite it.
+    const path = 'badminton/records/' + imported.id + '.md';
+    const original = await getDraft(path, BRANCH, true);
+    if (original.sha && !data.index.sessions.some(s => s.id === imported.id)) throw Error('같은 ID의 파일이 이미 있지만 목록에 없습니다. 원본을 확인하세요.');
+    const existingPlayers = new Map(data.players.players.map(p => [p.id,p]));
+    for (const p of imported.players) {
+      if (existingPlayers.has(p.id) && badmintonNameKey(existingPlayers.get(p.id).name) !== badmintonNameKey(p.name)) throw Error('기존 선수 ID와 이름이 다릅니다: ' + p.name);
+      if (!existingPlayers.has(p.id) && data.players.players.some(q => badmintonNameKey(q.name) === badmintonNameKey(p.name))) throw Error('같은 이름의 다른 선수 ID가 있습니다. 게시된 명단을 사용해 MD의 선수를 확인하세요: ' + p.name);
+    }
+    const filename='records/'+imported.id+'.md';
+    const existed=data.index.sessions.some(s=>s.id===imported.id);
+    data.index.sessions=[...data.index.sessions.filter(s=>s.id!==imported.id),{id:imported.id,title:imported.title,date:imported.date,file:filename}];
+    for(const p of imported.players)if(!data.players.players.some(q=>q.id===p.id))data.players.players.push({...p,history:[{from:null,to:p.tier,at:new Date().toISOString(),reason:'첫 경기 기록에서 등록'}]});
+    // 모든 내용을 검증한 뒤 초안에 함께 반영합니다.
+    const recordText=badminton.markdown(imported),indexText=JSON.stringify(badminton.index(data.index),null,2)+'\n',playersText=JSON.stringify(badminton.roster(data.players),null,2)+'\n';
+    stageBadminton('badminton/'+filename,recordText);
+    stageBadminton(badmintonPaths.index,indexText);
+    stageBadminton(badmintonPaths.players,playersText);
+    operationCount++;formDirty=false;badmintonManual=null;renderBadminton();updateDraftStatus();
+    status((existed?'기존 모임 수정':'새 모임 추가')+'을 변경사항에 자동 반영했습니다. 기본 티어를 확인하고 상단에서 업로드하세요.');
+  }
+
+  let badmintonManual=null, badmintonResumeAfterMembers=false;
+  const badmintonPhotos=new Map();
+  const badmintonDisplay=name=>badmintonNameKey(name);
+  function badmintonPhoto(p){const url=badmintonPhotos.get(badmintonNameKey(p.name));return '<span class="badminton-avatar" aria-hidden="true"><span class="badminton-initial">'+safe(badmintonDisplay(p.name).slice(-2))+'</span>'+(url?'<img src="'+safe(url)+'" alt="" width="42" height="42" loading="lazy" decoding="async">':'')+'</span>';}
+  // GitHub에서 읽은 원본의 루트 경로를 현재 배포 경로에 맞춥니다.
+  function badmintonPhotoUrl(raw){
+    const base=new URL('../',location.href);
+    const url=raw.startsWith('/')&&!raw.startsWith('//')?new URL(raw.startsWith(base.pathname)&&base.pathname!=='/'?raw:base.pathname+raw.slice(1),location.origin):new URL(raw,new URL('people/',base));
+    return url.origin===location.origin&&/^https?:$/.test(url.protocol)?url.href:null;
+  }
+  document.addEventListener('error',e=>{if(e.target.matches?.('.badminton-avatar img'))e.target.remove();},true);
+  function badmintonMemberKey(name){const key=badmintonNameKey(name);return [...badmintonKoreanNames].find(([,ko])=>ko===key)?.[0]||key;}
+  function badmintonMemberId(name){let hash=2166136261;for(const c of badmintonMemberKey(name)){hash^=c.codePointAt(0);hash=Math.imul(hash,16777619);}return 'member-'+(hash>>>0).toString(16);}
+  async function badmintonMemberCandidates(){
+    const state=await getDraft(paths.people),people=state.doc;
+    const sections=[...people.querySelectorAll('main section')];
+    if(!sections.some(s=>s.querySelector('h2')?.textContent.trim().toLowerCase()==='alumni'))throw Error('People 분류를 확인할 수 없습니다.');
+    const existing=badmintonData().players.players,candidates=[],seen=new Set();
+    for(const section of sections){if(!section.querySelector('h2')||section.querySelector('h2').textContent.trim().toLowerCase()==='alumni')continue;
+      for(const heading of section.querySelectorAll('h3')){
+        const name=heading.textContent.replace(/,?\s*Ph\.?D\.?\s*$/i,'').replace(/\s+/g,' ').trim(),key=badmintonNameKey(name);
+        if(!name||seen.has(key))continue;seen.add(key);
+        const card=heading.closest('[data-person-trigger],a')||heading.parentElement,raw=card.querySelector('img')?.getAttribute('src');
+        if(raw){try{const url=badmintonPhotoUrl(raw);if(url)badmintonPhotos.set(key,url);}catch{}}
+        const id=badmintonMemberId(name),matches=existing.filter(p=>p.id===id||badmintonNameKey(p.name)===key);
+        if(matches.length){if(matches.length!==1||matches[0].id!==id||badmintonNameKey(matches[0].name)!==key)candidates.push({id,name,tier:2,conflict:true});continue;}
+        candidates.push({id,name,tier:2});
+      }
+    }
+    return candidates;
+  }
+  function manualShell(){return '<section class="badminton-manual" aria-labelledby="manual-heading"><h3 id="manual-heading">기록 직접 입력</h3><p class="note">조를 편성하고 대진표에 점수를 입력한 뒤 변경사항에 반영하세요.</p><label>미완성 MD 이어 작성<input id="badminton-resume" type="file" accept=".md,text/markdown,text/plain"></label><div id="badminton-manual-body"></div></section>';}
+  function newManualBoard(host, players) {
+    const options = values => values.map(n => '<option>'+n+'</option>').join('');
+    host.innerHTML = '<div class="badminton-form-grid"><label>모임 이름<input id="manual-title" maxlength="80" value="IRAS 배드민턴 정기 모임"></label>'+
+      '<label>날짜<input type="date" id="manual-date"></label><label>조 수<select id="manual-count">'+options([2,3,4,5,6,7])+'</select></label>'+
+      '<label>코트 수<select id="manual-courts">'+options([1,2,3])+'</select></label></div>'+
+      '<div class="manual-board"><div><h4>조 편성</h4><p class="note">각 조에 2명 또는 3명을 선택하세요.</p><div id="manual-groups"></div></div>'+
+      '<div><h4>경기 점수</h4><div id="manual-games"></div><div id="manual-preview" aria-live="polite"></div></div></div>'+
+      '<div class="toolbar"><button id="manual-stage" type="button">완료 기록을 변경사항에 반영</button>'+
+      '<button id="manual-backup" type="button">입력 중 MD 백업</button><button id="manual-cancel" type="button">입력 취소</button></div>';
+    $('#manual-date').value = new Date(Date.now()+9*3600000).toISOString().slice(0,10);
+    const roster = new Map(players.map(p => [p.id,p]));
+    const id = 'meet-'+crypto.randomUUID();
+    const emptyGroup = () => ['','',''];
+    const groupName = i => String.fromCharCode(65+i)+'조';
+    const pairKey = teams => [...teams].sort().join('-');
+    let groups = [emptyGroup(),emptyGroup()];
+    const tiers = new Map(players.map(p => [p.id,p.tier]));
+    let scores = new Map();
+    let restoringSeatFocus = false;
+    function drawGroups() {
+      const assigned = new Set(groups.flat().filter(Boolean));
+      $('#manual-groups').innerHTML = groups.map((slots,g) => '<fieldset><legend>'+groupName(g)+'</legend>'+slots.map((pid,i) => {
+        const label = groupName(g)+' '+(i+1)+'번째 선수';
+        const listId = 'seat-options-'+g+'-'+i;
+        const tier = pid ? '<select data-slot-tier="'+pid+'" aria-label="'+safe(badmintonDisplay(roster.get(pid).name))+' 당시 티어">'+
+          [1,2,3].map(n=>'<option value="'+n+'"'+(tiers.get(pid)===n?' selected':'')+'>'+n+'티어</option>').join('')+'</select>' : '';
+        return '<div class="manual-seat"><div class="seat-search"><input type="text" role="combobox" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="'+listId+'" data-group="'+g+'" data-seat="'+i+'" aria-label="'+label+'" placeholder="'+
+          (i===2?'세 번째 선수 검색 (선택)':'선수 이름 검색')+'" value="'+safe(pid?badmintonDisplay(roster.get(pid).name):'')+'">'+
+          '<div class="seat-options" id="'+listId+'" role="listbox" aria-label="'+label+' 후보" hidden></div></div>'+tier+'</div>';
+      }).join('')+'</fieldset>').join('');
+      for (const field of $('#manual-groups').querySelectorAll('[data-seat]')) wirePlayerSearch(field,assigned);
+    }
+    function wirePlayerSearch(input, assigned) {
+      const g = Number(input.dataset.group), i = Number(input.dataset.seat);
+      const current = groups[g][i];
+      const label = current ? badmintonDisplay(roster.get(current).name) : '';
+      const box = input.nextElementSibling;
+      let active = -1;
+      function close() {
+        input.value = label;
+        input.setAttribute('aria-expanded','false');
+        input.removeAttribute('aria-activedescendant');
+        box.hidden = true;
+        box.replaceChildren();
+        active = -1;
+      }
+      function show(query) {
+        const term = query.trim().normalize('NFKC').toLowerCase();
+        const matches = players.filter(p => (!assigned.has(p.id) || p.id === current) &&
+          [p.name,badmintonDisplay(p.name),badmintonMemberKey(p.name)].some(name => name.normalize('NFKC').toLowerCase().includes(term)));
+        const items = matches.map(p => ({id:p.id, name:badmintonDisplay(p.name)}));
+        if (current && !term) items.push({id:'',name:'배정 해제'});
+        box.innerHTML = items.length ? items.map((p,n) => '<div role="option" id="'+box.id+'-'+n+'" data-player="'+safe(p.id)+'" aria-selected="false">'+safe(p.name)+'</div>').join('') :
+          '<div class="seat-empty" role="status">일치하는 선수가 없습니다.</div>';
+        box.hidden = false;
+        active = -1;
+        input.setAttribute('aria-expanded','true');
+        input.removeAttribute('aria-activedescendant');
+      }
+      function choose(option) {
+        if (!option || busy) return;
+        const pid = option.dataset.player;
+        if (pid === current) { close();return; }
+        if (pid && (!roster.has(pid) || groups.flat().includes(pid))) return;
+        const next = groups.map(slots => [...slots]);
+        next[g][i] = pid;
+        formDirty = true;
+        changeGroups(next);
+        const field = $('[data-group="'+g+'"][data-seat="'+i+'"]');
+        restoringSeatFocus = true;
+        try { field.focus(); } finally { restoringSeatFocus = false; }
+      }
+      input.onfocus = () => {if (!restoringSeatFocus) {show('');input.select();}};
+      input.onclick = () => {if (box.hidden) {show('');input.select();}};
+      input.oninput = event => {event.stopPropagation();show(input.value);};
+      input.onchange = event => event.stopPropagation();
+      input.onblur = close;
+      input.onkeydown = event => {
+        if (event.isComposing || event.keyCode === 229) return;
+        if (event.key === 'Escape') {close();return;}
+        if (!['ArrowDown','ArrowUp','Enter'].includes(event.key)) return;
+        event.preventDefault();
+        if (box.hidden && event.key === 'Enter') return;
+        if (box.hidden) show('');
+        const items = box.querySelectorAll('[role="option"]');
+        if (!items.length) return;
+        if (event.key === 'Enter') {choose(items[Math.max(0,active)]);return;}
+        if (active >= 0) items[active].setAttribute('aria-selected','false');
+        active = event.key === 'ArrowDown' ? (active+1)%items.length : (active<=0 ? items.length-1 : active-1);
+        items[active].setAttribute('aria-selected','true');
+        input.setAttribute('aria-activedescendant',items[active].id);
+        items[active].scrollIntoView({block:'nearest'});
+      };
+      box.onmousedown = event => event.preventDefault();
+      box.onclick = event => choose(event.target.closest('[role="option"]'));
+    }
+    function rememberScores() {
+      for (const row of $('#manual-games').querySelectorAll('[data-pair]')) {
+        const values = Object.fromEntries([...row.querySelectorAll('input')].map(input => [input.dataset.team,input.value]));
+        if (Object.values(values).some(value=>value!=='')) scores.set(row.dataset.pair,values);
+        else scores.delete(row.dataset.pair);
+      }
+    }
+    function drawGames() {
+      const teams = groups.map((slots,i)=>({id:'t'+(i+1),name:groupName(i),players:slots.filter(Boolean)})).filter(team=>team.players.length>=2);
+      const courts = Number($('#manual-courts').value);
+      const matches = teams.length>=2 ? badminton.schedule(teams,courts) : [];
+      badmintonManual.session = matches.length ? {schemaVersion:1,id,title:$('#manual-title').value,date:$('#manual-date').value,courts,
+        rules:badminton.rules,teams,matches,players:teams.flatMap(t=>t.players.map(pid=>({id:pid,name:roster.get(pid).name,tier:tiers.get(pid)})))} : null;
+      const rows = matches.map(m=>{
+        const key=pairKey(m.teams),values=scores.get(key)||{};
+        return '<tr data-pair="'+key+'"><th scope="row">'+m.id.slice(1)+'</th>'+m.teams.map((teamId,side)=>{
+          const team=teams.find(t=>t.id===teamId);
+          return '<td><label><strong>'+team.name+'</strong><small>'+team.players.map(pid=>safe(badmintonDisplay(roster.get(pid).name))).join(' · ')+'</small>'+
+            '<input data-manual-score="'+m.id+'" data-team="'+teamId+'" data-side="'+side+'" aria-label="'+m.id+' '+team.name+' 점수" inputmode="numeric" maxlength="2" value="'+safe(values[teamId]||'')+'"></label></td>';
+        }).join('')+'</tr>';
+      }).join('');
+      $('#manual-games').innerHTML = rows ? '<table class="manual-board-scores"><thead><tr><th>경기</th><th>우리 조</th><th>상대 조</th></tr></thead><tbody>'+rows+'</tbody></table>' : '<p class="note">두 조의 편성이 끝나면 대진이 표시됩니다.</p>';
+      $('#manual-preview').replaceChildren();
+      if (matches.length) updateManualPreview();
+    }
+    function changeGroups(next) {
+      rememberScores();
+      const affected = [...scores.keys()].filter(key=>key.split('-').some(t=>{
+        const i=Number(t.slice(1))-1;
+        return !next[i] || groups[i].filter(Boolean).sort().join('/')!==next[i].filter(Boolean).sort().join('/');
+      }));
+      if (affected.length) {
+        const names=affected.map(key=>key.split('-').map(t=>groupName(Number(t.slice(1))-1)).join('–'));
+        if (!confirm(names.join(', ')+' 경기의 입력 점수를 지우고 조 편성을 변경할까요?')) {
+          $('#manual-count').value=String(groups.length);
+          drawGroups();
+          return;
+        }
+        affected.forEach(key=>scores.delete(key));
+      }
+      groups=next;
+      drawGroups();drawGames();
+    }
+    host.onchange = e => {
+      const el=e.target;
+      formDirty=true;
+      if (el.id==='manual-count') {
+        changeGroups(Array.from({length:Number(el.value)},(_,i)=>groups[i]||emptyGroup()));
+      } else if (el.id==='manual-courts' || el.hasAttribute('data-slot-tier')) {
+        rememberScores();
+        if(el.hasAttribute('data-slot-tier'))tiers.set(el.dataset.slotTier,Number(el.value));
+        drawGames();
+      }
+    };
+    host.oninput = () => {
+      formDirty=true;
+      if (badmintonManual.session) {
+        badmintonManual.session.title=$('#manual-title').value;
+        badmintonManual.session.date=$('#manual-date').value;
+        updateManualPreview();
+      }
+    };
+    function record(requireComplete) {
+      if (!badmintonManual.session || groups.some(slots=>slots.filter(Boolean).length<2)) throw Error('모든 조에 2~3명을 배정하세요.');
+      const s=readManual(true);
+      if (requireComplete && s.matches.some(m=>!m.finished)) throw Error('모든 경기 점수를 입력한 뒤 반영하세요.');
+      return s;
+    }
+    $('#manual-stage').onclick=async()=>{
+      if(busy)return;
+      try { const s=record(true);setBusy(true);await commitBadmintonSession(s); }
+      catch(e){status(e.message,true);}finally{setBusy(false);}
+    };
+    $('#manual-backup').onclick=()=>{try{downloadManual(record(false));}catch(e){status(e.message,true);}};
+    $('#manual-cancel').onclick=()=>{if(!guardForm())return;badmintonManual=null;formDirty=false;renderManual();};
+    drawGroups();drawGames();
+  }
+
+  function renderManual(){
+    const host=$('#badminton-manual-body');if(!host)return;
+    if(!badmintonManual){host.innerHTML='<button type="button" id="badminton-new-record">새 모임 직접 입력</button>';$('#badminton-new-record').onclick=()=>{if(busy||!guardForm())return;badmintonManual={session:null};formDirty=false;renderManual();};return;}
+    const s=badmintonManual.session;
+    if(!s){const players=badmintonData().players.players;if(!players.length){host.innerHTML='<p class="note" role="status">등록된 선수가 없어 아직 팀과 점수를 입력할 수 없습니다. 먼저 현재 구성원에서 선수를 등록하세요. 등록 후 이 화면에서 팀 선택을 이어갑니다.</p><button id="manual-register-members" type="button">선수 등록하고 계속</button><button id="manual-cancel" type="button">입력 취소</button>';$('#manual-register-members').onclick=async()=>{badmintonResumeAfterMembers=true;await $('#badminton-members').onclick();$('#badminton-candidates').scrollIntoView({block:'center'});};$('#manual-cancel').onclick=()=>{badmintonResumeAfterMembers=false;badmintonManual=null;formDirty=false;renderManual();};return;}newManualBoard(host,players);return;
+    }else{
+      host.innerHTML='<h4>'+safe(s.date+' · '+s.title)+'</h4><p class="note">선수·팀·당시 티어는 보존됩니다. 점수 없는 칸은 대기 경기이며 0점과 다릅니다. 21점·듀스·30점 상한.</p><div class="badminton-table"><table class="manual-score-table"><thead><tr><th>경기</th><th>우리 팀 · 선수</th><th>점수</th><th>점수</th><th>상대 팀 · 선수</th><th>정정 사유</th></tr></thead><tbody>'+s.matches.map(m=>{const pair=m.teams.map(id=>s.teams.find(t=>t.id===id)),score=badminton.replay(s,m).score;const label=t=>safe(t.name)+'<small>'+t.players.map(id=>{const p=s.players.find(p=>p.id===id);return safe(badmintonDisplay(p.name))+' ('+p.tier+'티어)';}).join(' · ')+'</small>';return '<tr><td>'+safe(m.id)+'</td><td>'+label(pair[0])+'</td>'+[0,1].map(i=>'<td><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" data-manual-score="'+m.id+'" data-side="'+i+'" aria-label="'+safe(m.id+' '+pair[i].name)+' 점수" value="'+(m.finished||m.lineups?score[i]:'')+'"></td>').join('')+'<td>'+label(pair[1])+'</td><td><input data-manual-reason="'+m.id+'" aria-label="'+safe(m.id)+' 정정 사유" maxlength="500" placeholder="기존 결과 수정 시 필수"></td></tr>';}).join('')+'</tbody></table></div><div id="manual-preview" aria-live="polite"></div><div class="toolbar"><button id="manual-stage" type="button">완료 기록을 변경사항에 반영</button><button id="manual-backup" type="button">입력 중 MD 백업</button><button id="manual-cancel" type="button">입력 취소</button></div>';
+      $('#manual-stage').onclick=async()=>{if(busy)return;try{const next=readManual(true);if(!next.matches.every(m=>m.finished))throw Error('모든 경기 점수를 입력한 뒤 반영하세요.');if(s.matches.some(m=>m.lineups&&JSON.stringify(m)!==JSON.stringify(next.matches.find(n=>n.id===m.id)))&&!confirm('수정된 경기의 상세 출전·교체 기록을 최종 팀 점수로 대체합니다. 계속할까요?'))return;setBusy(true);await commitBadmintonSession(next);}catch(e){status(e.message,true);}finally{setBusy(false);}};
+      $('#manual-backup').onclick=()=>{try{downloadManual(readManual(true));}catch(e){status(e.message,true);}};
+      updateManualPreview();
+    }
+    $('#manual-cancel').onclick=()=>{if(!guardForm())return;badmintonManual=null;formDirty=false;renderManual();};
+    host.oninput=()=>{formDirty=true;if(badmintonManual?.session)updateManualPreview();};host.onchange=host.oninput;
+  }
+  function readManual(requireReason){
+    const next=badminton.copy(badmintonManual.session);
+    for(const m of next.matches){const values=[0,1].map(i=>$('[data-manual-score="'+m.id+'"][data-side="'+i+'"]').value.trim()),old=badminton.replay(next,m).score;
+      if(values.every(v=>v==='')&&!m.finished&&!m.lineups)continue;
+      if(values.some(v=>!/^\d{1,2}$/.test(v)))throw Error(m.id+': 두 팀 점수를 모두 입력하세요.');
+      const score=values.map(Number);if(m.finished&&score.every((v,i)=>v===old[i]))continue;
+      if(m.finished||m.lineups){const reason=$('[data-manual-reason="'+m.id+'"]').value.trim();if(requireReason&&!reason)throw Error(m.id+': 정정 사유를 입력하세요.');m.revisions.push({at:new Date().toISOString(),reason:reason||'미리보기',score:old});}
+      m.result=score;m.lineups=null;m.events=[];m.finished=true;
+    }
+    return badminton.validate(next);
+  }
+  function updateManualPreview(){try{const s=readManual(false),done=s.matches.filter(m=>m.finished).length,all=badmintonData();$('#manual-preview').innerHTML='<p>'+done+' / '+s.matches.length+'경기 완료</p><div class="badminton-table"><table><thead><tr><th>팀 순위</th><th>팀</th><th>승</th><th>패</th></tr></thead><tbody>'+badminton.standings(s).map(r=>'<tr>'+[r.rank,r.name,r.wins,r.losses].map(x=>'<td>'+safe(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>'+(done===s.matches.length?'<h4>반영 후 개인 누적 순위</h4>'+badmintonIndividualTable([...all.sessions.filter(n=>n.id!==s.id),s],all.players.players)+manualRankChanges(s,all):'<p class="note">전체 경기 완료 후 개인 누적 순위를 미리 볼 수 있습니다.</p>');}catch(e){$('#manual-preview').textContent=e.message;}}
+  function manualRankChanges(s,all){
+    const before=new Map(badminton.individualStandings(all.sessions,all.players.players).rows.map(p=>[p.id,p]));
+    const after=badminton.individualStandings([...all.sessions.filter(n=>n.id!==s.id),s],all.players.players).rows;
+    return '<details><summary>개인 점수·순위 변경 비교</summary><div class="badminton-table"><table><thead><tr><th>선수</th><th>누적 점수 전 → 후</th><th>순위 전 → 후</th></tr></thead><tbody>'+after.filter(p=>!before.has(p.id)||before.get(p.id).points!==p.points||before.get(p.id).rank!==p.rank).map(p=>{const old=before.get(p.id);return '<tr><td>'+safe(badmintonDisplay(p.name))+'</td><td>'+Number((old?.points||0).toFixed(2))+' → '+Number(p.points.toFixed(2))+'</td><td>'+(old?.rank||'신규')+' → '+p.rank+'</td></tr>';}).join('')+'</tbody></table></div></details>';
+  }
+  function downloadManual(s){const url=URL.createObjectURL(new Blob([badminton.markdown(s)],{type:'text/markdown;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=s.id+'.md';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  function wireBadmintonTools(){
+    renderManual();
+    $('#badminton-record-search').oninput=e=>{const q=e.target.value.toLowerCase().trim();document.querySelectorAll('.badminton-record').forEach(n=>n.hidden=!n.querySelector('summary').textContent.toLowerCase().includes(q));};
+    $('#badminton-resume').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f||busy||!guardForm())return;try{if(f.size>1024*1024)throw Error('MD는 1MB 이하이어야 합니다.');const s=badminton.fromMarkdown(await f.text()),existing=badmintonData().sessions.find(n=>n.id===s.id);if(existing&&JSON.stringify({players:s.players,teams:s.teams,date:s.date,title:s.title})!==JSON.stringify({players:existing.players,teams:existing.teams,date:existing.date,title:existing.title}))throw Error('기존 모임은 선수·팀·날짜·제목을 유지한 결과 수정으로 열어 주세요.');badmintonManual={session:s};formDirty=true;renderManual();}catch(err){status(err.message,true);}};
+    document.querySelectorAll('[data-edit-record]').forEach(b=>b.onclick=()=>{if(busy||!guardForm())return;badmintonManual={session:badminton.copy(badmintonData().sessions.find(s=>s.id===b.dataset.editRecord))};formDirty=false;renderManual();$('#manual-heading').scrollIntoView({block:'start'});});
+    $('#badminton-members').onclick = async () => {
+      if (busy || !guardForm()) return;
+      setBusy(true);
+      try {
+        const list = await badmintonMemberCandidates();
+        const host = $('#badminton-candidates');
+        const selected = new Map();
+        const previousDirty = !!badmintonManual && formDirty;
+        host.innerHTML = list.length ? '<p>등록할 선수의 기본 티어를 선택하세요.</p>' + list.map((p, i) =>
+          '<div class="badminton-candidate" data-member="'+i+'">'+badmintonPhoto(p)+
+          '<span class="badminton-candidate-name">'+safe(badmintonDisplay(p.name))+'</span>'+
+          (p.conflict ? '<span class="badminton-candidate-warning">기존 이름/ID와 충돌, 확인 필요</span>' : tierButtons(p))+'</div>'
+        ).join('') + '<button type="button" id="badminton-add-members">선택한 0명 등록</button>' : '<p>추가할 현재 구성원이 없습니다.</p>';
+        formDirty = previousDirty;
+        const add = $('#badminton-add-members');
+        host.onclick = event => {
+          if (busy) return;
+          const button = event.target.closest('[data-tier-choice]');
+          if (!button) return;
+          const row = button.closest('[data-member]');
+          const index = Number(row.dataset.member), tier = Number(button.dataset.tierChoice);
+          if (selected.get(index) === tier) selected.delete(index);
+          else selected.set(index, tier);
+          for (const choice of row.querySelectorAll('[data-tier-choice]')) {
+            choice.setAttribute('aria-pressed', String(Number(choice.dataset.tierChoice) === selected.get(index)));
+          }
+          add.textContent = '선택한 '+selected.size+'명 등록';
+          formDirty = previousDirty || selected.size > 0;
+        };
+        if (add) add.onclick = () => {
+          if (!selected.size) return status('등록할 선수의 티어를 선택하세요.');
+          try {
+            const data = badmintonData();
+            for (const [index, tier] of selected) {
+              const p = list[index];
+              if (data.players.players.some(q => q.id === p.id || badmintonNameKey(q.name) === badmintonNameKey(p.name))) throw Error('중복 선수입니다. 명단을 다시 확인하세요.');
+              data.players.players.push({id:p.id, name:p.name, tier, history:[{from:null,to:tier,at:new Date().toISOString(),reason:''}]});
+            }
+            stageBadminton(badmintonPaths.players, JSON.stringify(badminton.roster(data.players),null,2)+'\n');
+            operationCount++;
+            formDirty = false;
+            badmintonManual = badmintonResumeAfterMembers ? {session:null} : null;
+            badmintonResumeAfterMembers = false;
+            renderBadminton();
+            if (badmintonManual) $('#manual-heading').scrollIntoView({block:'start'});
+            updateDraftStatus();
+            status(selected.size+'명 등록을 반영했습니다. 상단에서 업로드하세요.');
+          } catch (error) { status(error.message,true); }
+        };
+      } catch (error) { status(error.message,true); }
+      finally { setBusy(false); }
+    };
+  }
+
+  function tierButtons(player, current) {
+    const buttons = [1, 2, 3].map(tier =>
+      '<button type="button" data-tier-choice="'+tier+'" aria-pressed="'+(tier === current)+'">'+tier+'티어</button>').join('');
+    return '<div class="badminton-tier-field" role="group" aria-label="'+safe(badmintonDisplay(player.name))+' 기본 티어">'+buttons+'</div>';
+  }
+
+  function tierRoster(players, sessions) {
+    const groups = [1, 2, 3].map(tier => {
+      const members = players.filter(p => p.tier === tier);
+      const rows = members.map(p => {
+        const name = safe(badmintonDisplay(p.name));
+        const history = p.history.map(h => '<p class="note">'+safe(h.at)+' / '+(h.from ?? '신규')+' → '+h.to+(h.reason?' / '+safe(h.reason):'')+'</p>').join('');
+        return '<div class="badminton-tier-row" data-player-id="'+p.id+'" data-search-name="'+safe(p.name+' '+badmintonDisplay(p.name))+'">'+
+          '<div class="badminton-player-identity">'+badmintonPhoto(p)+'<strong>'+name+'</strong></div>'+
+          tierButtons(p,tier)+
+          '<div class="badminton-player-records">'+badmintonRecentResults(sessions,p)+'<details><summary>변경 이력 '+p.history.length+'건</summary>'+history+'</details></div></div>';
+      }).join('');
+      return '<section class="tier-group" data-group-tier="'+tier+'"><h4>'+tier+'티어 <small>'+members.length+'명</small></h4>'+
+        (rows || '<p class="note">등록된 선수가 없습니다.</p>')+'</section>';
+    });
+    return '<label>선수 이름 검색<input id="tier-search" type="search"></label><div class="badminton-tier-list">'+groups.join('')+'</div><p id="tier-no-match" hidden>검색 결과가 없습니다.</p>';
+  }
+
+  function wireTierRoster() {
+    const list = $('.badminton-tier-list');
+    const rows = [...list.querySelectorAll('.badminton-tier-row')];
+    const search = $('#tier-search');
+    search.oninput = () => {
+      const term = search.value.trim().toLocaleLowerCase();
+      for (const row of rows) row.hidden = !row.dataset.searchName.toLocaleLowerCase().includes(term);
+      for (const group of list.children) group.hidden = !!term && !group.querySelector('.badminton-tier-row:not([hidden])');
+      $('#tier-no-match').hidden = !term || rows.some(row => !row.hidden);
+    };
+    list.onclick = event => {
+      const button = event.target.closest('[data-tier-choice]');
+      if (!button || busy || button.getAttribute('aria-pressed') === 'true') return;
+      const id = button.closest('[data-player-id]').dataset.playerId;
+      const next = Number(button.dataset.tierChoice);
+      try {
+        const {players, sessions} = badmintonData();
+        const player = players.players.find(p => p.id === id);
+        const state = drafts.get(badmintonPaths.players);
+        const savedRoster = badminton.roster(JSON.parse(state.source));
+        const savedPlayer = savedRoster.players.find(p => p.id === id);
+        const last = player.history.at(-1);
+        // 게시 전 여러 번 바꿔도 최종 티어 변경만 이력에 남긴다.
+        if (last && last.from !== null && last.reason === '' && player.history.length > (savedPlayer?.history.length || 0)) {
+          player.tier = player.history.pop().from;
+        }
+        if (player.tier !== next) {
+          player.history.push({from:player.tier,to:next,at:new Date().toISOString(),reason:''});
+        }
+        player.tier = next;
+        const restored = JSON.stringify(players) === JSON.stringify(savedRoster);
+        stageBadminton(badmintonPaths.players, restored ? state.source : JSON.stringify(players,null,2)+'\n');
+        operationCount++;
+        const term = search.value;
+        $('#tier-editor').innerHTML = tierRoster(players.players,sessions);
+        wireTierRoster();
+        const field = $('#tier-search');
+        field.value = term;
+        field.oninput();
+        $('#badminton-standings').innerHTML = badmintonIndividualTable(sessions,players.players);
+        $('[data-player-id="'+id+'"] [data-tier-choice="'+next+'"]').focus();
+        updateDraftStatus();
+        status(badmintonDisplay(player.name)+' · '+next+'티어'+(restored ? ' (저장된 설정)' : ' · 변경사항에 반영했습니다.'));
+      } catch (error) { status(error.message,true); }
+    };
+  }
+
   function renderBadminton() {
     const {players,index,sessions} = badmintonData();
     $('#count').textContent = index.sessions.length + '개 모임 · ' + players.players.length + '명';
     $('#items').innerHTML = '<div class="badminton-admin"><h2>배드민턴 기록·티어</h2><p class="note">완료된 MD를 가져오면 지난 기록에 자동 반영됩니다. 같은 모임 ID는 갱신하며, 상단 업로드로 홈페이지에 저장합니다. <a href="../badminton/" target="_blank" rel="noopener">경기 운영 페이지 열기</a></p>' +
-      '<label>결과 MD 가져오기<input type="file" id="badminton-import" accept=".md,text/markdown,text/plain"></label>' +
+      manualShell()+'<label>완료 MD 가져오기<input type="file" id="badminton-import" accept=".md,text/markdown,text/plain"></label>' +
       '<h3>누적 출전 통계</h3><p class="note">팀 승패와 전·후반 출전 기록입니다. 개인 실력 점수로 자동 환산하지 않습니다.</p>' + badmintonStatsTable(sessions) +
-      '<h3>선수 기본 티어 · 영구 설정</h3><p class="note">상단에서 업로드하면 다음 새 모임의 기본값으로 적용됩니다. 경기 페이지의 임시 변경과 과거 경기의 당시 티어는 이 설정을 바꾸지 않습니다. 변경 사유를 적고 반영하세요.</p>' +
-      '<div class="badminton-tier-list">' + players.players.map(p => '<div class="badminton-tier-row" data-player-id="' + p.id + '"><strong>' + safe([...badmintonKoreanNames.values()].includes(badmintonNameKey(p.name))?badmintonNameKey(p.name):p.name) + '</strong>'+badmintonRecentResults(sessions,p)+'<label>기본 티어<select data-badminton-tier="' + p.id + '" ' + '' + '>' + [1,2,3].map(n => '<option value="' + n + '" ' + (n === p.tier ? 'selected' : '') + '>' + n + '티어</option>').join('') + '</select></label><label>변경 사유<input data-badminton-reason="' + p.id + '" ' + '' + ' maxlength="500" placeholder="경기 기록을 참고한 판단"></label><details><summary>변경 이력 ' + p.history.length + '건</summary>' + p.history.map(h => '<p class="note">' + safe(h.at) + ' / ' + (h.from ?? '신규') + ' → ' + h.to + ' / ' + safe(h.reason) + '</p>').join('') + '</details></div>').join('') + '</div>' +
-      (players.players.length ? '<button id="badminton-stage-tiers" type="button">티어를 변경사항에 반영</button>' : '<p class="note">첫 경기 MD를 반영하면 선수 명단이 등록됩니다. 경기 운영 페이지에서 신규 선수를 추가하세요.</p>') +
-      '<h3>저장된 모임</h3>' + index.sessions.slice().sort((a,b) => b.date.localeCompare(a.date)).map(s => '<details class="badminton-record"><summary>' + safe(s.date + ' · ' + s.title) + '</summary>' + badmintonResultTable(sessions.find(x => x.id === s.id)) + '</details>').join('') + '</div>';
+      '<h3>개인 누적 순위</h3><div id="badminton-standings">'+badmintonIndividualTable(sessions,players.players)+'</div><h3>선수 기본 티어 · 영구 설정</h3><p class="note">상단에서 업로드하면 다음 새 모임의 기본값으로 적용됩니다. 경기 페이지의 임시 변경과 과거 경기의 당시 티어는 이 설정을 바꾸지 않습니다. 티어를 누르면 바로 변경사항에 반영됩니다.</p>' +
+      '<button id="badminton-members" type="button">현재 구성원에서 선수 등록</button><div id="badminton-candidates"></div><div id="tier-editor">' + tierRoster(players.players, sessions) + '</div>' +
+      '<h3>저장된 모임</h3><label>모임 검색<input id="badminton-record-search" type="search" placeholder="날짜 또는 모임 이름"></label>' + index.sessions.slice().sort((a,b) => b.date.localeCompare(a.date)).map(s => '<details class="badminton-record"><summary>' + safe(s.date + ' · ' + s.title) + '</summary>' + badmintonResultTable(sessions.find(x => x.id === s.id)) + '<button type="button" data-edit-record="'+s.id+'">결과 수정</button></details>').join('') + '</div>';
+    wireBadmintonTools();
+    wireTierRoster();
     $('#badminton-import').onchange = async e => {
       if (busy) return;
       const file = e.target.files[0]; e.target.value = ''; if (!file) return;
@@ -715,48 +1138,14 @@ function createBadmintonRules() {
         if (file.size > 1024 * 1024) throw Error('MD 파일은 1MB 이하로 선택하세요.');
         const imported = badminton.fromMarkdown(await file.text());
         if (!imported.matches.every(m => m.finished)) throw Error('모든 경기를 확정한 MD만 게시할 수 있습니다. 경기 운영 페이지에서 마무리하세요.');
-        // Loading an existing unindexed path is not permission to overwrite it.
-        const path = 'badminton/records/' + imported.id + '.md';
-        const original = await getDraft(path, BRANCH, true);
-        if (original.sha && !index.sessions.some(s => s.id === imported.id)) throw Error('같은 ID의 파일이 이미 있지만 목록에 없습니다. 원본을 확인하세요.');
-        const existingPlayers = new Map(players.players.map(p => [p.id,p]));
-        for (const p of imported.players) {
-          if (existingPlayers.has(p.id) && badmintonNameKey(existingPlayers.get(p.id).name) !== badmintonNameKey(p.name)) throw Error('기존 선수 ID와 이름이 다릅니다: ' + p.name);
-          if (!existingPlayers.has(p.id) && players.players.some(q => badmintonNameKey(q.name) === badmintonNameKey(p.name))) throw Error('같은 이름의 다른 선수 ID가 있습니다. 게시된 명단을 사용해 MD의 선수를 확인하세요: ' + p.name);
-        }
-        const data=badmintonData(),filename='records/'+imported.id+'.md';
-        const existed=data.index.sessions.some(s=>s.id===imported.id);
-        data.index.sessions=[...data.index.sessions.filter(s=>s.id!==imported.id),{id:imported.id,title:imported.title,date:imported.date,file:filename}];
-        for(const p of imported.players)if(!data.players.players.some(q=>q.id===p.id))data.players.players.push({...p,history:[{from:null,to:p.tier,at:new Date().toISOString(),reason:'첫 경기 기록에서 등록'}]});
-        // 모든 내용을 검증한 뒤 초안에 함께 반영합니다.
-        const recordText=badminton.markdown(imported),indexText=JSON.stringify(badminton.index(data.index),null,2)+'\n',playersText=JSON.stringify(badminton.roster(data.players),null,2)+'\n';
-        stageBadminton('badminton/'+filename,recordText);
-        stageBadminton(badmintonPaths.index,indexText);
-        stageBadminton(badmintonPaths.players,playersText);
-        operationCount++;formDirty=false;renderBadminton();updateDraftStatus();
-        status((existed?'기존 모임 수정':'새 모임 추가')+'을 변경사항에 자동 반영했습니다. 기본 티어를 확인하고 상단에서 업로드하세요.');
+        await commitBadmintonSession(imported);
       } catch (e) { status(e.message,true); }
       finally { setBusy(false); }
     };
-    const stageTiers = $('#badminton-stage-tiers');
-    if (stageTiers) stageTiers.onclick = () => {
-      if (busy) return;
-      try {
-        const data = badmintonData(); let count = 0;
-        for (const p of data.players.players) {
-          const tier = Number($('[data-badminton-tier="' + p.id + '"]').value);
-          if (tier === p.tier) continue;
-          const reason = $('[data-badminton-reason="' + p.id + '"]').value.trim();
-          if (!reason) throw Error(p.name + ': 티어 변경 사유를 입력하세요.');
-          p.history.push({from:p.tier,to:tier,at:new Date().toISOString(),reason}); p.tier=tier; count++;
-        }
-        if (!count) {formDirty=false;return status('변경된 티어가 없습니다.');}
-        stageBadminton(badmintonPaths.players,JSON.stringify(badminton.roster(data.players),null,2)+'\n');
-        operationCount++; formDirty=false; renderBadminton(); updateDraftStatus(); status(count+'명의 티어를 반영했습니다. 상단에서 업로드하세요.');
-      } catch (e) { status(e.message,true); }
-    };
-    $('#items').oninput = e => { if (page==='badminton' && (e.target.dataset.badmintonTier || e.target.dataset.badmintonReason)) formDirty=true; };
-    $('#items').onchange = $('#items').oninput;
+  }
+  function badmintonIndividualTable(sessions,players){
+    const rows=badminton.individualStandings(sessions,players).rows;
+    return '<p class="note">완료된 모임 팀 순위 기준: 1위 100점~최하위 0점. 누적 점수 → 평균 → 우승 횟수. MD 정정 시 중복 없이 재계산하며, 업로드 전에는 현재 초안 기준입니다.</p><div class="badminton-table"><table><thead><tr>'+['순위','선수','티어','티어 내','누적 점수','참가','우승'].map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.map(p=>'<tr>'+[p.rank,badmintonNameKey(p.name),p.tier,p.tierRank,Number(p.points.toFixed(2)),p.meetings,p.titles].map(x=>'<td>'+safe(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
   }
   function badmintonResultTable(s) {
     return '<div class="badminton-table"><table><thead><tr><th>경기</th><th>대진</th><th>점수</th></tr></thead><tbody>' + s.matches.map(m => '<tr><td>' + safe(m.id) + '</td><td>' + m.teams.map(id => safe(s.teams.find(t => t.id===id).name)).join(' vs ') + '</td><td>' + badminton.replay(s,m).score.join(' : ') + '</td></tr>').join('') + '</tbody></table></div>';
@@ -778,13 +1167,13 @@ function createBadmintonRules() {
   $('#logout').onclick = () => {
     if (busy) return;
     if ((dirtyDrafts().length || formDirty) && !confirm('업로드하지 않은 변경사항이 있습니다. 취소하고 연결을 해제할까요?')) return;
-    lookupRequest?.abort();lookupRequest=null;token = ''; doc = null; source = ''; sha = ''; user = ''; selected = null; pending = null; drafts.clear(); clearImages(); operationCount = 0; formDirty = false;
+    badmintonManual=null;badmintonResumeAfterMembers=false;badmintonPhotos.clear();lookupRequest?.abort();lookupRequest=null;token = ''; doc = null; source = ''; sha = ''; user = ''; selected = null; pending = null; drafts.clear(); clearImages(); operationCount = 0; formDirty = false;
     $('#editor').hidden = true; $('#login').hidden = false; updateDraftStatus(); status('연결을 해제했습니다.');
   };
   $('#tabs').onclick = async e => {
     const button = e.target.closest('[data-page]');
     if (busy || !button || button.dataset.page === page || !guardForm()) return;
-    lookupRequest?.abort();lookupRequest=null;const previous = page; page = button.dataset.page; setBusy(true);
+    badmintonManual=null;badmintonResumeAfterMembers=false;formDirty=false;lookupRequest?.abort();lookupRequest=null;const previous = page; page = button.dataset.page; setBusy(true);
     try {
       $('#search').value = ''; await load();
       for (const b of $('#tabs').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b === button));
