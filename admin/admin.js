@@ -788,16 +788,126 @@ function createBadmintonRules() {
     }
     return candidates;
   }
-  function manualShell(){return '<section class="badminton-manual" aria-labelledby="manual-heading"><h3 id="manual-heading">기록 직접 입력</h3><p class="note">모임·팀 구성 → 전체 점수 → 검토 → 변경사항 반영 → 상단 업로드. 입력 중에는 이 창에만 보관됩니다.</p><label>미완성 MD 이어 작성<input id="badminton-resume" type="file" accept=".md,text/markdown,text/plain"></label><div id="badminton-manual-body"></div></section>';}
+  function manualShell(){return '<section class="badminton-manual" aria-labelledby="manual-heading"><h3 id="manual-heading">기록 직접 입력</h3><p class="note">조를 편성하고 대진표에 점수를 입력한 뒤 변경사항에 반영하세요.</p><label>미완성 MD 이어 작성<input id="badminton-resume" type="file" accept=".md,text/markdown,text/plain"></label><div id="badminton-manual-body"></div></section>';}
+  function newManualBoard(host, players) {
+    const options = values => values.map(n => '<option>'+n+'</option>').join('');
+    host.innerHTML = '<div class="badminton-form-grid"><label>모임 이름<input id="manual-title" maxlength="80" value="IRAS 배드민턴 정기 모임"></label>'+
+      '<label>날짜<input type="date" id="manual-date"></label><label>조 수<select id="manual-count">'+options([2,3,4,5,6])+'</select></label>'+
+      '<label>코트 수<select id="manual-courts">'+options([1,2,3])+'</select></label></div>'+
+      '<div class="manual-board"><div><h4>조 편성</h4><p class="note">각 조에 2명 또는 3명을 선택하세요.</p><div id="manual-groups"></div></div>'+
+      '<div><h4>경기 점수</h4><div id="manual-games"></div><div id="manual-preview" aria-live="polite"></div></div></div>'+
+      '<div class="toolbar"><button id="manual-stage" type="button">완료 기록을 변경사항에 반영</button>'+
+      '<button id="manual-backup" type="button">입력 중 MD 백업</button><button id="manual-cancel" type="button">입력 취소</button></div>';
+    $('#manual-date').value = new Date(Date.now()+9*3600000).toISOString().slice(0,10);
+    const roster = new Map(players.map(p => [p.id,p]));
+    const id = 'meet-'+crypto.randomUUID();
+    const emptyGroup = () => ['','',''];
+    const groupName = i => String.fromCharCode(65+i)+'조';
+    const pairKey = teams => [...teams].sort().join('-');
+    let groups = [emptyGroup(),emptyGroup()];
+    const tiers = new Map(players.map(p => [p.id,p.tier]));
+    let scores = new Map();
+    function drawGroups() {
+      const assigned = new Set(groups.flat().filter(Boolean));
+      $('#manual-groups').innerHTML = groups.map((slots,g) => '<fieldset><legend>'+groupName(g)+'</legend>'+slots.map((pid,i) => {
+        const label = groupName(g)+' '+(i+1)+'번째 선수';
+        const choices = players.map(p => '<option value="'+safe(p.id)+'"'+(pid===p.id?' selected':assigned.has(p.id)?' disabled':'')+'>'+safe(badmintonDisplay(p.name))+'</option>').join('');
+        const tier = pid ? '<select data-slot-tier="'+pid+'" aria-label="'+safe(badmintonDisplay(roster.get(pid).name))+' 당시 티어">'+
+          [1,2,3].map(n=>'<option value="'+n+'"'+(tiers.get(pid)===n?' selected':'')+'>'+n+'티어</option>').join('')+'</select>' : '';
+        return '<div class="manual-seat"><select data-group="'+g+'" data-seat="'+i+'" aria-label="'+label+'"><option value="">'+
+          (i===2?'세 번째 선수 (선택)':'선수 '+(i+1)+' 선택')+'</option>'+choices+'</select>'+tier+'</div>';
+      }).join('')+'</fieldset>').join('');
+    }
+    function rememberScores() {
+      for (const row of $('#manual-games').querySelectorAll('[data-pair]')) {
+        const values = Object.fromEntries([...row.querySelectorAll('input')].map(input => [input.dataset.team,input.value]));
+        if (Object.values(values).some(value=>value!=='')) scores.set(row.dataset.pair,values);
+        else scores.delete(row.dataset.pair);
+      }
+    }
+    function drawGames() {
+      const teams = groups.map((slots,i)=>({id:'t'+(i+1),name:groupName(i),players:slots.filter(Boolean)})).filter(team=>team.players.length>=2);
+      const courts = Number($('#manual-courts').value);
+      const matches = teams.length>=2 ? badminton.schedule(teams,courts) : [];
+      badmintonManual.session = matches.length ? {schemaVersion:1,id,title:$('#manual-title').value,date:$('#manual-date').value,courts,
+        rules:badminton.rules,teams,matches,players:teams.flatMap(t=>t.players.map(pid=>({id:pid,name:roster.get(pid).name,tier:tiers.get(pid)})))} : null;
+      const rows = matches.map(m=>{
+        const key=pairKey(m.teams),values=scores.get(key)||{};
+        return '<tr data-pair="'+key+'"><th scope="row">'+m.id.slice(1)+'</th>'+m.teams.map((teamId,side)=>{
+          const team=teams.find(t=>t.id===teamId);
+          return '<td><label><strong>'+team.name+'</strong><small>'+team.players.map(pid=>safe(badmintonDisplay(roster.get(pid).name))).join(' · ')+'</small>'+
+            '<input data-manual-score="'+m.id+'" data-team="'+teamId+'" data-side="'+side+'" aria-label="'+m.id+' '+team.name+' 점수" inputmode="numeric" maxlength="2" value="'+safe(values[teamId]||'')+'"></label></td>';
+        }).join('')+'</tr>';
+      }).join('');
+      $('#manual-games').innerHTML = rows ? '<table class="manual-board-scores"><thead><tr><th>경기</th><th>우리 조</th><th>상대 조</th></tr></thead><tbody>'+rows+'</tbody></table>' : '<p class="note">두 조의 편성이 끝나면 대진이 표시됩니다.</p>';
+      $('#manual-preview').replaceChildren();
+      if (matches.length) updateManualPreview();
+    }
+    function changeGroups(next) {
+      rememberScores();
+      const affected = [...scores.keys()].filter(key=>key.split('-').some(t=>{
+        const i=Number(t.slice(1))-1;
+        return !next[i] || groups[i].filter(Boolean).sort().join('/')!==next[i].filter(Boolean).sort().join('/');
+      }));
+      if (affected.length) {
+        const names=affected.map(key=>key.split('-').map(t=>groupName(Number(t.slice(1))-1)).join('–'));
+        if (!confirm(names.join(', ')+' 경기의 입력 점수를 지우고 조 편성을 변경할까요?')) {
+          $('#manual-count').value=String(groups.length);
+          drawGroups();
+          return;
+        }
+        affected.forEach(key=>scores.delete(key));
+      }
+      groups=next;
+      drawGroups();drawGames();
+    }
+    host.onchange = e => {
+      const el=e.target;
+      formDirty=true;
+      if (el.id==='manual-count') {
+        changeGroups(Array.from({length:Number(el.value)},(_,i)=>groups[i]||emptyGroup()));
+      } else if (el.hasAttribute('data-seat')) {
+        const g=Number(el.dataset.group),i=Number(el.dataset.seat),next=groups.map(slots=>[...slots]);
+        next[g][i]=el.value;
+        const ids=next.flat().filter(Boolean);
+        if (new Set(ids).size!==ids.length) {drawGroups();return status('다른 조에 배정된 선수입니다.',true);}
+        changeGroups(next);
+        $('[data-group="'+g+'"][data-seat="'+i+'"]').focus();
+      } else if (el.id==='manual-courts' || el.hasAttribute('data-slot-tier')) {
+        rememberScores();
+        if(el.hasAttribute('data-slot-tier'))tiers.set(el.dataset.slotTier,Number(el.value));
+        drawGames();
+      }
+    };
+    host.oninput = () => {
+      formDirty=true;
+      if (badmintonManual.session) {
+        badmintonManual.session.title=$('#manual-title').value;
+        badmintonManual.session.date=$('#manual-date').value;
+        updateManualPreview();
+      }
+    };
+    function record(requireComplete) {
+      if (!badmintonManual.session || groups.some(slots=>slots.filter(Boolean).length<2)) throw Error('모든 조에 2~3명을 배정하세요.');
+      const s=readManual(true);
+      if (requireComplete && s.matches.some(m=>!m.finished)) throw Error('모든 경기 점수를 입력한 뒤 반영하세요.');
+      return s;
+    }
+    $('#manual-stage').onclick=async()=>{
+      if(busy)return;
+      try { const s=record(true);setBusy(true);await commitBadmintonSession(s); }
+      catch(e){status(e.message,true);}finally{setBusy(false);}
+    };
+    $('#manual-backup').onclick=()=>{try{downloadManual(record(false));}catch(e){status(e.message,true);}};
+    $('#manual-cancel').onclick=()=>{if(!guardForm())return;badmintonManual=null;formDirty=false;renderManual();};
+    drawGroups();drawGames();
+  }
+
   function renderManual(){
     const host=$('#badminton-manual-body');if(!host)return;
     if(!badmintonManual){host.innerHTML='<button type="button" id="badminton-new-record">새 모임 직접 입력</button>';$('#badminton-new-record').onclick=()=>{if(busy||!guardForm())return;badmintonManual={session:null};formDirty=false;renderManual();};return;}
     const s=badmintonManual.session;
-    if(!s){const players=badmintonData().players.players;if(!players.length){host.innerHTML='<p class="note" role="status">등록된 선수가 없어 아직 팀과 점수를 입력할 수 없습니다. 먼저 현재 구성원에서 선수를 등록하세요. 등록 후 이 화면에서 팀 선택을 이어갑니다.</p><button id="manual-register-members" type="button">선수 등록하고 계속</button><button id="manual-cancel" type="button">입력 취소</button>';$('#manual-register-members').onclick=async()=>{badmintonResumeAfterMembers=true;await $('#badminton-members').onclick();$('#badminton-candidates').scrollIntoView({block:'center'});};$('#manual-cancel').onclick=()=>{badmintonResumeAfterMembers=false;badmintonManual=null;formDirty=false;renderManual();};return;}host.innerHTML='<div class="badminton-form-grid"><label>모임 이름<input id="manual-title" maxlength="80" value="IRAS 배드민턴 정기 모임"></label><label>날짜<input id="manual-date" type="date" value="'+new Date(Date.now()+9*3600000).toISOString().slice(0,10)+'"></label><label>팀 수<select id="manual-count">'+[2,3,4,5,6].map(n=>'<option>'+n+'</option>').join('')+'</select></label><label>코트 수<select id="manual-courts">'+[1,2,3].map(n=>'<option>'+n+'</option>').join('')+'</select></label></div><p class="note">팀별 2~3명을 선택하세요. 당시 티어 변경은 기본 티어에 영향을 주지 않습니다.</p><div class="badminton-table"><table><thead><tr><th>선수</th><th>팀</th><th>당시 티어</th></tr></thead><tbody>'+players.map(p=>'<tr><td>'+safe(badmintonDisplay(p.name))+'</td><td><select data-manual-team="'+p.id+'" aria-label="'+safe(badmintonDisplay(p.name))+' 팀"><option value="">미참여</option>'+[0,1,2,3,4,5].map(i=>'<option value="'+i+'">'+String.fromCharCode(65+i)+'팀</option>').join('')+'</select></td><td><select data-manual-tier="'+p.id+'" aria-label="'+safe(badmintonDisplay(p.name))+' 당시 티어">'+[1,2,3].map(t=>'<option '+(t===p.tier?'selected':'')+'>'+t+'</option>').join('')+'</select></td></tr>').join('')+'</tbody></table></div><button id="manual-build" type="button">대진 생성·점수 입력</button><button id="manual-cancel" type="button">입력 취소</button>';
-      $('#manual-build').onclick=()=>{try{const count=Number($('#manual-count').value),courts=Number($('#manual-courts').value),teams=Array.from({length:count},(_,i)=>({id:'t'+(i+1),name:String.fromCharCode(65+i)+'팀',players:[]})),chosen=[];
-        for(const p of players){const v=$('[data-manual-team="'+p.id+'"]').value;if(v==='')continue;if(!teams[Number(v)])throw Error('팀 수에 없는 팀에 배정된 선수가 있습니다.');teams[Number(v)].players.push(p.id);chosen.push({...p,tier:Number($('[data-manual-tier="'+p.id+'"]').value)});}
-        badmintonManual.session=badminton.validate({schemaVersion:1,id:'meet-'+crypto.randomUUID(),title:$('#manual-title').value,date:$('#manual-date').value,courts,rules:badminton.rules,players:chosen,teams,matches:badminton.schedule(teams,courts)});formDirty=true;renderManual();
-      }catch(e){status(e.message,true);}};
+    if(!s){const players=badmintonData().players.players;if(!players.length){host.innerHTML='<p class="note" role="status">등록된 선수가 없어 아직 팀과 점수를 입력할 수 없습니다. 먼저 현재 구성원에서 선수를 등록하세요. 등록 후 이 화면에서 팀 선택을 이어갑니다.</p><button id="manual-register-members" type="button">선수 등록하고 계속</button><button id="manual-cancel" type="button">입력 취소</button>';$('#manual-register-members').onclick=async()=>{badmintonResumeAfterMembers=true;await $('#badminton-members').onclick();$('#badminton-candidates').scrollIntoView({block:'center'});};$('#manual-cancel').onclick=()=>{badmintonResumeAfterMembers=false;badmintonManual=null;formDirty=false;renderManual();};return;}newManualBoard(host,players);return;
     }else{
       host.innerHTML='<h4>'+safe(s.date+' · '+s.title)+'</h4><p class="note">선수·팀·당시 티어는 보존됩니다. 점수 없는 칸은 대기 경기이며 0점과 다릅니다. 21점·듀스·30점 상한.</p><div class="badminton-table"><table class="manual-score-table"><thead><tr><th>경기</th><th>우리 팀 · 선수</th><th>점수</th><th>점수</th><th>상대 팀 · 선수</th><th>정정 사유</th></tr></thead><tbody>'+s.matches.map(m=>{const pair=m.teams.map(id=>s.teams.find(t=>t.id===id)),score=badminton.replay(s,m).score;const label=t=>safe(t.name)+'<small>'+t.players.map(id=>{const p=s.players.find(p=>p.id===id);return safe(badmintonDisplay(p.name))+' ('+p.tier+'티어)';}).join(' · ')+'</small>';return '<tr><td>'+safe(m.id)+'</td><td>'+label(pair[0])+'</td>'+[0,1].map(i=>'<td><input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" data-manual-score="'+m.id+'" data-side="'+i+'" aria-label="'+safe(m.id+' '+pair[i].name)+' 점수" value="'+(m.finished||m.lineups?score[i]:'')+'"></td>').join('')+'<td>'+label(pair[1])+'</td><td><input data-manual-reason="'+m.id+'" aria-label="'+safe(m.id)+' 정정 사유" maxlength="500" placeholder="기존 결과 수정 시 필수"></td></tr>';}).join('')+'</tbody></table></div><div id="manual-preview" aria-live="polite"></div><div class="toolbar"><button id="manual-stage" type="button">완료 기록을 변경사항에 반영</button><button id="manual-backup" type="button">입력 중 MD 백업</button><button id="manual-cancel" type="button">입력 취소</button></div>';
       $('#manual-stage').onclick=async()=>{if(busy)return;try{const next=readManual(true);if(!next.matches.every(m=>m.finished))throw Error('모든 경기 점수를 입력한 뒤 반영하세요.');if(s.matches.some(m=>m.lineups&&JSON.stringify(m)!==JSON.stringify(next.matches.find(n=>n.id===m.id)))&&!confirm('수정된 경기의 상세 출전·교체 기록을 최종 팀 점수로 대체합니다. 계속할까요?'))return;setBusy(true);await commitBadmintonSession(next);}catch(e){status(e.message,true);}finally{setBusy(false);}};
