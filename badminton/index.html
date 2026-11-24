@@ -390,7 +390,7 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
 </header>
 <main><nav aria-label="배드민턴 메뉴"><button data-tab="setup" aria-pressed="true">경기 준비</button><button data-tab="matches" aria-pressed="false">대진·점수</button><button data-tab="ranking" aria-pressed="false">순위</button><button data-tab="individual" aria-pressed="false">개인 순위</button><button data-tab="history" aria-pressed="false">지난 기록</button></nav>
 <div class="toolbar"><button id="export">MD 다운로드</button><label class="file-label">MD 불러오기<input id="import" type="file" accept=".md,text/markdown,text/plain"></label><button id="new" class="danger">새 모임</button><span id="save-state">이 브라우저에서 경기 기록</span></div>
-<section id="setup" class="view"><div class="sheet"><h2>오늘 누가 함께하나요?</h2><p class="note">2~7팀, 팀당 2~3명으로 편성합니다. 1티어가 가장 높은 단계입니다.</p><div class="toolbar"><label class="grow">모임 이름<input id="title" maxlength="80" value="IRAS 배드민턴 정기 모임"></label><label>날짜<input id="date" type="date"></label><label>팀 수<select id="team-count"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></label><label>코트 수<select id="court-count"><option>1</option><option>2</option><option>3</option></select></label></div><p id="member-status" role="status">새 모임은 기본 참석으로 시작합니다. 불참자를 지정한 뒤 최대 21명으로 팀을 편성하세요.</p><p class="note">티어·랜덤 변경은 이번 모임에만 적용됩니다. 새 모임은 관리자에 게시된 기본 티어로 시작합니다. 카드를 드래그하거나 사진 팝업에서 변경하세요.</p><form id="add-player" class="toolbar"><label class="grow">선수 이름<input id="player-name" maxlength="80" required placeholder="새 선수 이름"></label><label>최초 티어<select id="player-tier"><option value="1">1티어</option><option value="2" selected>2티어</option><option value="3">3티어</option></select></label><button type="submit">선수 추가</button></form><div id="roster" class="tiers"></div><div class="toolbar"><button id="balance" class="primary">균형 팀 편성</button><span id="attendance" class="note"></span></div><div id="teams" class="teams"></div><div class="toolbar"><button id="generate" class="primary">리그 대진 만들기</button></div><p id="locked" class="notice" hidden>경기가 시작되어 팀과 당시 티어를 보존합니다. 점수 수정은 대진·점수 화면에서 진행하세요.</p></div></section>
+<section id="setup" class="view"><div class="sheet"><h2>오늘 누가 함께하나요?</h2><p class="note">2~7팀, 팀당 2~3명으로 편성합니다. 1티어가 가장 높은 단계입니다.</p><div class="toolbar"><label class="grow">모임 이름<input id="title" maxlength="80" value="IRAS 배드민턴 정기 모임"></label><label>날짜<input id="date" type="date"></label><label>팀 수<select id="team-count"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></label><label>코트 수<select id="court-count"><option>1</option><option>2</option><option>3</option></select></label></div><p id="member-status" role="status">새 모임은 기본 참석으로 시작합니다. 불참자를 지정한 뒤 최대 21명으로 팀을 편성하세요.</p><p class="note">티어·랜덤 변경은 이번 모임에만 적용됩니다. 새 모임은 관리자에 게시된 기본 티어로 시작합니다. 카드를 드래그하거나 사진 팝업에서 변경하세요.</p><form id="add-player" class="toolbar"><label class="grow">이번 모임 게스트 이름<input id="player-name" maxlength="80" required placeholder="게스트 이름"></label><label>이번 모임 티어<select id="player-tier"><option value="1">1티어</option><option value="2" selected>2티어</option><option value="3">3티어</option></select></label><button type="submit">게스트 추가</button></form><div id="roster" class="tiers"></div><div class="toolbar"><button id="balance" class="primary">균형 팀 편성</button><span id="attendance" class="note"></span></div><div id="teams" class="teams"></div><div class="toolbar"><button id="generate" class="primary">리그 대진 만들기</button></div><p id="locked" class="notice" hidden>경기가 시작되어 팀과 당시 티어를 보존합니다. 점수 수정은 대진·점수 화면에서 진행하세요.</p></div></section>
 <section id="matches" class="view" hidden><div id="print-identification" aria-hidden="true"><span id="print-meeting-name"></span><span id="print-meeting-date"></span></div><div class="matches-heading"><h2 id="match-title">대진·점수</h2><button id="print-matches" type="button" disabled>인쇄 / PDF 저장</button></div><p id="print-meta" class="note"></p><p class="note">21점 단판 · 듀스 · 30점 상한. 경기 칸을 눌러 두 팀의 최종 점수를 저장하세요.</p><div id="round-rest" class="note"></div><div id="match-list" class="match-layout"></div></section>
 <section id="ranking" class="view" hidden><div class="sheet"><h2>오늘의 순위</h2><p class="note">확정 경기만 반영 · 전체 승수 → 동률 팀 간 승수(승자승) → 동률 팀 간 득실차 → 동률 팀 간 총득점 · 모두 같으면 공동 순위</p><div id="ranking-table" class="table-wrap"></div></div></section>
 <section id="individual" class="view" hidden><div class="sheet"><h2>개인 누적 순위</h2><p class="note">게시된 완료 모임의 소속 팀 성적 기준 · 1위 100점~최하위 0점 균등 배점 · 누적 점수 → 평균 점수 → 우승 횟수 · 동점은 공동 순위. 현재 진행 중인 경기와 샘플은 제외됩니다.</p><div class="individual-controls"><label>티어<select id="individual-tier"><option value="all">전체</option><option value="1">1티어</option><option value="2">2티어</option><option value="3">3티어</option></select></label><button id="refresh-individual" type="button">기록 새로고침</button></div><p id="individual-status" role="status"></p><div id="individual-table" class="table-wrap"></div><h3>모임별 누적 순위</h3><p class="note">해당 모임까지의 기록으로 재계산합니다. 같은 날은 모임 ID 순서입니다. 과거 결과를 정정하면 이후 순위도 갱신됩니다.</p><div id="individual-timeline"></div></div></section>
@@ -419,6 +419,10 @@ function createBadmintonRules() {
   const check = (ok, message) => { if (!ok) fail(message); };
   const idOk = x => typeof x === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(x);
   const nameOk = x => typeof x === 'string' && x.trim().length > 0 && x.length <= 80 && !/[\r\n]/.test(x);
+  // 예전 홈페이지의 수동 추가 ID는 p-UUID 또는 p-시간-난수 형식입니다.
+  function isGuestId(id) {
+    return id.startsWith('guest-') || /^p-(?:[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}|[0-9a-z]{8,9}-[0-9a-z]{0,16})$/i.test(id);
+  }
   const rules = '21-deuce-30-interval-11-v1';
   function roster(value) {
     check(value && value.schemaVersion === 1 && Array.isArray(value.players) && value.players.length <= 500, '선수 명단 형식이 올바르지 않습니다.');
@@ -566,7 +570,7 @@ function createBadmintonRules() {
   }
   function fromMarkdown(text) {check(typeof text==='string'&&text.length<=1024*1024,'MD는 1MB 이하이어야 합니다.');const parts=[...text.matchAll(/^~~~json iras-badminton-v1\r?\n([\s\S]*?)\r?\n~~~\s*$/gm)];check(parts.length===1,'지원하는 배드민턴 MD 원본 블록이 하나 필요합니다.');return validate(JSON.parse(parts[0][1]));}
   function index(value) {check(value&&value.schemaVersion===1&&Array.isArray(value.sessions)&&value.sessions.length<=2000,'기록 목록 형식이 올바르지 않습니다.');const ids=new Set();return {schemaVersion:1,sessions:value.sessions.map(s=>{check(s&&idOk(s.id)&&!ids.has(s.id)&&nameOk(s.title)&&/^\d{4}-\d{2}-\d{2}$/.test(s.date)&&s.file==='records/'+s.id+'.md','기록 경로 또는 ID가 올바르지 않습니다.');ids.add(s.id);return {id:s.id,title:s.title,date:s.date,file:s.file};})};}
-  return {copy,rules,roster,index,balanced,schedule,replay,validate,standings,individualStandings,stats,markdown,fromMarkdown};
+  return {copy,rules,isGuestId,roster,index,balanced,schedule,replay,validate,standings,individualStandings,stats,markdown,fromMarkdown};
 }
 
 window.IRASBadminton = createBadmintonRules();
@@ -698,7 +702,7 @@ window.IRASBadminton = createBadmintonRules();
       const title=tier==='random'?'랜덤':tier==='inactive'?'불참':tier+'티어';
       const members=roster.filter(p=>tier==='inactive'?!selected.has(p.id):selected.has(p.id)&&(tier==='random'?randomPlayers.has(p.id):!randomPlayers.has(p.id)&&p.tier===tier)).sort((a,b)=>(manualOrder.get(a.id)??ranksById.get(a.id)?.rank??9999)-(manualOrder.get(b.id)??ranksById.get(b.id)?.rank??9999));
       return '<section class="tier-section tier-section-'+tier+'" '+(tier!=='inactive'?'data-drop-tier="'+tier+'" ':'')+'aria-labelledby="tier-heading-'+tier+'"><div class="tier-heading"><h3 id="tier-heading-'+tier+'">'+title+'</h3><span>'+members.length+'명</span></div><div class="tier-players" '+(typeof tier==='number'?'tabindex="0" role="region" aria-label="'+tier+'티어 선수 목록"':'')+'>'+
-        (members.map(p=>'<div class="player '+(selected.has(p.id)?'is-selected':'')+'" data-drag-player="'+p.id+'" draggable="'+(!lock&&selected.has(p.id))+'"><button type="button" class="player-profile" data-player="'+p.id+'" aria-label="'+esc(displayName(p.name))+' 티어와 최근 경기 보기">'+photoMarkup(p)+'<span class="player-profile-copy"><span class="player-name">'+esc(displayName(p.name))+'</span><small>'+(randomPlayers.has(p.id)?'랜덤 · 기존 '+p.tier+'티어':provisional.has(p.id)?'임시 2티어':publishedTiers.has(p.id)&&publishedTiers.get(p.id)!==p.tier?'기본 '+publishedTiers.get(p.id)+'티어 / 이번 '+p.tier+'티어':p.tier+'티어')+(ranksById.has(p.id)?' · '+ranksById.get(p.id).tierRank+'위':' · 순위 없음')+' · 기록 보기</small></span></button>'+
+        (members.map(p=>'<div class="player '+(selected.has(p.id)?'is-selected':'')+'" data-drag-player="'+p.id+'" draggable="'+(!lock&&selected.has(p.id))+'"><button type="button" class="player-profile" data-player="'+p.id+'" aria-label="'+esc(displayName(p.name))+' 티어와 최근 경기 보기">'+photoMarkup(p)+'<span class="player-profile-copy"><span class="player-name">'+esc(displayName(p.name))+'</span><small>'+(randomPlayers.has(p.id)?'랜덤 · 기존 '+p.tier+'티어':provisional.has(p.id)?'임시 2티어':publishedTiers.has(p.id)&&publishedTiers.get(p.id)!==p.tier?'기본 '+publishedTiers.get(p.id)+'티어 / 이번 '+p.tier+'티어':p.tier+'티어')+(R.isGuestId(p.id)&&!publishedTiers.has(p.id)?' · 이번 모임 게스트':'')+(ranksById.has(p.id)?' · '+ranksById.get(p.id).tierRank+'위':' · 순위 없음')+' · 기록 보기</small></span></button>'+
           '<div class="attendance-row"><span class="attendance-state">'+(selected.has(p.id)?'참석':'불참')+'</span><button type="button" class="player-attendance" data-attend="'+p.id+'" data-present="'+selected.has(p.id)+'" aria-label="'+esc(displayName(p.name))+' '+(selected.has(p.id)?'불참으로 변경':'참석으로 변경')+'" '+(lock?'disabled':'')+'>'+(selected.has(p.id)?'불참으로 변경':'참석으로 변경')+'</button></div></div>').join('')||'<p class="tier-empty">선택된 선수가 없습니다.</p>')+'</div></section>';
     }).join('');
     for(const [tier,top] of scrollPositions){const list=$('.tier-section-'+tier+' .tier-players');if(list)list.scrollTop=top;}
@@ -810,7 +814,7 @@ window.IRASBadminton = createBadmintonRules();
     e.preventDefault();if(started())return;const name=$('#player-name').value.trim();if(!name)return;
     if(roster.some(p=>nameKey(p.name)===nameKey(name)))throw Error('이미 등록된 이름입니다. 명단에서 선수를 선택하세요.');
     if(roster.length>=500)throw Error('선수 명단은 최대 500명까지 보관할 수 있습니다.');
-    roster.push({id:'p-'+uid(),name,tier:Number($('#player-tier').value)});
+    roster.push({id:'guest-'+uid(),name,tier:Number($('#player-tier').value)});
     selected.add(roster.at(-1).id);
     $('#player-name').value='';invalidate();
   });
@@ -831,12 +835,14 @@ window.IRASBadminton = createBadmintonRules();
     $('#popup-attendance-state').classList.toggle('is-absent',!present);
     $('#popup-toggle-attendance').textContent=present?'불참으로 변경':'참석으로 변경';
     $('#popup-toggle-attendance').disabled=!!started();
-    $('#popup-default-absent').checked=defaultAbsent.has(playerPopupId);
-    $('#popup-default-help').textContent=defaultAbsent.has(playerPopupId)?'다음 새 모임부터 불참으로 시작합니다. 이번 모임 상태는 유지됩니다.':'다음 새 모임부터 참석으로 시작합니다. 이 설정은 이 브라우저에 저장됩니다.';
+    const guest=R.isGuestId(playerPopupId)&&!publishedTiers.has(playerPopupId);
+    $('#popup-default-absent').disabled=guest;
+    $('#popup-default-absent').checked=!guest&&defaultAbsent.has(playerPopupId);
+    $('#popup-default-help').textContent=guest?'이번 모임 게스트는 새 모임 명단에서 제외됩니다.':defaultAbsent.has(playerPopupId)?'다음 새 모임부터 불참으로 시작합니다. 이번 모임 상태는 유지됩니다.':'다음 새 모임부터 참석으로 시작합니다. 이 설정은 이 브라우저에 저장됩니다.';
   }
   $('#popup-toggle-attendance').onclick=attempt(()=>{toggleAttendance(playerPopupId);renderPlayerAttendance();});
   $('#popup-default-absent').onchange=attempt(e=>{
-    if(!playerPopupId)return;
+    if(!playerPopupId||e.target.disabled)return;
     e.target.checked?defaultAbsent.add(playerPopupId):defaultAbsent.delete(playerPopupId);
     persist();renderPlayerAttendance();
     if(storageError)$('#popup-default-help').textContent='설정을 저장하지 못했습니다. '+storageError;
@@ -987,7 +993,7 @@ window.IRASBadminton = createBadmintonRules();
     const totals=pools.map(pool=>pool.length);
     const average=(totals[0]*3+totals[1]*2+totals[2]+random.length*2)/players.length;
     const memo=new Map();
-    // 티어별 인원 편차를 먼저 최소화하고, 동률이면 팀 평균 편차를 줄입니다.
+    // 팀 평균 전력을 먼저 맞추고 동률이면 같은 티어의 선수를 나누어 배정합니다.
     function distribute(index,left){
       if(index===count)return left.every(n=>n===0)?{spread:0,strength:0,allocation:[]}:null;
       const key=index+':'+left.join(',');
@@ -1000,7 +1006,7 @@ window.IRASBadminton = createBadmintonRules();
         const spread=a*a+b*b+c*c+rest.spread;
         const mean=(a*3+b*2+c+result[index].players.length*2)/capacities[index];
         const strength=(mean-average)**2+rest.strength;
-        if(!best||spread<best.spread||(spread===best.spread&&strength<best.strength-1e-9))
+        if(!best || strength<best.strength-1e-9 || (Math.abs(strength-best.strength)<1e-9 && spread<best.spread))
           best={spread,strength,allocation:[[a,b,c],...rest.allocation]};
       }
       memo.set(key,best);return best;
@@ -1056,8 +1062,9 @@ window.IRASBadminton = createBadmintonRules();
       const defaults=R.roster(await response.json()).players;publishedTiers.clear();defaults.forEach(p=>publishedTiers.set(p.id,p.tier));
       const byId=new Map(defaults.map(p=>[p.id,p])),byName=new Map(defaults.map(p=>[nameKey(p.name),p]));
       const next=defaults.map(p=>R.copy(p));
-      for(const p of roster)if(!byId.has(p.id)&&!byName.has(nameKey(p.name)))next.push({...R.copy(p),tier:2});
+      for(const p of roster)if(!R.isGuestId(p.id)&&!byId.has(p.id)&&!byName.has(nameKey(p.name)))next.push({...R.copy(p),tier:2});
       if(next.length>500)throw Error('선수 명단은 최대 500명입니다.');
+      for(const id of defaultAbsent)if(R.isGuestId(id)&&!byId.has(id))defaultAbsent.delete(id);
       state=null;teams=[];roster=next;randomPlayers.clear();manualOrder.clear();provisional.clear();
       for(const p of roster)if(!byId.has(p.id))provisional.add(p.id);
       selected=new Set(roster.filter(p=>!defaultAbsent.has(p.id)).map(p=>p.id));view='setup';

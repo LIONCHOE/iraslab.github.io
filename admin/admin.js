@@ -535,6 +535,10 @@ function createBadmintonRules() {
   const check = (ok, message) => { if (!ok) fail(message); };
   const idOk = x => typeof x === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(x);
   const nameOk = x => typeof x === 'string' && x.trim().length > 0 && x.length <= 80 && !/[\r\n]/.test(x);
+  // 예전 홈페이지의 수동 추가 ID는 p-UUID 또는 p-시간-난수 형식입니다.
+  function isGuestId(id) {
+    return id.startsWith('guest-') || /^p-(?:[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}|[0-9a-z]{8,9}-[0-9a-z]{0,16})$/i.test(id);
+  }
   const rules = '21-deuce-30-interval-11-v1';
   function roster(value) {
     check(value && value.schemaVersion === 1 && Array.isArray(value.players) && value.players.length <= 500, '선수 명단 형식이 올바르지 않습니다.');
@@ -682,7 +686,7 @@ function createBadmintonRules() {
   }
   function fromMarkdown(text) {check(typeof text==='string'&&text.length<=1024*1024,'MD는 1MB 이하이어야 합니다.');const parts=[...text.matchAll(/^~~~json iras-badminton-v1\r?\n([\s\S]*?)\r?\n~~~\s*$/gm)];check(parts.length===1,'지원하는 배드민턴 MD 원본 블록이 하나 필요합니다.');return validate(JSON.parse(parts[0][1]));}
   function index(value) {check(value&&value.schemaVersion===1&&Array.isArray(value.sessions)&&value.sessions.length<=2000,'기록 목록 형식이 올바르지 않습니다.');const ids=new Set();return {schemaVersion:1,sessions:value.sessions.map(s=>{check(s&&idOk(s.id)&&!ids.has(s.id)&&nameOk(s.title)&&/^\d{4}-\d{2}-\d{2}$/.test(s.date)&&s.file==='records/'+s.id+'.md','기록 경로 또는 ID가 올바르지 않습니다.');ids.add(s.id);return {id:s.id,title:s.title,date:s.date,file:s.file};})};}
-  return {copy,rules,roster,index,balanced,schedule,replay,validate,standings,individualStandings,stats,markdown,fromMarkdown};
+  return {copy,rules,isGuestId,roster,index,balanced,schedule,replay,validate,standings,individualStandings,stats,markdown,fromMarkdown};
 }
 
   /* BADMINTON_CORE_END */
@@ -742,12 +746,12 @@ function createBadmintonRules() {
     const existingPlayers = new Map(data.players.players.map(p => [p.id,p]));
     for (const p of imported.players) {
       if (existingPlayers.has(p.id) && badmintonNameKey(existingPlayers.get(p.id).name) !== badmintonNameKey(p.name)) throw Error('기존 선수 ID와 이름이 다릅니다: ' + p.name);
-      if (!existingPlayers.has(p.id) && data.players.players.some(q => badmintonNameKey(q.name) === badmintonNameKey(p.name))) throw Error('같은 이름의 다른 선수 ID가 있습니다. 게시된 명단을 사용해 MD의 선수를 확인하세요: ' + p.name);
+      if (!badminton.isGuestId(p.id) && !existingPlayers.has(p.id) && data.players.players.some(q => badmintonNameKey(q.name) === badmintonNameKey(p.name))) throw Error('같은 이름의 다른 선수 ID가 있습니다. 게시된 명단을 사용해 MD의 선수를 확인하세요: ' + p.name);
     }
     const filename='records/'+imported.id+'.md';
     const existed=data.index.sessions.some(s=>s.id===imported.id);
     data.index.sessions=[...data.index.sessions.filter(s=>s.id!==imported.id),{id:imported.id,title:imported.title,date:imported.date,file:filename}];
-    for(const p of imported.players)if(!data.players.players.some(q=>q.id===p.id))data.players.players.push({...p,history:[{from:null,to:p.tier,at:new Date().toISOString(),reason:'첫 경기 기록에서 등록'}]});
+    for(const p of imported.players)if(!badminton.isGuestId(p.id)&&!existingPlayers.has(p.id))data.players.players.push({...p,history:[{from:null,to:p.tier,at:new Date().toISOString(),reason:'첫 경기 기록에서 등록'}]});
     // 모든 내용을 검증한 뒤 초안에 함께 반영합니다.
     const recordText=badminton.markdown(imported),indexText=JSON.stringify(badminton.index(data.index),null,2)+'\n',playersText=JSON.stringify(badminton.roster(data.players),null,2)+'\n';
     stageBadminton('badminton/'+filename,recordText);
