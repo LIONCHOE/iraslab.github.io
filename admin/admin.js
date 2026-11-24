@@ -3,7 +3,7 @@
   const environment = window.IRASAdminEnvironment;
   let target = null;
   let REPO = '', BRANCH = '';
-  const paths = {people:'people/index.html', publications:'publications/index.html', news:'news/index.html', 'lab-life':'lab-life/index.html', badminton:'badminton/records.json'};
+  const paths = {research:'research/index.html', people:'people/index.html', publications:'publications/index.html', news:'news/index.html', 'lab-life':'lab-life/index.html', badminton:'badminton/records.json'};
   const $ = (s,root=document) => root.querySelector(s);
   let token = '', page = 'people', source = '', sha = '', doc = null, selected = null, pending = null, user = '';
   const rules = window.IRASContentRules;
@@ -21,7 +21,7 @@
   }
   function setBusy(value) {
     busy = value;
-    for (const control of document.querySelectorAll('#editor button, #editor input, #editor select, #editor textarea')) control.disabled = value;
+    for (const control of document.querySelectorAll('#editor button, #editor input, #editor select, #editor textarea')) control.disabled = value || control.hasAttribute('data-order-boundary');
     $('#editor').setAttribute('aria-busy', String(value));
     updateDraftStatus();
   }
@@ -70,8 +70,135 @@
     const g=page==='lab-life'?gallery()[index]:null;
     return {title:$('h3',n)?.textContent.trim()||'',date:$('p.text-sm',n)?.textContent.trim()||'',description:page==='lab-life'?($('h3 + p',n)?.textContent.trim()||''):'',photo:g?.images?.[0]||$('[data-lightbox]',n)?.dataset.full||$('img',n)?.getAttribute('src')||'',photos:g?.images?.join('\n')||[...n.querySelectorAll('[data-lightbox]')].map(b=>b.dataset.full).join('\n'),index};
   }
+  const paperTitle = 'Radar-Based NLOS Target Localization in Complex Wall Environments Using Structural Variance';
+  function reviewCorrection(html) {
+    const changes = [
+      ['03 Localization & Mapping', 'Localization &amp; Mapping</strong><small>', 'Y.-J. Choe et al., IEEE TIM, under review', 'Y.-J. Choe et al., IEEE TIM', '</small>'],
+      ['05-C 논문 목록', paperTitle + '</span><span class="meta">', 'IEEE Trans. Instrum. Meas. (under review) · 05-C', 'IEEE Trans. Instrum. Meas. · 05-C', '</span>']
+    ];
+    const section = /<section\b[^>]*\bid="d5"[^>]*>[\s\S]*?<\/section>/.exec(html);
+    if (!section) throw Error('Research 05 섹션을 찾지 못했습니다.');
+    let part = section[0];
+    const preview = [];
+    for (const [label, prefix, before, after, suffix] of changes) {
+      const oldText = prefix + before + suffix, newText = prefix + after + suffix;
+      const oldCount = part.split(oldText).length - 1, newCount = part.split(newText).length - 1;
+      if (oldCount + newCount !== 1) throw Error(label + '의 현재 표기를 확인해 주세요.');
+      if (oldCount) part = part.replace(oldText, newText);
+      preview.push(label + ' · ' + (oldCount ? before + ' → ' + after : after + ' (반영됨)'));
+    }
+    return {text:html.slice(0, section.index) + part + html.slice(section.index + section[0].length), preview};
+  }
+
+  function renderResearch() {
+    const state = drafts.get(paths.research);
+    const panel = $('#items');
+    panel.replaceChildren();
+    $('#count').textContent = '05-C 논문 표기';
+    const heading = document.createElement('h2');
+    heading.textContent = paperTitle;
+    panel.append(heading);
+    try {
+      const change = reviewCorrection(state.text);
+      for (const line of change.preview) {
+        const p = document.createElement('p');
+        p.textContent = line;
+        panel.append(p);
+      }
+      if (change.text === state.text) return;
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.id = 'research-stage';
+      button.textContent = '변경사항에 반영';
+      button.onclick = () => {
+        if (busy) return;
+        state.text = change.text;
+        state.dirty = true;
+        operationCount++;
+        renderResearch();
+        updateDraftStatus();
+        status('05-C 논문 표기를 변경사항에 반영했습니다.');
+      };
+      panel.append(button);
+    } catch (error) {
+      const p = document.createElement('p');
+      p.textContent = error.message;
+      panel.append(p);
+    }
+  }
+
+  let orderedPhotos = [];
+  function photoEditor(input) {
+    const field = $('#fields [name=photos]');
+    const list = document.createElement('div');
+    list.className = 'photo-order';
+    const heading = document.createElement('strong');
+    heading.textContent = '사진 순서';
+    $('#fields').append(heading, list);
+    orderedPhotos = [];
+    function readAddresses() {
+      const urls = field.value.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+      let index = 0;
+      orderedPhotos = orderedPhotos.flatMap(item => {
+        if (item.file) return [item];
+        return index < urls.length ? [{url:urls[index++]}] : [];
+      }).concat(urls.slice(index).map(url => ({url})));
+      draw();
+    }
+    function draw() {
+      list.replaceChildren();
+      orderedPhotos.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'photo-order-row';
+        const img = document.createElement('img');
+        img.alt = '';
+        if (item.file) {
+          const preview = URL.createObjectURL(item.file);
+          img.onload = img.onerror = () => URL.revokeObjectURL(preview);
+          img.src = preview;
+        } else {
+          const root = new URL('../', location.href);
+          const address = item.url.startsWith('/') && !item.url.startsWith(root.pathname)
+            ? root.pathname.replace(/\/$/, '') + item.url : item.url;
+          img.src = images.get(item.url)?.preview || address;
+        }
+        const label = document.createElement('span');
+        label.textContent = (index + 1) + (index === 0 ? ' · 첫 사진 · ' : ' · ') + (item.file?.name || item.url.split('/').pop() || item.url);
+        row.append(img, label);
+        for (const [name, delta] of [['위로', -1], ['아래로', 1]]) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.textContent = name;
+          const next = index + delta;
+          button.disabled = next < 0 || next >= orderedPhotos.length;
+          if (button.disabled) button.dataset.orderBoundary = '';
+          button.onclick = () => {
+            if (busy || next < 0 || next >= orderedPhotos.length) return;
+            [orderedPhotos[index], orderedPhotos[next]] = [orderedPhotos[next], orderedPhotos[index]];
+            field.value = orderedPhotos.filter(photo => !photo.file).map(photo => photo.url).join('\n');
+            formDirty = true;
+            draw();
+            const buttons = list.children[next].querySelectorAll('button');
+            (buttons[delta < 0 ? 0 : 1].disabled ? buttons[delta < 0 ? 1 : 0] : buttons[delta < 0 ? 0 : 1]).focus();
+          };
+          row.append(button);
+        }
+        list.append(row);
+      });
+    }
+    field.addEventListener('input', readAddresses);
+    input.onchange = () => {
+      orderedPhotos.push(...Array.from(input.files, file => ({file})));
+      input.value = '';
+      formDirty = true;
+      draw();
+    };
+    readAddresses();
+  }
+
   function render(){
-    $('#search').closest('.toolbar').hidden = page === 'badminton';
+    $('#search').closest('.toolbar').hidden = page === 'badminton' || page === 'research';
+    if (page === 'research') return renderResearch();
     if (page === 'badminton') return renderBadminton();
     const q=$('#search').value.toLowerCase().trim();const items=list().filter(x=>!q||JSON.stringify(data(x)).toLowerCase().includes(q));$('#count').textContent=`${items.length}개 항목`;
     $('#items').replaceChildren(...items.map(item=>{const d=data(item);const row=document.createElement('div');row.className=page==='publications'?'item publication-item':'item';const body=document.createElement('div');body.innerHTML=`<strong>${safe(d.name||d.title)}</strong><small>${safe(d.section||d.type||d.date)} ${safe(d.role||d.year||'')}</small>`;const actions=document.createElement('div');actions.className='actions';for(const [label,fn,cls] of [['수정',()=>form(item)],['↑',()=>move(item,-1)],['↓',()=>move(item,1)],['삭제',()=>remove(item),'danger']]){const b=document.createElement('button');b.type='button';b.textContent=label;b.className=cls||'';b.onclick=fn;actions.append(b)}if(page!=='publications'){const image=document.createElement('img');image.src=images.get(d.photo)?.preview||environment.previewUrl(window.location.href,d.photo||'');image.alt='';image.onerror=()=>image.removeAttribute('src');row.append(image)}row.append(body,actions);return row}));}
@@ -153,7 +280,7 @@
     return [{key:'title',label:'제목',required:true},{key:'date',label:'게시 날짜',required:true},{key:'description',label:'본문',multiline:true},{key:'photos',label:'사진 주소 (한 줄에 하나)',multiline:true,placeholder:'/_astro/photo-1.jpg'}];}
   function form(item=null){if(busy||!guardForm())return;lookupRequest?.abort();lookupRequest=null;formDirty=false;selected=item;pending=null;const d=item?data(item):{};$('#form-title').textContent=item?'항목 수정':'새 항목 추가';$('#fields').replaceChildren(...fields().map(f=>{if(page==='publications'&&f.key==='type')return publicationClassification(d.type);const label=document.createElement('label');label.textContent=f.label;let control;if(f.options){control=document.createElement('select');for(const opt of f.options){const o=document.createElement('option');o.value=o.textContent=opt;control.append(o)}}else{control=document.createElement(f.multiline?'textarea':'input');if(!f.multiline)control.type=f.key==='paperUrl'?'url':'text';control.placeholder=f.placeholder||''}control.name=f.key;control.value=d[f.key]||'';control.required=!!f.required;label.append(control);return label}));
     if(page==='publications')addPublicationLookup();
-    if(page!=='publications'){const label=document.createElement('label');label.textContent=page==='lab-life'?'새 사진 파일 (여러 장 가능)':'새 사진 파일';const input=document.createElement('input');input.type='file';input.accept='image/jpeg,image/png,image/webp,image/gif';input.multiple=page==='lab-life'||page==='news';input.onchange=()=>{pending=[...input.files];formDirty=true;status(`${pending.length}개 파일은 저장을 누르면 업로드됩니다.`)};label.append(input);$('#fields').append(label)}$('#form-area').hidden=false;$('#form-area').scrollIntoView({behavior:'smooth',block:'start'});}
+    if(page!=='publications'){const label=document.createElement('label');label.textContent=page==='lab-life'?'새 사진 파일 (여러 장 가능)':'새 사진 파일';const input=document.createElement('input');input.type='file';input.accept='image/jpeg,image/png,image/webp,image/gif';input.multiple=page==='lab-life'||page==='news';input.onchange=()=>{pending=[...input.files];formDirty=true;status(`${pending.length}개 파일은 저장을 누르면 업로드됩니다.`)};label.append(input);$('#fields').append(label);if(input.multiple)photoEditor(input)}$('#form-area').hidden=false;$('#form-area').scrollIntoView({behavior:'smooth',block:'start'});}
   function personCard(d){const wrap=doc.createElement('div');wrap.className='text-center';wrap.innerHTML=`<button type="button" data-person-trigger class="group block w-full text-center"><div class="mx-auto h-32 w-32 overflow-hidden rounded-full ring-1 ring-slate-200 transition duration-300 group-hover:shadow-md group-hover:ring-2 group-hover:ring-primary-300"><img class="h-full w-full object-cover" loading="lazy" alt=""></div><h3 class="mt-3 font-serif text-base text-slate-900 group-hover:text-primary-700"></h3><p class="text-sm text-slate-600"></p></button>`;return wrap;}
   function updatePerson(node,d) {
     const t = $('[data-person-trigger]',node) || $('a',node);
@@ -313,7 +440,14 @@
       if(!picker.dataset.kind)return showClassificationDialog('논문 유형을 선택하지 않았습니다. 저널, 학회 또는 특허를 선택해 주세요.','kind');
       if(picker.dataset.kind!=='Patent'&&!picker.dataset.region)return showClassificationDialog('지역을 선택하지 않았습니다. 국외 또는 국내를 선택해 주세요.','region');
     }
-    lookupRequest?.abort();lookupRequest=null;const d=Object.fromEntries(new FormData($('#content-form')));const backup=serialize(doc);const selectedIndex=selected?list().findIndex(x=>x.node===selected.node):-1;setBusy(true);try{if(pending?.length){status('사진을 변경사항에 추가하는 중…');const urls=await upload(pending);if(page==='lab-life'||page==='news')d.photos=[d.photos||'',...urls].filter(Boolean).join('\n');else d.photo=urls[0];}
+    lookupRequest?.abort();lookupRequest=null;const d=Object.fromEntries(new FormData($('#content-form')));const backup=serialize(doc);const selectedIndex=selected?list().findIndex(x=>x.node===selected.node):-1;setBusy(true);try{if (page === 'news' || page === 'lab-life') {
+        const files = orderedPhotos.filter(item => item.file);
+        const urls = await upload(files.map(item => item.file));
+        let index = 0;
+        d.photos = orderedPhotos.map(item => item.file ? urls[index++] : item.url).join('\n');
+      } else if (pending?.length) {
+        d.photo = (await upload(pending))[0];
+      }
       if(page==='people'){const section=sections().find(s=>s.querySelector('h2').textContent.trim()===d.section);if(!section)throw Error('섹션을 찾지 못했습니다.');const node=selected?.node||personCard(d);updatePerson(node,d);if(!selected||selected.section!==d.section)grid(section).append(node)}
       else if(page==='publications'){const node=selected?.node||pubCard();updatePub(node,d);if(!selected){const list=doc.querySelector('[data-pub-list]')||doc.querySelector('li[data-pub]')?.parentElement;const first=[...list.querySelectorAll(':scope > li[data-pub]')].find(x=>x.dataset.pubType===d.type);first?list.insertBefore(node,first):list.append(node)}}
       else{const node=selected?.node||articleCard();if(page==='news'){d.photos=(d.photos||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);if(!d.photos.length)throw Error('사진 주소나 업로드할 사진을 입력하세요.');d.photo=d.photos[0]}if(page==='lab-life'){const galleries=gallery(),photos=(d.photos||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);if(!photos.length)throw Error('사진 주소나 업로드할 사진을 입력하세요.');d.photo=photos[0];d.photos=photos;const index=selected?list().findIndex(x=>x.node===node):0;if(selected)galleries[index]={images:photos,caption:d.title,date:d.date};else galleries.unshift({images:photos,caption:d.title,date:d.date});setGallery(galleries);d.index=index}updateArticle(node,d);if(!selected)articleContainer().prepend(node)}
@@ -349,7 +483,7 @@
     let r;
     try { r = await api(contentPath(path) + '?ref=' + ref); }
     catch (e) { if (!allowMissing || e.status !== 404 || !/^badminton\/records\/[a-zA-Z0-9-]+\.md$/.test(path)) throw e; r={content:'',sha:null}; }
-    const source = decode(r.content), raw = path.startsWith('badminton/');
+    const source = decode(r.content), raw = path.startsWith('badminton/') || path === paths.research;
     const state = {source, sha:r.sha, doc:raw ? null : parse(source), dirty:false, raw, text:raw ? source : undefined};
     drafts.set(path, state);
     return state;

@@ -59,3 +59,4 @@
 }
 /* 선수 사진: 고정 프레임과 로딩 실패 시 이니셜 */
 .badminton-avatar{position:relative;display:inline-grid;place-items:center;width:42px;height:42px;min-width:42px;max-width:42px;overflow:hidden;border-radius:50%;background:#fce7f3;isolation:isolate}.badminton-avatar>.badminton-initial{display:grid;place-items:center;width:100%;height:100%;color:#9d174d;font-size:14px;font-weight:700;line-height:1}.badminton-avatar>img{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:100%;object-fit:cover;object-position:50% 25%;border-radius:inherit;background:#fce7f3}
+.photo-order-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto auto;gap:.5rem;align-items:center;margin:.5rem 0}.photo-order-row img{width:48px;height:48px;object-fit:cover}.photo-order-row span{overflow-wrap:anywhere}.photo-order-row button{white-space:nowrap}
