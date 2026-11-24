@@ -38,6 +38,8 @@ def allowed(name):
         return False
     if name in ROOT_FILES or name in ADMIN:
         return True
+    if name in {'badminton/live-config.js','badminton/live.css','badminton/live.js','badminton/vendor/supabase-2.119.2.js','badminton/vendor/supabase-LICENSE.txt','badminton/vendor/qrcode-2.0.4.js'}:
+        return True
     if name in {'badminton/index.html', 'badminton/players.json', 'badminton/records.json'}:
         return True
     if re.fullmatch(r'badminton/records/[a-zA-Z0-9-]+\.md', name):
