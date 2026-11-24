@@ -12,3 +12,5 @@
 
 /* 배드민턴 기록·티어 관리 */
 .badminton-admin{padding:12px 0}.badminton-preview{background:#f0f6f2;border:1px solid #b3cdbd;padding:18px;border-radius:8px;margin:18px 0}.badminton-table{overflow-x:auto;margin:12px 0 24px}.badminton-table table{width:100%;border-collapse:collapse}.badminton-table th,.badminton-table td{text-align:left;padding:10px;border-bottom:1px solid #dbe3ec;white-space:nowrap}.badminton-tier-row{display:grid;grid-template-columns:minmax(100px,1fr) 100px minmax(180px,2fr);gap:14px;align-items:center;border-bottom:1px solid #dbe3ec;padding:12px 0}.badminton-tier-row details{grid-column:1/-1}.badminton-record{padding:12px 0;border-bottom:1px solid #dbe3ec}.badminton-admin summary{cursor:pointer}.toolbar[hidden]{display:none!important}@media(max-width:600px){.badminton-tier-row{grid-template-columns:1fr 100px}.badminton-tier-row>label:last-of-type{grid-column:1/-1}}
+
+.photo-order-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto auto;gap:.5rem;align-items:center;margin:.5rem 0}.photo-order-row img{width:48px;height:48px;object-fit:cover}.photo-order-row span{overflow-wrap:anywhere}.photo-order-row button{white-space:nowrap}
