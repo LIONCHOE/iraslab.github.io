@@ -379,7 +379,7 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
   .toolbar .grow{flex-basis:100%;width:100%}
   dialog :is(input,select){font-size:16px}
 }
-</style></head>
+</style><link rel="stylesheet" href="live.css"></head>
 <body>
 <header>
 <div class="site-top"><div class="brand">
@@ -389,7 +389,7 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
 <div class="intro"><div class="intro-inner"><h1>우리 연구실, 오늘의 리그</h1><p>함께 팀을 꾸리고, 한 경기씩 기록합니다.</p></div></div>
 </header>
 <main><nav aria-label="배드민턴 메뉴"><button data-tab="setup" aria-pressed="true">경기 준비</button><button data-tab="matches" aria-pressed="false">대진·점수</button><button data-tab="ranking" aria-pressed="false">순위</button><button data-tab="individual" aria-pressed="false">개인 순위</button><button data-tab="history" aria-pressed="false">지난 기록</button></nav>
-<div class="toolbar"><button id="export">MD 다운로드</button><label class="file-label">MD 불러오기<input id="import" type="file" accept=".md,text/markdown,text/plain"></label><button id="new" class="danger">새 모임</button><span id="save-state">이 브라우저에서 경기 기록</span></div>
+<details class="local-league-tools"><summary>기록 관리</summary><div class="toolbar"><button id="export">MD 다운로드</button><label class="file-label">MD 불러오기<input id="import" type="file" accept=".md,text/markdown,text/plain"></label><button id="new" class="danger">새 모임</button><span id="save-state">이 브라우저에서 경기 기록</span></div></details>
 <section id="setup" class="view"><div class="sheet"><h2>오늘 누가 함께하나요?</h2><p class="note">2~7팀, 팀당 2~3명으로 편성합니다. 1티어가 가장 높은 단계입니다.</p><div class="toolbar"><label class="grow">모임 이름<input id="title" maxlength="80" value="IRAS 배드민턴 정기 모임"></label><label>날짜<input id="date" type="date"></label><label>팀 수<select id="team-count"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></label><label>코트 수<select id="court-count"><option>1</option><option>2</option><option>3</option></select></label></div><p id="member-status" role="status">새 모임은 기본 참석으로 시작합니다. 불참자를 지정한 뒤 최대 21명으로 팀을 편성하세요.</p><p class="note">티어·랜덤 변경은 이번 모임에만 적용됩니다. 새 모임은 관리자에 게시된 기본 티어로 시작합니다. 카드를 드래그하거나 사진 팝업에서 변경하세요.</p><form id="add-player" class="toolbar"><label class="grow">이번 모임 게스트 이름<input id="player-name" maxlength="80" required placeholder="게스트 이름"></label><label>이번 모임 티어<select id="player-tier"><option value="1">1티어</option><option value="2" selected>2티어</option><option value="3">3티어</option></select></label><button type="submit">게스트 추가</button></form><div id="roster" class="tiers"></div><div class="toolbar"><button id="balance" class="primary">균형 팀 편성</button><span id="attendance" class="note"></span></div><div id="teams" class="teams"></div><div class="toolbar"><button id="generate" class="primary">리그 대진 만들기</button></div><p id="locked" class="notice" hidden>경기가 시작되어 팀과 당시 티어를 보존합니다. 점수 수정은 대진·점수 화면에서 진행하세요.</p></div></section>
 <section id="matches" class="view" hidden><div id="print-identification" aria-hidden="true"><span id="print-meeting-name"></span><span id="print-meeting-date"></span></div><div class="matches-heading"><h2 id="match-title">대진·점수</h2><button id="print-matches" type="button" disabled>인쇄 / PDF 저장</button></div><p id="print-meta" class="note"></p><p class="note">21점 단판 · 듀스 · 30점 상한. 경기 칸을 눌러 두 팀의 최종 점수를 저장하세요.</p><div id="round-rest" class="note"></div><div id="match-list" class="match-layout"></div></section>
 <section id="ranking" class="view" hidden><div class="sheet"><h2>오늘의 순위</h2><p class="note">확정 경기만 반영 · 전체 승수 → 동률 팀 간 승수(승자승) → 동률 팀 간 득실차 → 동률 팀 간 총득점 · 모두 같으면 공동 순위</p><div id="ranking-table" class="table-wrap"></div></div></section>
@@ -578,7 +578,8 @@ window.IRASBadminton = createBadmintonRules();
 <script>
 (() => {
   'use strict';
-  const R=window.IRASBadminton, $=s=>document.querySelector(s), key='iras-badminton-v1';
+  if(new URLSearchParams(location.search).has('meeting'))return;
+  const R=window.IRASBadminton, $=s=>document.querySelector(s), key=new URLSearchParams(location.search).has('organize')?'iras-badminton-host-draft-v1':'iras-badminton-v1';
   // 기존 홈페이지의 루트/하위경로 배포에서 실제 적용되는 로고와 일치시킵니다.
   if(new URL('../',location.href).pathname==='/'){
     $('.site-top').classList.add('root-brand');
@@ -1022,6 +1023,7 @@ window.IRASBadminton = createBadmintonRules();
   }
   $('#balance').onclick=attempt(()=>{if(started())return;teams=makeTeams(roster.filter(p=>selected.has(p.id)),Number($('#team-count').value));state=null;persist();render();message('티어 균형과 랜덤 배정을 반영했습니다. 팀 선택으로 직접 조정할 수 있습니다.');});
   $('#teams').onchange=attempt(e=>{if(started()||!e.target.dataset.move)return;const id=e.target.dataset.move;teams.forEach(t=>t.players=t.players.filter(p=>p!==id));teams.find(t=>t.id===e.target.value).players.push(id);state=null;persist();render();});
+  if(new URLSearchParams(location.search).has('organize'))window.leagueDraft=()=>state;
   $('#generate').onclick=attempt(()=>{if(started())return;const players=roster.filter(p=>selected.has(p.id));adopt({schemaVersion:1,id:'meet-'+uid(),title:$('#title').value,date:$('#date').value,courts:Number($('#court-count').value),rules:R.rules,players,teams,matches:R.schedule(teams,Number($('#court-count').value))});message('리그 대진을 만들었습니다. 경기 칸을 눌러 최종 점수를 입력하세요.');});
   $('#match-popup-body').addEventListener('focusin',e=>{if(/^result-[01]$/.test(e.target.id))scoreSide=Number(e.target.id.slice(-1));});
   $('#match-popup-body').onclick=attempt(e=>{
@@ -1086,4 +1088,4 @@ window.IRASBadminton = createBadmintonRules();
   }).catch(()=>{});
   Promise.allSettled([fetch('players.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('선수 명단을 불러오지 못했습니다.');const data=R.roster(await r.json());data.players.forEach(p=>publishedTiers.set(p.id,p.tier));renderSetup();if(!roster.length&&!state){roster=data.players;selected=new Set(roster.filter(p=>!defaultAbsent.has(p.id)).map(p=>p.id));persist();render();}}).catch(e=>{message(e.message,true);}).then(()=>loadMembers(false)),(recordIndexReady=fetch('records.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('지난 기록 목록을 불러오지 못했습니다.');published=R.index(await r.json());$('#history-list').innerHTML=published.sessions.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(s=>'<div class="record"><div><strong>'+esc(s.title)+'</strong><small>'+esc(s.date)+'</small></div><button data-record="'+s.id+'">기록 불러오기</button></div><div data-history-rank="'+s.id+'"></div>').join('')||'<p class="empty">아직 게시된 모임이 없습니다. 첫 리그의 MD를 관리자에서 등록하세요.</p>';}).catch(e=>{recordIndexError=e.message;message(e.message,true);}))]).then(results=>{refreshIndividual();const errors=results.filter(r=>r.status==='rejected');if(errors.length)message(errors.map(r=>r.reason.message).join(' ')+' 로컬 경기와 MD는 계속 사용할 수 있습니다.',true);});
 })();
-</script></body></html>
+</script><script src="live-config.js"></script><script src="vendor/supabase-2.119.2.js"></script><script src="vendor/qrcode-2.0.4.js"></script><script src="live.js"></script></body></html>

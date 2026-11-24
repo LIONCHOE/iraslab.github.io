@@ -1125,7 +1125,7 @@ function createBadmintonRules() {
   function renderBadminton() {
     const {players,index,sessions} = badmintonData();
     $('#count').textContent = index.sessions.length + '개 모임 · ' + players.players.length + '명';
-    $('#items').innerHTML = '<div class="badminton-admin"><h2>배드민턴 기록·티어</h2><p class="note">완료된 MD를 가져오면 지난 기록에 자동 반영됩니다. 같은 모임 ID는 갱신하며, 상단 업로드로 홈페이지에 저장합니다. <a href="../badminton/" target="_blank" rel="noopener">경기 운영 페이지 열기</a></p>' +
+    $('#items').innerHTML = '<div class="badminton-admin"><h2>배드민턴 기록·티어</h2><p class="note">완료된 MD를 가져오면 지난 기록에 자동 반영됩니다. 같은 모임 ID는 갱신하며, 상단 업로드로 홈페이지에 저장합니다. <a href="../badminton/" target="_blank" rel="noopener">경기 운영 페이지 열기</a> · <a href="../badminton/?organize=1" target="_blank" rel="noopener">공유 모임 편성·개설</a></p>' +
       manualShell()+'<label>완료 MD 가져오기<input type="file" id="badminton-import" accept=".md,text/markdown,text/plain"></label>' +
       '<h3>누적 출전 통계</h3><p class="note">팀 승패와 전·후반 출전 기록입니다. 개인 실력 점수로 자동 환산하지 않습니다.</p>' + badmintonStatsTable(sessions) +
       '<h3>개인 누적 순위</h3><div id="badminton-standings">'+badmintonIndividualTable(sessions,players.players)+'</div><h3>선수 기본 티어 · 영구 설정</h3><p class="note">상단에서 업로드하면 다음 새 모임의 기본값으로 적용됩니다. 경기 페이지의 임시 변경과 과거 경기의 당시 티어는 이 설정을 바꾸지 않습니다. 티어를 누르면 바로 변경사항에 반영됩니다.</p>' +
