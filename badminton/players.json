@@ -251,12 +251,18 @@
     {
       "id": "member-de929418",
       "name": "Ji-Yong Ryu",
-      "tier": 2,
+      "tier": 1,
       "history": [
         {
           "from": null,
           "to": 2,
           "at": "2026-11-24T10:13:37.551Z",
+          "reason": ""
+        },
+        {
+          "from": 2,
+          "to": 1,
+          "at": "2026-11-24T10:13:51.843Z",
           "reason": ""
         }
       ]
