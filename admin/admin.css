@@ -94,3 +94,5 @@
 .seat-options [role=option],.seat-empty{padding:9px 10px;line-height:1.4;overflow-wrap:anywhere}
 .seat-options [role=option]{cursor:pointer}.seat-options [role=option]:hover,.seat-options [aria-selected=true]{color:#193e67;background:#e8f2ff}
 .seat-empty{color:#52657b}
+
+.photo-order-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto auto;gap:.5rem;align-items:center;margin:.5rem 0}.photo-order-row img{width:48px;height:48px;object-fit:cover}.photo-order-row span{overflow-wrap:anywhere}.photo-order-row button{white-space:nowrap}
