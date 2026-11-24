@@ -1,4 +1,291 @@
 {
   "schemaVersion": 1,
-  "players": []
+  "players": [
+    {
+      "id": "member-855ee18b",
+      "name": "Kyung-Tae Kim",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.550Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-a4622c2e",
+      "name": "Geon Lee",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.550Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-bd82b7ba",
+      "name": "Min-Gon Cho",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.550Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-901d58fb",
+      "name": "Woo-Hyuk Choi",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.550Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-bab1f7ad",
+      "name": "Seong-Ryeol Park",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.550Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-74c3de1e",
+      "name": "Jun-Ho Jung",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.550Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-1b17375",
+      "name": "Hyun-Dong Kim",
+      "tier": 1,
+      "history": [
+        {
+          "from": null,
+          "to": 1,
+          "at": "2026-11-24T10:13:37.550Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-20b566c5",
+      "name": "Oh-Tae Jang",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.550Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-1091ce52",
+      "name": "Yeong-Jin Choe",
+      "tier": 1,
+      "history": [
+        {
+          "from": null,
+          "to": 1,
+          "at": "2026-11-24T10:13:37.550Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-d9b81f03",
+      "name": "Seung-Hwan Kim",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.550Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-20022ca2",
+      "name": "In-Woo Bang",
+      "tier": 1,
+      "history": [
+        {
+          "from": null,
+          "to": 1,
+          "at": "2026-11-24T10:13:37.550Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-84ded82e",
+      "name": "Young-Kang Kim",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.550Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-373ffe37",
+      "name": "Sang-Wook Park",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.550Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-85202b8f",
+      "name": "Won-Woo Park",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.550Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-7fbb18a0",
+      "name": "So-Yeon An",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.551Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-756f7e83",
+      "name": "Hae-Jun Lee",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.551Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-558fecb1",
+      "name": "Ji-Hye Jeon",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.551Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-d503483",
+      "name": "Won-Jae Song",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.551Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-5b9e42b",
+      "name": "Se-Jun Park",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.551Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-de929418",
+      "name": "Ji-Yong Ryu",
+      "tier": 2,
+      "history": [
+        {
+          "from": null,
+          "to": 2,
+          "at": "2026-11-24T10:13:37.551Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-20906942",
+      "name": "Sol-Ji Kim",
+      "tier": 3,
+      "history": [
+        {
+          "from": null,
+          "to": 3,
+          "at": "2026-11-24T10:13:37.551Z",
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "id": "member-37ff8ad",
+      "name": "Da-Seul Ji",
+      "tier": 3,
+      "history": [
+        {
+          "from": null,
+          "to": 3,
+          "at": "2026-11-24T10:13:37.551Z",
+          "reason": ""
+        }
+      ]
+    }
+  ]
 }
