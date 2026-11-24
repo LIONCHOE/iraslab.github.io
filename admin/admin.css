@@ -77,3 +77,6 @@
 .tier-group .note{margin-inline:12px}
 .badminton-tier-list [hidden]{display:none!important}
 @media(max-width:700px){.tier-group .badminton-tier-row{grid-template-columns:minmax(0,1fr);grid-template-areas:"player" "tier" "reason" "records";gap:8px}.tier-group .badminton-tier-field{flex-wrap:nowrap}}
+
+.badminton-candidate[data-member]{grid-template-columns:42px minmax(0,1fr) auto}.badminton-candidate .badminton-tier-field{display:flex;gap:4px;grid-area:auto}.tier-group .badminton-tier-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"player tier" "records records"}.badminton-candidate-warning{grid-column:auto}
+@media(max-width:600px){.badminton-candidate[data-member]{grid-template-columns:42px minmax(0,1fr)}.badminton-candidate .badminton-tier-field,.badminton-candidate-warning{grid-column:2}.tier-group .badminton-tier-row{grid-template-columns:1fr;grid-template-areas:"player" "tier" "records"}}

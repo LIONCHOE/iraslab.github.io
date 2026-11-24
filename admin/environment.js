@@ -4,7 +4,7 @@
   const production = Object.freeze({mode:'production', label:'운영', repo:'iraslab/iraslab.github.io', branch:'main'});
   const sandbox = Object.freeze({mode:'sandbox', label:'개인 테스트', repo:'LIONCHOE/iraslab.github.io', branch:'admin/sandbox-content'});
   const adminPaths = ['/admin/', '/admin/index.html'];
-  const contentFiles = ['research/index.html', 'people/index.html', 'publications/index.html', 'news/index.html', 'lab-life/index.html', 'index.html'];
+  const contentFiles = ['people/index.html', 'publications/index.html', 'news/index.html', 'lab-life/index.html', 'index.html'];
   const isSha = value => /^[a-f0-9]{40}$/.test(value);
 
   function resolve(href) {
