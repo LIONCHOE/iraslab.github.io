@@ -807,16 +807,83 @@ function createBadmintonRules() {
     let groups = [emptyGroup(),emptyGroup()];
     const tiers = new Map(players.map(p => [p.id,p.tier]));
     let scores = new Map();
+    let restoringSeatFocus = false;
     function drawGroups() {
       const assigned = new Set(groups.flat().filter(Boolean));
       $('#manual-groups').innerHTML = groups.map((slots,g) => '<fieldset><legend>'+groupName(g)+'</legend>'+slots.map((pid,i) => {
         const label = groupName(g)+' '+(i+1)+'번째 선수';
-        const choices = players.map(p => '<option value="'+safe(p.id)+'"'+(pid===p.id?' selected':assigned.has(p.id)?' disabled':'')+'>'+safe(badmintonDisplay(p.name))+'</option>').join('');
+        const listId = 'seat-options-'+g+'-'+i;
         const tier = pid ? '<select data-slot-tier="'+pid+'" aria-label="'+safe(badmintonDisplay(roster.get(pid).name))+' 당시 티어">'+
           [1,2,3].map(n=>'<option value="'+n+'"'+(tiers.get(pid)===n?' selected':'')+'>'+n+'티어</option>').join('')+'</select>' : '';
-        return '<div class="manual-seat"><select data-group="'+g+'" data-seat="'+i+'" aria-label="'+label+'"><option value="">'+
-          (i===2?'세 번째 선수 (선택)':'선수 '+(i+1)+' 선택')+'</option>'+choices+'</select>'+tier+'</div>';
+        return '<div class="manual-seat"><div class="seat-search"><input type="text" role="combobox" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="'+listId+'" data-group="'+g+'" data-seat="'+i+'" aria-label="'+label+'" placeholder="'+
+          (i===2?'세 번째 선수 검색 (선택)':'선수 이름 검색')+'" value="'+safe(pid?badmintonDisplay(roster.get(pid).name):'')+'">'+
+          '<div class="seat-options" id="'+listId+'" role="listbox" aria-label="'+label+' 후보" hidden></div></div>'+tier+'</div>';
       }).join('')+'</fieldset>').join('');
+      for (const field of $('#manual-groups').querySelectorAll('[data-seat]')) wirePlayerSearch(field,assigned);
+    }
+    function wirePlayerSearch(input, assigned) {
+      const g = Number(input.dataset.group), i = Number(input.dataset.seat);
+      const current = groups[g][i];
+      const label = current ? badmintonDisplay(roster.get(current).name) : '';
+      const box = input.nextElementSibling;
+      let active = -1;
+      function close() {
+        input.value = label;
+        input.setAttribute('aria-expanded','false');
+        input.removeAttribute('aria-activedescendant');
+        box.hidden = true;
+        box.replaceChildren();
+        active = -1;
+      }
+      function show(query) {
+        const term = query.trim().normalize('NFKC').toLowerCase();
+        const matches = players.filter(p => (!assigned.has(p.id) || p.id === current) &&
+          [p.name,badmintonDisplay(p.name),badmintonMemberKey(p.name)].some(name => name.normalize('NFKC').toLowerCase().includes(term)));
+        const items = matches.map(p => ({id:p.id, name:badmintonDisplay(p.name)}));
+        if (current && !term) items.push({id:'',name:'배정 해제'});
+        box.innerHTML = items.length ? items.map((p,n) => '<div role="option" id="'+box.id+'-'+n+'" data-player="'+safe(p.id)+'" aria-selected="false">'+safe(p.name)+'</div>').join('') :
+          '<div class="seat-empty" role="status">일치하는 선수가 없습니다.</div>';
+        box.hidden = false;
+        active = -1;
+        input.setAttribute('aria-expanded','true');
+        input.removeAttribute('aria-activedescendant');
+      }
+      function choose(option) {
+        if (!option || busy) return;
+        const pid = option.dataset.player;
+        if (pid === current) { close();return; }
+        if (pid && (!roster.has(pid) || groups.flat().includes(pid))) return;
+        const next = groups.map(slots => [...slots]);
+        next[g][i] = pid;
+        formDirty = true;
+        changeGroups(next);
+        const field = $('[data-group="'+g+'"][data-seat="'+i+'"]');
+        restoringSeatFocus = true;
+        try { field.focus(); } finally { restoringSeatFocus = false; }
+      }
+      input.onfocus = () => {if (!restoringSeatFocus) {show('');input.select();}};
+      input.onclick = () => {if (box.hidden) {show('');input.select();}};
+      input.oninput = event => {event.stopPropagation();show(input.value);};
+      input.onchange = event => event.stopPropagation();
+      input.onblur = close;
+      input.onkeydown = event => {
+        if (event.isComposing || event.keyCode === 229) return;
+        if (event.key === 'Escape') {close();return;}
+        if (!['ArrowDown','ArrowUp','Enter'].includes(event.key)) return;
+        event.preventDefault();
+        if (box.hidden && event.key === 'Enter') return;
+        if (box.hidden) show('');
+        const items = box.querySelectorAll('[role="option"]');
+        if (!items.length) return;
+        if (event.key === 'Enter') {choose(items[Math.max(0,active)]);return;}
+        if (active >= 0) items[active].setAttribute('aria-selected','false');
+        active = event.key === 'ArrowDown' ? (active+1)%items.length : (active<=0 ? items.length-1 : active-1);
+        items[active].setAttribute('aria-selected','true');
+        input.setAttribute('aria-activedescendant',items[active].id);
+        items[active].scrollIntoView({block:'nearest'});
+      };
+      box.onmousedown = event => event.preventDefault();
+      box.onclick = event => choose(event.target.closest('[role="option"]'));
     }
     function rememberScores() {
       for (const row of $('#manual-games').querySelectorAll('[data-pair]')) {
@@ -866,13 +933,6 @@ function createBadmintonRules() {
       formDirty=true;
       if (el.id==='manual-count') {
         changeGroups(Array.from({length:Number(el.value)},(_,i)=>groups[i]||emptyGroup()));
-      } else if (el.hasAttribute('data-seat')) {
-        const g=Number(el.dataset.group),i=Number(el.dataset.seat),next=groups.map(slots=>[...slots]);
-        next[g][i]=el.value;
-        const ids=next.flat().filter(Boolean);
-        if (new Set(ids).size!==ids.length) {drawGroups();return status('다른 조에 배정된 선수입니다.',true);}
-        changeGroups(next);
-        $('[data-group="'+g+'"][data-seat="'+i+'"]').focus();
       } else if (el.id==='manual-courts' || el.hasAttribute('data-slot-tier')) {
         rememberScores();
         if(el.hasAttribute('data-slot-tier'))tiers.set(el.dataset.slotTier,Number(el.value));
