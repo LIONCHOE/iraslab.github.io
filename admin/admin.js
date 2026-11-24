@@ -550,7 +550,7 @@ function createBadmintonRules() {
     return {schemaVersion:1, players};
   }
   function balanced(players, count) {
-    check(Number.isInteger(count) && count >= 2 && count <= 6 && players.length >= count*2 && players.length <= count*3, '팀당 2~3명, 전체 2~6팀으로 설정하세요.');
+    check(Number.isInteger(count) && count >= 2 && count <= 7 && players.length >= count*2 && players.length <= count*3, '팀당 2~3명, 전체 2~7팀으로 설정하세요.');
     const ordered = [...players].sort((a,b)=>a.tier-b.tier || a.name.localeCompare(b.name,'ko'));
     const teams = Array.from({length:count},(_,i)=>({id:'t'+(i+1),name:String.fromCharCode(65+i)+'팀',players:[]}));
     ordered.forEach((p,i)=>{const round=Math.floor(i/count), col=i%count; teams[round%2 ? count-1-col : col].players.push(p.id);});
@@ -602,8 +602,8 @@ function createBadmintonRules() {
     check(typeof input.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(input.date)&&new Date(input.date+'T00:00:00Z').toISOString().slice(0,10)===input.date,'모임 날짜를 확인하세요.');
     check(Number.isInteger(input.courts)&&input.courts>=1&&input.courts<=3,'코트 수는 1~3개입니다.');
     const players=roster({schemaVersion:1,players:input.players}).players.map(({history,...p})=>p);
-    check(players.length>=4&&players.length<=18,'참석자는 4~18명입니다.');
-    check(Array.isArray(input.teams)&&input.teams.length>=2&&input.teams.length<=6,'팀 수는 2~6개입니다.');
+    check(players.length>=4&&players.length<=21,'참석자는 4~21명입니다.');
+    check(Array.isArray(input.teams)&&input.teams.length>=2&&input.teams.length<=7,'팀 수는 2~7개입니다.');
     const teamIds=new Set(),assigned=new Set();
     const teams=input.teams.map(t=>{check(t&&idOk(t.id)&&!teamIds.has(t.id)&&nameOk(t.name)&&Array.isArray(t.players)&&t.players.length>=2&&t.players.length<=3,'팀 구성을 확인하세요.');teamIds.add(t.id);for(const id of t.players){check(players.some(p=>p.id===id)&&!assigned.has(id),'선수가 중복되거나 누락되었습니다.');assigned.add(id);}return {id:t.id,name:t.name.trim(),players:[...t.players]};});
     check(assigned.size===players.length,'모든 참석자를 팀에 배정하세요.');
@@ -613,7 +613,7 @@ function createBadmintonRules() {
     const matches=input.matches.map(m=>{
       check(m&&idOk(m.id)&&!matchIds.has(m.id)&&Array.isArray(m.teams)&&m.teams.length===2&&m.teams[0]!==m.teams[1]&&m.teams.every(id=>teamIds.has(id)),'경기 ID·대진을 확인하세요.');matchIds.add(m.id);
       const key=[...m.teams].sort().join('/');check(!pairs.has(key),'중복 대진이 있습니다.');pairs.add(key);
-      check([m.round,m.slot,m.court].every(Number.isInteger)&&m.round>=1&&m.round<=7&&m.slot>=1&&m.slot<=15&&m.court>=1&&m.court<=input.courts,'경기 배치를 확인하세요.');
+      check([m.round,m.slot,m.court].every(Number.isInteger)&&m.round>=1&&m.round<=7&&m.slot>=1&&m.slot<=21&&m.court>=1&&m.court<=input.courts,'경기 배치를 확인하세요.');
       const sl=slots.get(m.slot)||{courts:new Set(),teams:new Set()};check(!sl.courts.has(m.court)&&m.teams.every(id=>!sl.teams.has(id)),'같은 시간대에 팀 또는 코트가 중복됩니다.');sl.courts.add(m.court);m.teams.forEach(id=>sl.teams.add(id));slots.set(m.slot,sl);
       check(Array.isArray(m.events)&&m.events.length<=60&&typeof m.finished==='boolean','점수 기록 형식이 올바르지 않습니다.');
       const events=m.events.map(e=>e?.type==='point'?{type:'point',team:e.team}:e?.type==='interval'?{type:'interval',lineups:copy(e.lineups)}:fail('알 수 없는 점수 기록입니다.'));
@@ -654,7 +654,7 @@ function createBadmintonRules() {
       const ranks=standings(s);
       for(const t of s.teams){
         const place=ranks.find(r=>r.id===t.id).rank;
-        // 2~6팀에서 100점을 정확하게 분배하기 위한 1/60점 정수 단위.
+        // 2~7팀에서 100점을 정확하게 분배하기 위한 1/60점 정수 단위.
         const points=6000*(s.teams.length-place)/(s.teams.length-1);
         for(const id of t.players){const p=s.players.find(p=>p.id===id);const r=rows.get(id)||{id,name:p.name,tier:p.tier,points:0,meetings:0,titles:0,history:[]};
           r.name=p.name;r.tier=p.tier;r.points+=points;r.meetings++;r.titles+=Number(place===1);r.history.push({id:s.id,date:s.date,title:s.title,place,points:points/60});rows.set(id,r);
@@ -792,7 +792,7 @@ function createBadmintonRules() {
   function newManualBoard(host, players) {
     const options = values => values.map(n => '<option>'+n+'</option>').join('');
     host.innerHTML = '<div class="badminton-form-grid"><label>모임 이름<input id="manual-title" maxlength="80" value="IRAS 배드민턴 정기 모임"></label>'+
-      '<label>날짜<input type="date" id="manual-date"></label><label>조 수<select id="manual-count">'+options([2,3,4,5,6])+'</select></label>'+
+      '<label>날짜<input type="date" id="manual-date"></label><label>조 수<select id="manual-count">'+options([2,3,4,5,6,7])+'</select></label>'+
       '<label>코트 수<select id="manual-courts">'+options([1,2,3])+'</select></label></div>'+
       '<div class="manual-board"><div><h4>조 편성</h4><p class="note">각 조에 2명 또는 3명을 선택하세요.</p><div id="manual-groups"></div></div>'+
       '<div><h4>경기 점수</h4><div id="manual-games"></div><div id="manual-preview" aria-live="polite"></div></div></div>'+
