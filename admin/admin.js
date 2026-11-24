@@ -754,6 +754,63 @@ function createBadmintonRules() {
     };
   }
 
+  function tierRoster(players, sessions) {
+    const groups = [1, 2, 3].map(tier => {
+      const members = players.filter(p => p.tier === tier);
+      const rows = members.map(p => {
+        const name = safe(badmintonDisplay(p.name));
+        const choices = [1, 2, 3].map(n =>
+          '<button type="button" data-tier-choice="'+n+'" aria-pressed="'+(n === tier)+'">'+n+'티어</button>').join('');
+        const history = p.history.map(h => '<p class="note">'+safe(h.at)+' / '+(h.from ?? '신규')+' → '+h.to+' / '+safe(h.reason)+'</p>').join('');
+        return '<div class="badminton-tier-row" data-player-id="'+p.id+'" data-search-name="'+safe(p.name+' '+badmintonDisplay(p.name))+'">'+
+          '<div class="badminton-player-identity">'+badmintonPhoto(p)+'<strong>'+name+'</strong></div>'+
+          '<div class="badminton-tier-field" role="group" aria-label="'+name+' 기본 티어">'+choices+
+          '<input type="hidden" data-badminton-tier="'+p.id+'" value="'+tier+'"></div>'+
+          '<div class="badminton-reason-field" hidden><span class="tier-change"></span> <button type="button" data-tier-undo>되돌리기</button>'+
+          '<label>변경 사유<input data-badminton-reason="'+p.id+'" maxlength="500"></label></div>'+
+          '<div class="badminton-player-records">'+badmintonRecentResults(sessions,p)+'<details><summary>변경 이력 '+p.history.length+'건</summary>'+history+'</details></div></div>';
+      }).join('');
+      return '<section class="tier-group" data-group-tier="'+tier+'"><h4>'+tier+'티어 <small>'+members.length+'명</small></h4>'+
+        (rows || '<p class="note">등록된 선수가 없습니다.</p>')+'</section>';
+    });
+    return '<label>선수 이름 검색<input id="tier-search" type="search"></label><div class="badminton-tier-list">'+groups.join('')+'</div><p id="tier-no-match" hidden>검색 결과가 없습니다.</p>';
+  }
+
+  function wireTierRoster() {
+    const list = $('.badminton-tier-list');
+    const rows = [...list.querySelectorAll('.badminton-tier-row')];
+    const search = $('#tier-search');
+    const stage = $('#badminton-stage-tiers');
+    search.oninput = () => {
+      const term = search.value.trim().toLocaleLowerCase();
+      for (const row of rows) row.hidden = !row.dataset.searchName.toLocaleLowerCase().includes(term);
+      for (const group of list.children) group.hidden = !!term && !group.querySelector('.badminton-tier-row:not([hidden])');
+      $('#tier-no-match').hidden = !term || rows.some(row => !row.hidden);
+    };
+    list.onclick = event => {
+      const button = event.target.closest('[data-tier-choice],[data-tier-undo]');
+      if (!button || busy) return;
+      const row = button.closest('.badminton-tier-row');
+      const initial = row.closest('[data-group-tier]').dataset.groupTier;
+      const next = button.dataset.tierChoice || initial;
+      const value = row.querySelector('[data-badminton-tier]');
+      if (value.value === next) return;
+      value.value = next;
+      const changed = next !== initial;
+      row.toggleAttribute('data-tier-changed', changed);
+      for (const choice of row.querySelectorAll('[data-tier-choice]')) choice.setAttribute('aria-pressed',String(choice.dataset.tierChoice === next));
+      row.querySelector('.badminton-reason-field').hidden = !changed;
+      row.querySelector('.tier-change').textContent = initial+'티어 → '+next+'티어';
+      if (!changed) {
+        row.querySelector('[data-badminton-reason]').value = '';
+        row.querySelector('[data-tier-choice="'+initial+'"]').focus();
+      }
+      const count = list.querySelectorAll('[data-tier-changed]').length;
+      stage.textContent = '변경한 '+count+'명 반영';
+      formDirty = !!count || !!badmintonManual;
+    };
+  }
+
   function renderBadminton() {
     const {players,index,sessions} = badmintonData();
     $('#count').textContent = index.sessions.length + '개 모임 · ' + players.players.length + '명';
@@ -761,10 +818,11 @@ function createBadmintonRules() {
       manualShell()+'<label>완료 MD 가져오기<input type="file" id="badminton-import" accept=".md,text/markdown,text/plain"></label>' +
       '<h3>누적 출전 통계</h3><p class="note">팀 승패와 전·후반 출전 기록입니다. 개인 실력 점수로 자동 환산하지 않습니다.</p>' + badmintonStatsTable(sessions) +
       '<h3>개인 누적 순위</h3>'+badmintonIndividualTable(sessions,players.players)+'<h3>선수 기본 티어 · 영구 설정</h3><p class="note">상단에서 업로드하면 다음 새 모임의 기본값으로 적용됩니다. 경기 페이지의 임시 변경과 과거 경기의 당시 티어는 이 설정을 바꾸지 않습니다. 변경 사유를 적고 반영하세요.</p>' +
-      '<button id="badminton-members" type="button">현재 구성원에서 선수 등록</button><div id="badminton-candidates"></div><div class="badminton-tier-list">' + players.players.map(p => '<div class="badminton-tier-row" data-player-id="' + p.id + '"><div class="badminton-player-identity">'+badmintonPhoto(p)+'<strong>' + safe([...badmintonKoreanNames.values()].includes(badmintonNameKey(p.name))?badmintonNameKey(p.name):p.name) + '</strong></div><label class="badminton-tier-field"><span>기본 티어</span><select data-badminton-tier="' + p.id + '" ' + '' + '>' + [1,2,3].map(n => '<option value="' + n + '" ' + (n === p.tier ? 'selected' : '') + '>' + n + '티어</option>').join('') + '</select></label><label class="badminton-reason-field"><span>변경 사유</span><input data-badminton-reason="' + p.id + '" ' + '' + ' maxlength="500" placeholder="경기 기록을 참고한 판단"></label><div class="badminton-player-records">'+badmintonRecentResults(sessions,p)+'<details><summary>변경 이력 ' + p.history.length + '건</summary>' + p.history.map(h => '<p class="note">' + safe(h.at) + ' / ' + (h.from ?? '신규') + ' → ' + h.to + ' / ' + safe(h.reason) + '</p>').join('') + '</details></div></div>').join('') + '</div>' +
-      (players.players.length ? '<button id="badminton-stage-tiers" type="button">티어를 변경사항에 반영</button>' : '<p class="note">경기 기록 없이도 현재 구성원에서 선수를 등록하고 기본 티어를 설정할 수 있습니다.</p>') +
+      '<button id="badminton-members" type="button">현재 구성원에서 선수 등록</button><div id="badminton-candidates"></div>' + tierRoster(players.players, sessions) +
+      (players.players.length ? '<button id="badminton-stage-tiers" type="button">변경한 0명 반영</button>' : '<p class="note">경기 기록 없이도 현재 구성원에서 선수를 등록하고 기본 티어를 설정할 수 있습니다.</p>') +
       '<h3>저장된 모임</h3><label>모임 검색<input id="badminton-record-search" type="search" placeholder="날짜 또는 모임 이름"></label>' + index.sessions.slice().sort((a,b) => b.date.localeCompare(a.date)).map(s => '<details class="badminton-record"><summary>' + safe(s.date + ' · ' + s.title) + '</summary>' + badmintonResultTable(sessions.find(x => x.id === s.id)) + '<button type="button" data-edit-record="'+s.id+'">결과 수정</button></details>').join('') + '</div>';
     wireBadmintonTools();
+    wireTierRoster();
     $('#badminton-import').onchange = async e => {
       if (busy) return;
       const file = e.target.files[0]; e.target.value = ''; if (!file) return;
@@ -788,7 +846,14 @@ function createBadmintonRules() {
           const tier = Number($('[data-badminton-tier="' + p.id + '"]').value);
           if (tier === p.tier) continue;
           const reason = $('[data-badminton-reason="' + p.id + '"]').value.trim();
-          if (!reason) throw Error(p.name + ': 티어 변경 사유를 입력하세요.');
+          if (!reason) {
+            const search = $('#tier-search');
+            search.value = ''; search.oninput();
+            const field = $('[data-badminton-reason="' + p.id + '"]');
+            field.closest('.badminton-reason-field').hidden = false;
+            field.focus();
+            throw Error(p.name + ': 티어 변경 사유를 입력하세요.');
+          }
           p.history.push({from:p.tier,to:tier,at:new Date().toISOString(),reason}); p.tier=tier; count++;
         }
         if (!count) {formDirty=false;return status('변경된 티어가 없습니다.');}
