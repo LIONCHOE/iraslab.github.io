@@ -23,18 +23,79 @@
       })();
     } else if(!organizer){box.remove();return;}
     if(!organizer)return;
-    box.insertAdjacentHTML('beforeend','<form id="league-login"><label>개설자 이메일<input type="email" required autocomplete="username"></label><label>비밀번호<input type="password" required autocomplete="current-password"></label><button>개설자 로그인</button></form><button id="league-open" class="primary">편성한 모임 열기</button>');
-    if(!client){$('#league-login').hidden=true;$('#league-open').disabled=true;$('#league-message').textContent='공유 모임을 열려면 Supabase 프로젝트 연결이 필요합니다.';return;}
-    $('#league-login').onsubmit=action(async e=>{const [email,password]=e.target.querySelectorAll('input');await checked(client.auth.signInWithPassword({email:email.value,password:password.value}));password.value='';$('#league-message').textContent='로그인했습니다. 팀 편성과 대진 생성을 마친 뒤 모임을 여세요.';});
-    $('#league-open').onclick=action(async()=>{
-      const code=Array.from(crypto.getRandomValues(new Uint8Array(8)),v=>v.toString(16).padStart(2,'0')).join('');
-      const s=window.leagueDraft?.();if(!s||s.matches.some(m=>m.finished||m.lineups))throw Error('경기 준비에서 편성 후 리그 대진을 만들어 주세요. 경기 시작 전에 개설할 수 있습니다.');
-      const id=await rpc('open',{s:R.validate(s),entry_code:code});location.assign(url(id));
+    document.body.classList.add('host-page','host-signed-out');
+    const list=document.createElement('details');
+    list.className='host-meetings';
+    list.innerHTML='<summary>공유 모임 목록</summary>';
+    list.append($('#league-links'));
+    box.querySelector('strong').remove();
+    box.prepend(list);
+    box.insertAdjacentHTML('afterbegin',`
+      <div class="host-access">
+        <div class="host-cover">
+          <h1>배드민턴 <br>모임 개설</h1>
+          <p>팀을 편성하고 참가자에게 경기 QR을 공유하세요.</p>
+          <div class="host-court" aria-hidden="true"><i></i><b></b></div>
+        </div>
+        <form id="league-login">
+          <h2>개설자 로그인</h2>
+          <label>이메일<input name="email" type="email" required autocomplete="username"></label>
+          <label>비밀번호<input name="password" type="password" required autocomplete="current-password"></label>
+          <button class="primary" type="submit">로그인</button>
+        </form>
+        <div id="host-session" hidden>
+          <div class="host-account"><span id="host-email"></span><button type="button" id="host-logout">로그아웃</button></div>
+          <h2 id="host-phase"></h2><p id="host-next"></p>
+          <button type="button" id="host-prepare">팀 편성하기</button>
+          <button type="button" id="league-open" class="primary">편성한 모임 열기</button>
+        </div>
+      </div>`);
+    const form=$('#league-login'),openButton=$('#league-open');
+    let hostUser=null, opening=false;
+    function updateDraft(){
+      const draft=window.leagueDraft?.();
+      const ready=draft && !draft.matches.some(m=>m.lineups||m.finished);
+      openButton.disabled=!hostUser||!ready||opening;
+      $('#host-prepare').hidden=!!ready;
+      $('#host-phase').textContent=ready?'모임을 열 준비가 됐습니다':'경기 준비';
+      $('#host-next').textContent=ready?draft.title+' · '+draft.teams.length+'조 · '+draft.matches.length+'경기':'참석자를 선택하고 팀을 편성한 뒤 대진을 만들어 주세요.';
+    }
+    function showAccount(user){
+      hostUser=user?.email&&!user.is_anonymous?user:null;
+      form.hidden=!!hostUser;
+      $('#host-session').hidden=!hostUser;
+      document.body.classList.toggle('host-signed-out',!hostUser);
+      $('#host-email').textContent=hostUser?'로그인 중 · '+hostUser.email:'';
+      updateDraft();
+    }
+    if(!client){form.querySelector('button').disabled=true;$('#league-message').textContent='공유 모임을 열려면 Supabase 프로젝트 연결이 필요합니다.';return;}
+    client.auth.onAuthStateChange((_event,session)=>showAccount(session?.user));
+    await action(async()=>showAccount((await checked(client.auth.getSession())).session?.user))();
+    form.onsubmit=action(async e=>{
+      const {email,password}=e.target.elements;
+      const submit=form.querySelector('[type=submit]');
+      submit.disabled=true;submit.textContent='로그인 중…';
+      try{
+        const {user}=await checked(client.auth.signInWithPassword({email:email.value.trim(),password:password.value}));
+        password.value='';$('#league-message').textContent='';showAccount(user);
+      }finally{submit.disabled=false;submit.textContent='로그인';}
+    });
+    $('#host-logout').onclick=action(async()=>{await checked(client.auth.signOut({scope:'local'}));showAccount(null);$('#league-message').textContent='';form.elements.email.focus();});
+    $('#host-prepare').onclick=()=>{$('[data-tab="setup"]').click();$('#setup').scrollIntoView({block:'start'});};
+    new MutationObserver(updateDraft).observe($('#match-list'),{childList:true});
+    openButton.onclick=action(async()=>{
+      if(openButton.disabled)return;
+      opening=true;updateDraft();
+      try{
+        const code=Array.from(crypto.getRandomValues(new Uint8Array(8)),v=>v.toString(16).padStart(2,'0')).join('');
+        const s=window.leagueDraft?.();if(!s||s.matches.some(m=>m.finished||m.lineups))throw Error('경기 준비에서 편성 후 리그 대진을 만들어 주세요. 경기 시작 전에 개설할 수 있습니다.');
+        const id=await rpc('open',{s:R.validate(s),entry_code:code});location.assign(url(id));
+      }finally{opening=false;updateDraft();}
     });return;
   }
 
   const main=$('main');main.className='league-live';
-  main.innerHTML='<section class="league-head"><div><p id="league-date"></p><h1 id="league-title">공유 모임</h1></div><span id="connection" role="status">연결 중</span><p id="summary"></p></section><nav aria-label="모임 보기"><button data-pane="games" aria-pressed="true">점수 입력</button><button data-pane="ranks" aria-pressed="false">현재 순위</button></nav><p id="league-message" role="status"></p><section id="games"><h2>코트별 다음 경기</h2><div id="upcoming"></div><div class="league-tools"><h2>경기 일정</h2><label>내 조 <select id="team-filter"><option value="">전체 조</option></select></label><label>코트 <select id="court-filter"><option value="">전체 코트</option></select></label></div><div id="schedule"></div></section><section id="ranks" hidden><h2>조 순위</h2><div id="rank-table"></div></section><div class="league-tools" id="actions" hidden><button id="print-league">경기지 인쇄</button><span id="print-help"></span><button id="close-league" hidden>모임 마감</button><button id="league-md" hidden>확정 기록 MD 다운로드</button></div><dialog id="league-dialog"><form id="score-form"><h2 id="game-title"></h2><div id="score-inputs"></div><p id="score-status" role="status"></p><button type="button" id="cancel-score">닫기</button><button class="primary" id="save-score">결과 저장</button></form></dialog><section id="league-paper"></section>';
+  main.innerHTML='<section class="league-head"><div><p id="league-date"></p><h1 id="league-title">공유 모임</h1></div><span id="connection" role="status">연결 중</span><p id="summary"></p></section><section id="host-share" hidden aria-labelledby="share-title"><div id="host-qr" role="img" aria-label="참가자 점수 입력용 QR"></div><div><h2 id="share-title">참가용 QR</h2><p>휴대폰 카메라로 스캔하면 점수를 입력하고 순위를 확인할 수 있습니다.</p><button id="host-print" type="button">경기지 인쇄</button></div></section><nav aria-label="모임 보기"><button data-pane="games" aria-pressed="true">점수 입력</button><button data-pane="ranks" aria-pressed="false">현재 순위</button></nav><p id="league-message" role="status"></p><section id="games"><h2>코트별 다음 경기</h2><div id="upcoming"></div><div class="league-tools"><h2>경기 일정</h2><label>내 조 <select id="team-filter"><option value="">전체 조</option></select></label><label>코트 <select id="court-filter"><option value="">전체 코트</option></select></label></div><div id="schedule"></div></section><section id="ranks" hidden><h2>조 순위</h2><div id="rank-table"></div></section><div class="league-tools" id="actions" hidden><button id="print-league">경기지 인쇄</button><span id="print-help"></span><button id="close-league" hidden>모임 마감</button><button id="league-md" hidden>확정 기록 MD 다운로드</button></div><dialog id="league-dialog"><form id="score-form"><h2 id="game-title"></h2><div id="score-inputs"></div><p id="score-status" role="status"></p><button type="button" id="cancel-score">닫기</button><button class="primary" id="save-score">결과 저장</button></form></dialog><section id="league-paper"></section>';
   if(!client){$('#connection').textContent='연결 설정 필요';return;}
   let row, session, hostCode, active, opener, subscribed=false, defaultPane=true;
   const entryCode = new URLSearchParams(location.hash.slice(1)).get('entry');
@@ -57,13 +118,16 @@
     $('#rank-table').innerHTML='<table><thead><tr><th>순위</th><th>조</th><th>승</th><th>패</th><th>득실</th></tr></thead><tbody>'+R.standings(session).map(r=>'<tr>'+[r.rank,r.name,r.wins,r.losses,r.diff].map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
     $('#actions').hidden=false;$('#close-league').hidden=!hostCode||row.closed;$('#league-md').hidden=!row.closed;
     $('[data-pane="games"]').textContent=canScore()?'점수 입력':'경기 일정';
-    $('#print-help').textContent=hostCode&&!row.closed?'인쇄한 QR로 참가자가 점수를 입력할 수 있습니다.':'';
+    $('#print-league').hidden=Boolean(hostCode&&!row.closed);
     if(defaultPane&&row.closed)pane('ranks');defaultPane=false;
     if(row.closed){$('#league-message').textContent='마감된 모임 · 최종 결과';$('#league-dialog').open&&$('#league-dialog').close();}
     const printUrl=new URL(url(mid));
     if(hostCode && !row.closed)printUrl.hash=new URLSearchParams({entry:hostCode}).toString();
     const qr=window.qrcode(0,'M');qr.addData(printUrl.href);qr.make();
-    $('#league-paper').innerHTML='<header><div><h1>'+esc(session.title)+'</h1><p>'+esc(session.date)+' · '+session.teams.length+'조 · '+session.courts+'코트</p></div><figure>'+qr.createSvgTag({cellSize:4,margin:16})+'<figcaption>'+(printUrl.hash?'점수 입력 · 현재 순위':'경기 일정 · 순위')+'</figcaption></figure></header><table><thead><tr><th>경기</th><th>차례 / 코트</th><th>우리 조</th><th>상대 조</th><th>점수</th></tr></thead><tbody>'+games.map((m,i)=>'<tr><td>'+(i+1)+'</td><td>'+m.slot+' / '+m.court+'</td>'+m.teams.map(id=>'<td><b>'+esc(team(id).name)+'</b> '+esc(names(team(id)))+'</td>').join('')+'<td>'+(m.finished?m.result.join(' : '):'_____ : _____')+'</td></tr>').join('')+'</tbody></table>';
+    const svg=qr.createSvgTag({cellSize:4,margin:16});
+    $('#host-share').hidden=!printUrl.hash;
+    $('#host-qr').innerHTML=printUrl.hash?svg:'';
+    $('#league-paper').innerHTML='<header><div><h1>'+esc(session.title)+'</h1><p>'+esc(session.date)+' · '+session.teams.length+'조 · '+session.courts+'코트</p></div><figure>'+svg+'<figcaption>'+(printUrl.hash?'점수 입력 · 현재 순위':'경기 일정 · 순위')+'</figcaption></figure></header><table><thead><tr><th>경기</th><th>차례 / 코트</th><th>우리 조</th><th>상대 조</th><th>점수</th></tr></thead><tbody>'+games.map((m,i)=>'<tr><td>'+(i+1)+'</td><td>'+m.slot+' / '+m.court+'</td>'+m.teams.map(id=>'<td><b>'+esc(team(id).name)+'</b> '+esc(names(team(id)))+'</td>').join('')+'<td>'+(m.finished?m.result.join(' : '):'_____ : _____')+'</td></tr>').join('')+'</tbody></table>';
   }
   async function refresh(){
     const data=await checked(client.from('league_meetings').select('*').eq('id',mid).single());
@@ -86,7 +150,7 @@
       if(msg.includes('최신 점수')){await refresh();const m=row.session.matches.find(g=>g.id===active.id);active.version=m.version||0;msg+=' 저장된 결과 '+(m.result||[]).join(' : ');}
       $('#score-status').textContent=msg;
     }finally{btn.disabled=false;}};
-  $('#print-league').onclick=()=>window.print();
+  $('#host-print').onclick=$('#print-league').onclick=()=>window.print();
   $('#close-league').onclick=action(async()=>{if(confirm('모임을 마감하고 점수 입력을 종료할까요?')){await rpc('close',{mid});await refresh();pane('ranks');}});
   $('#league-md').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([R.markdown(session)],{type:'text/markdown'}));a.download=session.id+'.md';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
   const sync=action(refresh);

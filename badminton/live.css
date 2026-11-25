@@ -4,3 +4,46 @@
 @media print{body:has(.league-live)>header,.league-live>*:not(#league-paper),.league-launch{display:none!important}.league-live{width:281mm;max-width:none;padding:0}.league-live #league-paper{display:block!important}.league-live #league-paper header{display:flex!important;align-items:center;justify-content:space-between;border:0;height:34mm}.league-live #league-paper h1{font-size:17pt}.league-live figure{margin:0;text-align:center}.league-live figure svg{display:block;width:28mm;height:28mm;margin:auto}.league-live figcaption{font-size:8pt}.league-live #league-paper table{width:100%;border-collapse:collapse;font-size:9pt}.league-live #league-paper :is(td,th){border:.2mm solid #777;padding:.35mm 1mm;line-height:1.1;white-space:normal;overflow-wrap:anywhere}.league-live #league-paper tr{height:6mm}.league-live #league-paper :is(td,th):last-child{white-space:nowrap;width:25mm}}
 
 .local-league-tools{margin:12px 0}.local-league-tools summary{cursor:pointer;font-weight:600}.local-league-tools .file-label{position:relative}.local-league-tools input[type=file]{left:0;top:0;padding:0;border:0}.league-launch #league-message{display:block}@media print{.local-league-tools{display:none!important}}
+
+/* Organizer access and courtside sharing */
+@media screen {
+  .host-page .intro,.host-signed-out main>:not(.league-launch),.host-signed-out footer,
+  .host-signed-out .host-meetings,body:has(.league-live) .intro{display:none}
+  .host-signed-out{min-height:100vh;background:#f6f4f2}
+  .host-signed-out main{max-width:960px;padding:clamp(24px,7vh,76px) 20px}
+  .host-access{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border:1px solid #e0d8da;border-radius:18px;background:white;overflow:hidden}
+  .host-signed-out .host-access{box-shadow:0 16px 46px #4124320e}
+  .host-cover{position:relative;isolation:isolate;overflow:hidden;background:#651a38;color:white;padding:clamp(24px,4vw,52px);min-height:270px}
+  .host-cover h1{font-size:clamp(32px,4vw,56px);letter-spacing:-.055em;line-height:1.12;margin:0 0 15px;color:white}
+  .host-cover p{position:relative;z-index:1;max-width:21em;color:#fff1f6;font-size:15px}
+  .host-court{position:absolute;z-index:-1;bottom:-34px;right:-32px;width:64%;height:102px;border:2px solid #ffffff44;transform:rotate(-18deg);background:linear-gradient(90deg,transparent 49.6%,#ffffff55 50%,transparent 50.4%)}
+  .host-court:before,.host-court:after,.host-court i,.host-court b{content:"";position:absolute;inset:8% 0;border-block:1px solid #ffffff55}
+  .host-court:after{inset:0 19%;border:0;border-inline:1px solid #ffffff66}
+  .host-court i{inset:0 9%;border:0;border-inline:1px solid #ffffff55}
+  .host-court b{inset:50% 0 auto;border:0;border-top:1px solid #ffffff55}
+  .league-launch:has(.host-access){padding:0;border:0;background:transparent}
+  .league-launch #league-login,#host-session{display:grid;align-content:center;align-items:stretch;gap:16px;padding:clamp(22px,3.6vw,46px);min-width:0}
+  .league-launch #league-login h2,#host-session h2,#host-share h2{margin:0;font-size:24px;letter-spacing:-.04em}
+  #league-login label{display:grid;gap:5px;color:#49424a;font-size:14px;font-weight:600}
+  #league-login input{width:100%;border-radius:7px;border-color:#c9c0c4}
+  #league-login button{width:100%}
+  .host-account{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px}
+  .host-account span{overflow-wrap:anywhere}
+  #host-logout{font-size:13px;padding:6px 9px}
+  #host-next,#host-share p{margin:0;color:#56515a}
+  #host-prepare,#host-print{color:#75163e;border-color:#c5a0ad;background:white}
+  #league-open:disabled{background:#ece8ea;border-color:#ece8ea;color:#625961;opacity:1}
+  .host-meetings{margin:14px 0}.host-meetings summary{cursor:pointer;font-weight:600}
+  .league-launch #league-message:not(:empty){margin:12px 0;padding:10px 14px;background:#fff3e8;color:#6e3015;border-radius:6px}
+  .league-live #host-share{display:flex;align-items:center;gap:24px;padding:20px 24px;margin:18px 0;border:1px solid #dacbd1;background:#faf6f7;border-radius:14px}
+  #host-share p{margin:6px 0 13px}#host-qr{background:white;border-radius:6px;padding:3px;flex:none}
+  #host-qr svg{display:block;width:152px;height:152px}
+  .league-live nav{border-bottom:1px solid #e1dadd}
+  .league-live .league-game:disabled{color:#334155;opacity:1}
+}
+@media screen and (max-width:640px){
+  .host-access{grid-template-columns:1fr}.host-signed-out main{padding:22px 14px}
+  .host-cover{min-height:auto;padding:22px 24px}.host-cover h1{font-size:32px}.host-cover h1 br{display:none}
+  .host-cover p{margin:0;max-width:18em}.host-court{width:40%;opacity:.6}
+  .league-live #host-share{flex-direction:column;text-align:center;gap:10px;padding:16px}
+}
