@@ -1,7 +1,27 @@
 
 .league-live{max-width:1060px;margin:auto;padding:24px 16px 64px}.league-live [hidden],.league-launch [hidden]{display:none!important}.league-live h1{font-size:clamp(1.7rem,4vw,3rem);line-height:1.12;margin:4px 0;letter-spacing:-.04em}.league-live h2{font-size:1.25rem;margin:20px 0 12px}.league-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:8px;padding:20px 0 12px;border-bottom:2px solid #94154a}.league-head p{margin:0}.league-head #summary{grid-column:1/-1;color:#475569}.league-live nav{display:flex;gap:8px;padding:12px 0}.league-live nav [aria-pressed=true]{background:#80133f;color:white}.league-live #upcoming,.league-live #schedule{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}.league-game{display:grid;gap:4px;text-align:left;background:white;padding:12px 16px}.league-game strong{font-size:1.25rem}.league-game small,.league-game span{color:#475569}.league-live #upcoming .league-game{border-left:4px solid #94154a}.league-tools,.league-launch form,.league-launch #league-links{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.league-launch{margin:12px 0;padding:16px;border:1px solid #ccd2db;border-radius:10px}.league-launch a{padding:8px}.league-live #league-dialog{border:1px solid #cbd5e1;border-radius:12px;width:min(440px,100%);box-sizing:border-box;padding:20px}.league-live dialog::backdrop{background:#10182888}#score-inputs{display:grid;grid-template-columns:1fr 1fr;gap:14px}#score-inputs label{min-width:0}#score-inputs small{display:block;color:#475569}#score-inputs input{width:100%;font-size:2rem}.league-live #score-form button{margin-top:10px}.league-live #league-paper{display:none}
 @media(max-width:600px){.league-live #league-dialog{margin:auto 0 0;width:100%;max-width:none;border-radius:16px 16px 0 0;padding-bottom:max(16px,env(safe-area-inset-bottom))}.league-live{padding-top:4px}.league-tools h2{width:100%}}
-@media print{body:has(.league-live)>header,.league-live>*:not(#league-paper),.league-launch{display:none!important}.league-live{width:281mm;max-width:none;padding:0}.league-live #league-paper{display:block!important}.league-live #league-paper header{display:flex!important;align-items:center;justify-content:space-between;border:0;height:34mm}.league-live #league-paper h1{font-size:17pt}.league-live figure{margin:0;text-align:center}.league-live figure svg{display:block;width:28mm;height:28mm;margin:auto}.league-live figcaption{font-size:8pt}.league-live #league-paper table{width:100%;border-collapse:collapse;font-size:9pt}.league-live #league-paper :is(td,th){border:.2mm solid #777;padding:.35mm 1mm;line-height:1.1;white-space:normal;overflow-wrap:anywhere}.league-live #league-paper tr{height:6mm}.league-live #league-paper :is(td,th):last-child{white-space:nowrap;width:25mm}}
+@media print {
+  body:has(.league-live)>header,.league-live>*:not(#league-paper),.league-launch {display:none!important}
+  .league-live {width:281mm;max-width:none;padding:0}
+  .league-live #league-paper {display:block!important;color:#111;font-size:9pt;line-height:1.2}
+  #league-paper header {display:flex!important;align-items:baseline;justify-content:space-between;padding-bottom:2mm;border-bottom:.4mm solid}
+  #league-paper h1 {margin:0;font-size:16pt}
+  #league-paper p {margin:1mm 0 2mm}
+  #league-paper h2 {font-size:12pt;margin:2mm 0}
+  .paper-columns {display:grid;grid-template-columns:3fr 2fr;gap:6mm}
+  #league-paper table {width:100%;border-collapse:collapse;table-layout:fixed}
+  #league-paper :is(th,td) {padding:.4mm;border:.2mm solid #888;text-align:center;color:black;white-space:normal;overflow-wrap:anywhere;font-size:9pt}
+  .paper-matrix td {height:12mm;font-variant-numeric:tabular-nums}
+  .paper-matrix .unused {color:#aaa!important;background:#eee;print-color-adjust:exact}
+  .paper-order th:nth-child(3) {width:58%}
+  #league-paper .paper-order :is(td,th) {height:4.8mm;padding:0 .5mm;font-size:8.5pt}
+  .paper-roster {list-style:none;margin:0;padding:0}
+  .paper-roster li {padding:.8mm 0;border-bottom:.2mm solid #ccc;overflow-wrap:anywhere}
+  .paper-roster b {display:inline-block;min-width:9mm}
+  #league-paper figure {display:flex;align-items:center;justify-content:center;gap:3mm;margin:3mm 0 0}
+  #league-paper figure svg {width:30mm;height:30mm;flex:none}
+}
 
 .local-league-tools{margin:12px 0}.local-league-tools summary{cursor:pointer;font-weight:600}.local-league-tools .file-label{position:relative}.local-league-tools input[type=file]{left:0;top:0;padding:0;border:0}.league-launch #league-message{display:block}@media print{.local-league-tools{display:none!important}}
 
@@ -96,3 +116,23 @@
   #club-ranks :is(td,th) { padding: 11px 4px; }
 }
 @media print { .club-heading { display: none; } }
+
+@media screen {
+  .league-live {--accent:#08664d;max-width:980px;padding-inline:clamp(14px,3vw,32px)}
+  .league-head {padding:12px 0 16px;border-bottom:1px solid #d9e3df}
+  .league-head h1 {font-size:clamp(26px,4vw,40px);letter-spacing:-.045em;overflow-wrap:anywhere}
+  #league-date,.league-game small {color:#536477;font-variant-numeric:tabular-nums}
+  #connection {align-self:center;font-size:.8rem;color:#375a4c}
+  .league-live nav {gap:18px;padding:0;margin-bottom:18px;border-bottom:1px solid #d9e3df}
+  .league-live nav button {border:0;border-radius:0;border-bottom:3px solid transparent;padding:10px 1px}
+  .league-live nav button[aria-pressed=true] {background:white;color:#08664d;border-color:currentColor}
+  .league-live #upcoming .league-game {border:1px solid #b7d8c9;border-left:4px solid #167255;background:#f4faf6}
+  .league-game {gap:5px;border-radius:9px;border-color:#d7e2dd}
+  .league-game:not(:disabled):hover {border-color:#167255;background:#f4faf6}
+  .league-game span {font-variant-numeric:tabular-nums;font-weight:650}
+  .league-game:not(:disabled) span {color:#08664d}
+  .league-live #host-share {background:#f5f9f7;border-color:#cfdfd7}
+  .league-live #host-print {color:#08664d;border-color:#abcebf}
+  .league-live #rank-table {overflow-x:auto}
+  #rank-table th,#rank-table td {font-variant-numeric:tabular-nums}
+}
