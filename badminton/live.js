@@ -264,12 +264,12 @@
     return `<table class="${print?'paper-matrix':'match-grid'}"><thead><tr><th scope="col">조</th>${opponents.map(t=>'<th scope="col">'+esc(t.name)+'</th>').join('')}</tr></thead><tbody>${matrix}</tbody></table>`;
   }
   function printSheet(svg, qrLabel) {
-    const {teams, matches} = session;
+    const {teams} = session;
     return `<header><h1>${esc(session.title)}</h1><p>${esc(session.date)} · ${teams.length}조</p></header>
       <div class="paper-columns"><section><h2>전체 대진표</h2><p>점수는 왼쪽 조 : 위쪽 조 순서로 적으세요.</p>
       ${matchMatrix(true)}
       <h2>조별 팀원</h2><ul class="paper-roster">${R.sheetRoster(session)}</ul></section>
-      <section><h2>대진 순서표</h2><table class="paper-order">${R.sheetOrder(session,matches)}</table>
+      <section><h2>대진 순서표</h2><table class="paper-order">${R.printOrder(session)}</table>
       <figure>${svg}<figcaption>${qrLabel}</figcaption></figure></section></div>`;
   }
   function draw(){
