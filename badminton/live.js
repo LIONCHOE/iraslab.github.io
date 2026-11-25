@@ -226,7 +226,13 @@
       try{
         const code=Array.from(crypto.getRandomValues(new Uint8Array(8)),v=>v.toString(16).padStart(2,'0')).join('');
         const s=window.leagueDraft?.();if(!s||s.matches.some(m=>m.finished||m.lineups))throw Error('경기 준비에서 편성 후 리그 대진을 만들어 주세요. 경기 시작 전에 개설할 수 있습니다.');
-        const id=await rpc('open',{s:R.validate(s),entry_code:code});location.assign(url(id));
+        const submitted=R.validate(s);
+        const id=await rpc('open',{s:submitted,entry_code:code});
+        try{
+          window.completeLeagueDraft?.(submitted);
+        }finally{
+          location.assign(url(id));
+        }
       }finally{opening=false;updateDraft();}
     });return;
   }
