@@ -619,11 +619,9 @@ window.IRASBadminton = createBadmintonRules();
       (bodies || '<tbody><tr><td colspan="2">해당 경기가 없습니다.</td></tr></tbody>');
   }
   R.sheetOrder = (session,matches,renderPair)=>orderTable(session,matches,(slot,games,label)=>
-    games.map((m,i)=>'<tr>'+(i===0?'<th scope="rowgroup" rowspan="'+games.length+'">'+slot+'</th>':'')+
-      '<td>'+renderPair(m,label(m))+'</td></tr>').join(''));
-  R.printOrder = session=>orderTable(session,session.matches,(slot,games,label)=>
-    '<tr><th scope="row">'+slot+'</th><td><div class="print-pairs">'+
-      games.map(m=>'<span>'+label(m)+'</span>').join('')+'</div></td></tr>');
+    '<tr><th scope="row">'+slot+'</th><td><div class="slot-pairs">'+
+      games.map(m=>'<span>'+(renderPair?renderPair(m,label(m)):label(m))+'</span>').join('')+'</div></td></tr>');
+
 
   if (new URLSearchParams(location.search).has('meeting') || !new URLSearchParams(location.search).has('organize')) return;
 
@@ -805,8 +803,8 @@ window.IRASBadminton = createBadmintonRules();
     const schedule=R.sheetOrder(state,state.matches,(m,label)=>'<button type="button" class="pair-link" data-match-source="schedule" data-open-match="'+m.id+'" data-row-team="'+m.teams[0]+'" aria-haspopup="dialog">'+label+'</button>');
     $('#match-list').innerHTML=`<section><h3>전체 대진표</h3><p class="sheet-hint">두 조가 만나는 칸을 눌러 점수를 입력하세요. 왼쪽 조 점수가 먼저 표시됩니다.</p>
       <div class="matrix-scroll" tabindex="0" role="region" aria-label="전체 대진표"><table class="match-grid">${heading}<tbody>${rows}</tbody></table></div>
-      <h3>조별 팀원</h3><ul class="sheet-roster">${R.sheetRoster(state)}</ul></section>
-      <section class="order-panel"><h3>대진 순서표</h3><div class="order-frame"><table class="sheet-order">${schedule}</table></div><table class="paper-order">${R.printOrder(state)}</table></section>`;
+      </section><section class="order-panel"><h3>대진 순서표</h3><div class="order-frame"><table class="sheet-order">${schedule}</table></div><table class="paper-order">${R.sheetOrder(state,state.matches)}</table>
+      <h3>조별 팀원</h3><ul class="sheet-roster">${R.sheetRoster(state)}</ul></section>`;
     renderMatchPopup();
   }
   function table(head,rows){return '<table><thead><tr>'+head.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}
