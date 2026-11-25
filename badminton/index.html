@@ -585,7 +585,6 @@ window.IRASBadminton = createBadmintonRules();
 <script>
 (() => {
   'use strict';
-  if(new URLSearchParams(location.search).has('meeting'))return;
   const R=window.IRASBadminton, $=s=>document.querySelector(s), key=new URLSearchParams(location.search).has('organize')?'iras-badminton-host-draft-v1':'iras-badminton-v1';
   // 기존 홈페이지의 루트/하위경로 배포에서 실제 적용되는 로고와 일치시킵니다.
   if(new URL('../',location.href).pathname==='/'){
@@ -603,7 +602,7 @@ window.IRASBadminton = createBadmintonRules();
   const normalizedName=name=>{const value=String(name).normalize('NFKC').replace(/,?\s*Ph\.?D\.?\s*$/i,'').replace(/\s+/g,' ').trim().toLocaleLowerCase('en');return englishAliases.get(value)||value;};
   const displayName=name=>koreanNames.get(normalizedName(name))||String(name??'');
   R.displayName = displayName;
-  if (!new URLSearchParams(location.search).has('organize')) return;
+  if (new URLSearchParams(location.search).has('meeting') || !new URLSearchParams(location.search).has('organize')) return;
 
   const provisional = new Set(), randomPlayers = new Set(), defaultAbsent = new Set();
   const photos = new Map(), recordCache = new Map(), publishedTiers = new Map();
