@@ -302,4 +302,33 @@
   #league-paper .paper-order:has(tbody:nth-of-type(12))~.roster-share {--qr-size:32mm}
   #league-paper .meeting-qr svg {width:var(--qr-size);height:var(--qr-size)}
   #league-paper .paper-roster li,#match-list .sheet-roster li {padding:.9mm 0;line-height:1.2;font-size:11pt}
+
+  /* Earlier shared sheets have a different roster structure and keep their own layout. */
+  #league-paper .paper-columns:has(.roster-share),#match-list.match-layout {
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:minmax(0,1fr) auto;
+    gap:2mm;
+  }
+  #match-list>section.order-panel,#league-paper .paper-columns:has(.roster-share)>section:last-child {
+    display:grid;
+    grid-template-columns:minmax(0,5fr) minmax(0,4fr);
+    grid-template-rows:auto 1fr;
+    column-gap:5mm;
+    min-height:40mm;
+  }
+  #league-paper .paper-columns:has(.roster-share)>section:last-child {
+    grid-template-columns:minmax(0,48fr) minmax(0,34fr) minmax(0,18fr);
+  }
+  #league-paper .roster-share {display:contents}
+  :is(#league-paper .paper-columns:has(.roster-share),#match-list) .paper-order {
+    grid-area:2 / 1;
+    height:auto;
+  }
+  :is(#league-paper .paper-columns:has(.roster-share),#match-list)>section:last-child>:is(h2,h3):nth-of-type(2) {grid-area:1 / 2}
+  #league-paper .roster-share>.paper-roster,#match-list .sheet-roster {grid-area:2 / 2;align-self:start}
+  #league-paper .roster-share>.meeting-qr {grid-area:1 / 3 / span 2;place-self:center}
+  #league-paper .paper-columns:has(.roster-share) .paper-matrix td {height:auto}
+  :is(#league-paper,#match-list):has(.paper-order tbody:nth-of-type(18)) :is(.paper-matrix,.match-grid) :is(th,td) {
+    height:auto;font-size:11pt;line-height:1.12;padding:.35mm;
+  }
 }
