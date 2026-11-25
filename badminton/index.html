@@ -616,10 +616,10 @@ window.IRASBadminton = createBadmintonRules();
     const bodies=[...slots].map(([slot,games])=>'<tbody>'+games.map((m,i)=>{
       const label=m.teams.map(id=>esc(teams.get(id))).join(' – ');
       return '<tr>'+(i===0?'<th scope="rowgroup" rowspan="'+games.length+'">'+slot+'</th>':'')+
-        '<td>'+m.court+'</td><td>'+(renderPair?renderPair(m,label):label)+'</td></tr>';
+        '<td>'+(renderPair?renderPair(m,label):label)+'</td></tr>';
     }).join('')+'</tbody>').join('');
-    return '<thead><tr><th scope="col">차례</th><th scope="col">코트</th><th scope="col">대결 조</th></tr></thead>'+
-      (bodies || '<tbody><tr><td colspan="3">해당 경기가 없습니다.</td></tr></tbody>');
+    return '<thead><tr><th scope="col">차례</th><th scope="col">대결 조</th></tr></thead>'+
+      (bodies || '<tbody><tr><td colspan="2">해당 경기가 없습니다.</td></tr></tbody>');
   };
 
   if (new URLSearchParams(location.search).has('meeting') || !new URLSearchParams(location.search).has('organize')) return;
@@ -744,7 +744,7 @@ window.IRASBadminton = createBadmintonRules();
   let scoreSide=0;
   function matchCard(m, orderedTeams) {
     const r=R.replay(state,m);
-    return '<article class="match"><div class="match-head"><strong>'+m.round+'라운드 · '+m.slot+'차례 · 코트 '+m.court+'</strong><span>'+(m.finished?'결과 수정':'결과 입력')+'</span></div><div class="match-body"><div class="score-fields">'+orderedTeams.map(id=>{const i=m.teams.indexOf(id);return '<label class="score-field">'+esc(team(id).name)+'<span class="names">'+team(id).players.map(id=>esc(player(id))).join(' · ')+'</span><input id="result-'+i+'" aria-label="'+esc(team(id).name)+' 최종 점수" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" placeholder="0" value="'+(m.finished||m.lineups?r.score[i]:'')+'"></label>';}).join('')+'</div><p class="note">팀 점수를 선택한 뒤 숫자를 입력하세요. 21점 · 듀스 2점 차 · 최대 30점.</p><div class="score-keypad" aria-label="점수 숫자 키패드">'+['1','2','3','4','5','6','7','8','9','지우기','0','⌫'].map(k=>'<button type="button" data-key="'+k+'" aria-label="'+(k==='⌫'?'마지막 숫자 삭제':k)+'">'+k+'</button>').join('')+'</div>'+(m.finished?'<label>정정 사유<input id="result-reason" maxlength="500" placeholder="점수를 수정하는 이유"></label>':'')+'<button class="primary score-save" data-action="save-result" data-id="'+m.id+'">결과 저장</button><p class="note">팀 결과로 저장되며 개인 출전·교체 기록은 생성하지 않습니다.</p>'+(m.revisions.length?'<details><summary>정정 이력 '+m.revisions.length+'건</summary>'+m.revisions.map(x=>'<p class="note">'+esc(x.at)+' · '+esc(x.reason)+' · 이전 '+x.score.join(':')+'</p>').join('')+'</details>':'')+'</div></article>';
+    return '<article class="match"><div class="match-head"><strong>'+m.round+'라운드 · '+m.slot+'차례</strong><span>'+(m.finished?'결과 수정':'결과 입력')+'</span></div><div class="match-body"><div class="score-fields">'+orderedTeams.map(id=>{const i=m.teams.indexOf(id);return '<label class="score-field">'+esc(team(id).name)+'<span class="names">'+team(id).players.map(id=>esc(player(id))).join(' · ')+'</span><input id="result-'+i+'" aria-label="'+esc(team(id).name)+' 최종 점수" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="off" placeholder="0" value="'+(m.finished||m.lineups?r.score[i]:'')+'"></label>';}).join('')+'</div><p class="note">팀 점수를 선택한 뒤 숫자를 입력하세요. 21점 · 듀스 2점 차 · 최대 30점.</p><div class="score-keypad" aria-label="점수 숫자 키패드">'+['1','2','3','4','5','6','7','8','9','지우기','0','⌫'].map(k=>'<button type="button" data-key="'+k+'" aria-label="'+(k==='⌫'?'마지막 숫자 삭제':k)+'">'+k+'</button>').join('')+'</div>'+(m.finished?'<label>정정 사유<input id="result-reason" maxlength="500" placeholder="점수를 수정하는 이유"></label>':'')+'<button class="primary score-save" data-action="save-result" data-id="'+m.id+'">결과 저장</button><p class="note">팀 결과로 저장되며 개인 출전·교체 기록은 생성하지 않습니다.</p>'+(m.revisions.length?'<details><summary>정정 이력 '+m.revisions.length+'건</summary>'+m.revisions.map(x=>'<p class="note">'+esc(x.at)+' · '+esc(x.reason)+' · 이전 '+x.score.join(':')+'</p>').join('')+'</details>':'')+'</div></article>';
   }
   function closeMatchPopup() {
     const dialog = $('#match-popup');
@@ -782,7 +782,7 @@ window.IRASBadminton = createBadmintonRules();
     $('#print-matches').disabled=!state;
     $('#print-meeting-name').textContent=state?state.title:'';
     $('#print-meeting-date').textContent=state?'날짜: '+state.date:'';
-    $('#print-meta').textContent=state?state.date+' · '+state.teams.length+'팀 · '+state.players.length+'명 · '+state.courts+'코트':'';
+    $('#print-meta').textContent=state?state.date+' · '+state.teams.length+'팀 · '+state.players.length+'명':'';
     if (!state) {
       $('#round-rest').textContent = '';
       $('#match-list').innerHTML = '<p class="empty">경기 준비에서 참석자를 선택하고 리그 대진을 만들어 주세요.</p>';
@@ -790,9 +790,10 @@ window.IRASBadminton = createBadmintonRules();
     }
     $('#match-title').textContent = state.title+' · '+state.matches.filter(m=>m.finished).length+'/'+state.matches.length+'경기';
     $('#round-rest').textContent = state.teams.length%2 ? [...new Set(state.matches.map(m=>m.round))].map(round=>{const played=new Set(state.matches.filter(m=>m.round===round).flatMap(m=>m.teams));return round+'라운드 휴식: '+state.teams.filter(t=>!played.has(t.id)).map(t=>t.name).join(', ');}).join(' / ') : '';
-    const heading='<thead><tr><th scope="col">조</th>'+state.teams.map(t=>'<th scope="col">'+esc(t.name)+'</th>').join('')+'</tr></thead>';
-    const rows=state.teams.map((row,i)=>'<tr><th scope="row">'+esc(row.name)+'</th>'+state.teams.map((col,j)=>{
-      if(j<=i)return '<td class="unused">—</td>';
+    const opponents=state.teams.slice(1);
+    const heading='<thead><tr><th scope="col">조</th>'+opponents.map(t=>'<th scope="col">'+esc(t.name)+'</th>').join('')+'</tr></thead>';
+    const rows=state.teams.map((row,i)=>'<tr><th scope="row">'+esc(row.name)+'</th>'+opponents.map((col,j)=>{
+      if(j<i)return '<td class="unused">—</td>';
       const m=state.matches.find(m=>m.teams.includes(row.id)&&m.teams.includes(col.id));
       const side=m.teams.indexOf(row.id), score=R.replay(state,m).score;
       const label=m.finished || m.lineups ? score[side]+' : '+score[1-side] : '＋ 입력';
@@ -802,7 +803,7 @@ window.IRASBadminton = createBadmintonRules();
     $('#match-list').innerHTML=`<section><h3>전체 대진표</h3><p class="sheet-hint">두 조가 만나는 칸을 눌러 점수를 입력하세요. 왼쪽 조 점수가 먼저 표시됩니다.</p>
       <div class="matrix-scroll" tabindex="0" role="region" aria-label="전체 대진표"><table class="match-grid">${heading}<tbody>${rows}</tbody></table></div>
       <h3>조별 팀원</h3><ul class="sheet-roster">${R.sheetRoster(state)}</ul></section>
-      <section><h3>대진 순서표</h3><table class="sheet-order">${schedule}</table></section>`;
+      <section class="order-panel"><h3>대진 순서표</h3><div class="order-frame"><table class="sheet-order">${schedule}</table></div></section>`;
     renderMatchPopup();
   }
   function table(head,rows){return '<table><thead><tr>'+head.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}
