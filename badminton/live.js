@@ -13,30 +13,98 @@
   async function checked(query) {const {data,error}=await query;if(error)throw Error(error.message);return data;}
   const rpc = (name,args) => checked(client.rpc('league_'+name,args));
   function action(fn) {return async event=>{event?.preventDefault();try{await fn(event);}catch(e){$('#league-message').textContent=e.message;}};}
+  async function showPublicPage(recent) {
+    const main = $('main');
+    if (recent) {
+      main.innerHTML = `<section class="club-board"><h2>최근 기록</h2>
+        <h3>진행 중인 모임</h3><div id="active-meetings"></div>
+        <h3>최근 결과</h3><div id="past-meetings"></div>
+        <p id="records-status" role="status">기록을 불러오는 중입니다.</p></section>`;
+    } else {
+      main.innerHTML = `<section class="club-board"><h2>개인 누적 순위</h2>
+        <p class="club-note">관리자가 게시한 완료 모임의 성적을 합산합니다.</p>
+        <div class="club-filters" role="group" aria-label="티어 필터">
+          ${['전체','1티어','2티어','3티어'].map((name,i)=>'<button data-filter="'+i+'" aria-pressed="'+(i===0)+'">'+name+'</button>').join('')}
+        </div><div id="club-ranks"></div><p id="records-status" role="status">순위를 불러오는 중입니다.</p></section>`;
+    }
+    main.hidden = false;
+    let players = [], sessions = [], shared = [], tier = 0;
+    const failures = [];
+    async function get(path, format) {
+      const response = await fetch(path, {cache:'no-store'});
+      if (!response.ok) throw Error(path);
+      return response[format]();
+    }
+    function drawRanks() {
+      const ranked = R.individualStandings(sessions, players).rows;
+      const ids = new Set(ranked.map(p=>p.id));
+      const rows = ranked.concat(players.filter(p=>!ids.has(p.id))).filter(p=>!tier || p.tier===tier);
+      $('#club-ranks').innerHTML = rows.length ? `<table><thead><tr><th>순위</th><th>선수</th><th>티어</th><th>누적 점수</th></tr></thead><tbody>${rows.map(p=>{
+        const name = esc(R.displayName(p.name));
+        const detail = p.rank ? `<details><summary>${name}</summary><small>참가 ${p.meetings}회 · 평균 ${p.average.toFixed(1)}점 · 우승 ${p.titles}회</small></details>` : name;
+        return `<tr><td>${p.rank??'—'}</td><td>${detail}</td><td><span class="club-tier level-${p.tier}">${p.tier}티어</span></td><td>${p.rank?Number(p.points.toFixed(2)):'—'}</td></tr>`;
+      }).join('')}</tbody></table>` : '<p>표시할 선수가 없습니다.</p>';
+    }
+    function drawRecent() {
+      const published = new Map(sessions.map(s=>[s.id,s]));
+      const link = r=>`<a class="club-record" href="${esc(url(r.id))}"><small>${esc(r.date)}</small><strong>${esc(r.title)}</strong></a>`;
+      $('#active-meetings').innerHTML = shared.filter(r=>!r.closed).map(link).join('') || '<p>진행 중인 모임이 없습니다.</p>';
+      const past = shared.filter(r=>r.closed && !published.has(r.sessionId)).map(r=>({date:r.date,html:link(r)}));
+      for(const s of sessions){
+        const names = new Map(s.teams.map(t=>[t.id,esc(t.name)]));
+        const ranks = R.standings(s).map(t=>`<li>${t.rank}위 · ${esc(t.name)} · ${t.wins}승</li>`).join('');
+        const games = s.matches.map(m=>`<li>${names.get(m.teams[0])} · ${names.get(m.teams[1])}<b>${m.finished?R.replay(s,m).score.join(' : '):'대기'}</b></li>`).join('');
+        past.push({date:s.date,html:`<details class="club-result"><summary><small>${esc(s.date)}</small> ${esc(s.title)}</summary><h4>팀 순위</h4><ul>${ranks}</ul><h4>경기별 점수</h4><ul>${games}</ul></details>`});
+      }
+      $('#past-meetings').innerHTML = past.sort((a,b)=>b.date.localeCompare(a.date)).map(r=>r.html).join('') || '<p>아직 등록된 결과가 없습니다.</p>';
+    }
+    async function load(label, task) {
+      try { await task(); } catch { failures.push(label); }
+    }
+    if(!recent) $('.club-filters').onclick = e=>{
+      const button = e.target.closest('[data-filter]');
+      if(!button)return;
+      tier = Number(button.dataset.filter);
+      for(const item of $('.club-filters').children)item.setAttribute('aria-pressed',String(item===button));
+      drawRanks();
+    };
+    const records = load('게시 기록',async()=>{
+      const index = R.index(await get('records.json','json'));
+      for(let offset=0; offset<index.sessions.length; offset+=4){
+        await Promise.all(index.sessions.slice(offset,offset+4).map(item=>load(item.title,async()=>{
+          const s = R.fromMarkdown(await get(item.file,'text'));
+          if(s.id!==item.id || s.date!==item.date)throw Error();
+          sessions.push(s);
+        })));
+      }
+    });
+    const extra = recent ? load('공유 모임',async()=>{
+      if (!client) throw Error();
+      shared = await checked(client.from('league_meetings').select('id,closed,sessionId:session->>id,title:session->>title,date:session->>date').order('created_at',{ascending:false}).limit(100));
+    }) : load('선수 명단',async()=>{ players = R.roster(await get('players.json','json')).players; drawRanks(); });
+    await Promise.all([records,extra]);
+    if(recent)drawRecent();else drawRanks();
+    const status = $('#records-status');
+    status.textContent = failures.length ? failures.join(', ')+' 조회에 실패했습니다. ' : recent?'':('완료 모임 '+sessions.filter(s=>s.matches.every(m=>m.finished)).length+'개 반영');
+    if(failures.length){
+      const retry = document.createElement('button');
+      retry.textContent = '다시 시도'; retry.onclick = ()=>showPublicPage(recent); status.append(retry);
+    }
+  }
+  if (!mid) {
+    const recent = params.get('view')==='recent';
+    const route = organizer?'host':recent?'recent':'ranks';
+    $(`[data-route="${route}"]`).setAttribute('aria-current','page');
+    if(!organizer){ await showPublicPage(recent); return; }
+    document.body.classList.add('host-page','host-signed-out','host-locked');
+  }
+  $('main').hidden = false;
   if (!mid) {
     const box=document.createElement('section');box.className='league-launch';
     document.querySelector('main').prepend(box);
-    box.innerHTML='<strong>공유 모임</strong><div id="league-links"></div><span role="status" id="league-message"></span>';
-    if(client) {
-      await action(async()=>{const rows=await checked(client.from('league_meetings').select('id,closed,title:session->>title,date:session->>date').order('created_at',{ascending:false}).limit(8));
-        $('#league-links').innerHTML=rows.map(r=>'<a href="'+esc(url(r.id))+'">'+esc(r.date+' · '+r.title)+(r.closed?' · 최종 결과':' · 경기 일정')+'</a>').join('')||'개설된 모임이 없습니다.';
-      })();
-    } else if(!organizer){box.remove();return;}
-    if(!organizer)return;
-    document.body.classList.add('host-page','host-signed-out');
-    const list=document.createElement('details');
-    list.className='host-meetings';
-    list.innerHTML='<summary>공유 모임 목록</summary>';
-    list.append($('#league-links'));
-    box.querySelector('strong').remove();
-    box.prepend(list);
+    box.innerHTML='<span role="status" id="league-message"></span>';
     box.insertAdjacentHTML('afterbegin',`
       <div class="host-access">
-        <div class="host-cover">
-          <h1>배드민턴 <br>모임 개설</h1>
-          <p>팀을 편성하고 참가자에게 경기 QR을 공유하세요.</p>
-          <div class="host-court" aria-hidden="true"><i></i><b></b></div>
-        </div>
         <form id="league-login">
           <h2>개설자 로그인</h2>
           <label>아이디 또는 이메일<input name="identifier" type="text" required autocomplete="username" autocapitalize="none" spellcheck="false"></label>
@@ -56,7 +124,7 @@
           </details>
           <h2 id="host-phase"></h2><p id="host-next"></p>
           <button type="button" id="host-prepare">팀 편성하기</button>
-          <button type="button" id="league-open" class="primary">편성한 모임 열기</button>
+          <button type="button" id="league-open" class="primary">공유 모임 개설</button>
         </div>
       </div>`);
     const form=$('#league-login'),openButton=$('#league-open');
@@ -81,6 +149,7 @@
       accountId=id;
       const version=++profileVersion;
       hostUser=null;profileState='pending';
+      document.body.classList.add('host-locked');
       form.hidden=!!id;
       $('#host-session').hidden=!id;
       document.body.classList.toggle('host-signed-out',!id);
@@ -101,6 +170,7 @@
         panel.hidden=!!data.alias;
         if(data.alias)$('#host-email').textContent='로그인 아이디 · '+data.alias;
       }
+      document.body.classList.toggle('host-locked', !hostUser);
       updateDraft();
     }
     if(!client){form.querySelector('button').disabled=true;$('#league-message').textContent='공유 모임을 열려면 Supabase 프로젝트 연결이 필요합니다.';return;}
@@ -157,7 +227,7 @@
   }
 
   const main=$('main');main.className='league-live';
-  main.innerHTML='<section class="league-head"><div><p id="league-date"></p><h1 id="league-title">공유 모임</h1></div><span id="connection" role="status">연결 중</span><p id="summary"></p></section><section id="host-share" hidden aria-labelledby="share-title"><div id="host-qr" role="img" aria-label="참가자 점수 입력용 QR"></div><div><h2 id="share-title">참가용 QR</h2><p>휴대폰 카메라로 스캔하면 점수를 입력하고 순위를 확인할 수 있습니다.</p><button id="host-print" type="button">경기지 인쇄</button></div></section><nav aria-label="모임 보기"><button data-pane="games" aria-pressed="true">점수 입력</button><button data-pane="ranks" aria-pressed="false">현재 순위</button></nav><p id="league-message" role="status"></p><section id="games"><h2>코트별 다음 경기</h2><div id="upcoming"></div><div class="league-tools"><h2>경기 일정</h2><label>내 조 <select id="team-filter"><option value="">전체 조</option></select></label><label>코트 <select id="court-filter"><option value="">전체 코트</option></select></label></div><div id="schedule"></div></section><section id="ranks" hidden><h2>조 순위</h2><div id="rank-table"></div></section><div class="league-tools" id="actions" hidden><button id="print-league">경기지 인쇄</button><span id="print-help"></span><button id="close-league" hidden>모임 마감</button><button id="league-md" hidden>확정 기록 MD 다운로드</button></div><dialog id="league-dialog"><form id="score-form"><h2 id="game-title"></h2><div id="score-inputs"></div><p id="score-status" role="status"></p><button type="button" id="cancel-score">닫기</button><button class="primary" id="save-score">결과 저장</button></form></dialog><section id="league-paper"></section>';
+  main.innerHTML='<section class="league-head"><div><p id="league-date"></p><h1 id="league-title">공유 모임</h1></div><span id="connection" role="status">연결 중</span><p id="summary"></p></section><section id="host-share" hidden aria-labelledby="share-title"><div id="host-qr" role="img" aria-label="참가자 점수 입력용 QR"></div><div><h2 id="share-title">참가용 QR</h2><p>휴대폰 카메라로 스캔하면 점수를 입력하고 순위를 확인할 수 있습니다.</p><button id="host-print" type="button">QR 인쇄</button></div></section><nav aria-label="모임 보기"><button data-pane="games" aria-pressed="true">점수 입력</button><button data-pane="ranks" aria-pressed="false">현재 순위</button></nav><p id="league-message" role="status"></p><section id="games"><h2>코트별 다음 경기</h2><div id="upcoming"></div><div class="league-tools"><h2>경기 일정</h2><label>내 조 <select id="team-filter"><option value="">전체 조</option></select></label><label>코트 <select id="court-filter"><option value="">전체 코트</option></select></label></div><div id="schedule"></div></section><section id="ranks" hidden><h2>조 순위</h2><div id="rank-table"></div></section><div class="league-tools" id="actions" hidden><button id="print-league">경기지 인쇄</button><span id="print-help"></span><button id="close-league" hidden>모임 마감</button><button id="league-md" hidden>확정 기록 MD 다운로드</button></div><dialog id="league-dialog"><form id="score-form"><h2 id="game-title"></h2><div id="score-inputs"></div><p id="score-status" role="status"></p><button type="button" id="cancel-score">닫기</button><button class="primary" id="save-score">결과 저장</button></form></dialog><section id="league-paper"></section>';
   if(!client){$('#connection').textContent='연결 설정 필요';return;}
   let row, session, hostCode, active, opener, subscribed=false, defaultPane=true;
   const entryCode = new URLSearchParams(location.hash.slice(1)).get('entry');
