@@ -379,7 +379,7 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
   .toolbar .grow{flex-basis:100%;width:100%}
   dialog :is(input,select){font-size:16px}
 }
-</style><link rel="stylesheet" href="live.css?v=20261125-16"></head>
+</style><link rel="stylesheet" href="live.css?v=20261125-17"></head>
 <body>
 <header>
 <div class="site-top"><div class="brand">
@@ -693,15 +693,31 @@ window.IRASBadminton = createBadmintonRules();
     }
   }
   let storageError = '';
+  function draftCurrent(){
+    try{
+      const saved=JSON.parse(localStorage.getItem(key));
+      return (saved?.revision??null)===revision && !storageError;
+    }catch{return false;}
+  }
   const message=(s,error=false)=>{$('#message').textContent=s + (storageError && !error ? ' 임시 저장 실패: '+storageError+' MD를 내려받으세요.' : '');$('#message').classList.toggle('error',error || !!storageError);if($('#match-popup').open){$('#match-popup-message').textContent=$('#message').textContent;$('#match-popup-message').classList.toggle('error',error || !!storageError);}};
   const started=()=>state?.matches.some(m=>m.lineups||m.finished);
   const team=id=>state.teams.find(t=>t.id===id), player=id=>displayName((state?.players||roster).find(p=>p.id===id)?.name||id);
-  function persist(){try{const raw=localStorage.getItem(key);if(raw&&revision!==null&&JSON.parse(raw).revision!==revision)throw Error('다른 탭에서 기록이 바뀌었습니다. 현재 기록을 MD로 내보낸 후 새로고침하세요.');const nextRevision=uid();localStorage.setItem(key,JSON.stringify({revision:nextRevision,state,roster,provisional:[...provisional],randomPlayers:[...randomPlayers],defaultAbsent:[...defaultAbsent],manualOrder:[...manualOrder],selected:[...selected],teams,form:{title:$('#title').value,date:$('#date').value,count:$('#team-count').value,courts:$('#court-count').value}}));revision=nextRevision;storageError='';$('#save-state').textContent='이 브라우저에 임시 저장됨';}catch(e){storageError=e.message;$('#save-state').textContent='임시 저장 실패 · MD를 내려받으세요';message(e.message,true);}}
+  function persist(){try{const raw=localStorage.getItem(key);if(raw&&revision!==null&&JSON.parse(raw).revision!==revision)throw Error('다른 탭에서 기록이 바뀌었습니다. 현재 기록을 MD로 내보낸 후 새로고침하세요.');const nextRevision=uid();localStorage.setItem(key,JSON.stringify({revision:nextRevision,state,roster,pendingGuestCleanup,provisional:[...provisional],randomPlayers:[...randomPlayers],defaultAbsent:[...defaultAbsent],manualOrder:[...manualOrder],selected:[...selected],teams,form:{title:$('#title').value,date:$('#date').value,count:$('#team-count').value,courts:$('#court-count').value}}));revision=nextRevision;storageError='';$('#save-state').textContent='이 브라우저에 임시 저장됨';}catch(e){storageError=e.message;$('#save-state').textContent='임시 저장 실패 · MD를 내려받으세요';message(e.message,true);}}
   function attempt(fn){return async(...args)=>{try{await fn(...args);}catch(e){message(e.message,true);}};}
   function chooseTab(id){view=id;document.querySelectorAll('.view').forEach(n=>n.hidden=n.id!==id);document.querySelectorAll('[data-tab]').forEach(n=>n.setAttribute('aria-pressed',String(n.dataset.tab===id)));}
 
   let rankingSessions=[], rankingDefaults=[], rankingError='', rankingLoading=false;
   const manualOrder=new Map();
+  let defaultsLoaded=false, pendingGuestCleanup=[];
+  function removeMeetingGuests(){
+    if(!defaultsLoaded || !pendingGuestCleanup.length)return;
+    const guests=new Set(pendingGuestCleanup.filter(id=>!publishedTiers.has(id)));
+    roster=roster.filter(p=>!guests.has(p.id));
+    for(const id of guests){
+      for(const setting of [selected,provisional,randomPlayers,manualOrder,defaultAbsent])setting.delete(id);
+    }
+    pendingGuestCleanup=[];
+  }
   const rankData=()=>R.individualStandings(rankingSessions,rankingDefaults);
   const numberText=n=>Number(n.toFixed(2)).toLocaleString('ko');
   const changeText=n=>n===null?'신규':n>0?'↑ '+n:n<0?'↓ '+(-n):'—';
@@ -1049,8 +1065,11 @@ window.IRASBadminton = createBadmintonRules();
   $('#teams').onchange=attempt(e=>{if(started()||!e.target.dataset.move)return;const id=e.target.dataset.move;teams.forEach(t=>t.players=t.players.filter(p=>p!==id));teams.find(t=>t.id===e.target.value).players.push(id);state=null;persist();render();});
   if(new URLSearchParams(location.search).has('organize')){
     window.leagueDraft=()=>state;
+    window.leagueDraftCurrent=draftCurrent;
     window.completeLeagueDraft=opened=>{
-      if(!state || JSON.stringify(R.validate(state))!==JSON.stringify(opened))return;
+      if(!draftCurrent() || !state || JSON.stringify(R.validate(state))!==JSON.stringify(opened))return;
+      pendingGuestCleanup=roster.filter(p=>R.isGuestId(p.id)).map(p=>p.id);
+      removeMeetingGuests();
       state=null;
       teams=[];
       view='setup';
@@ -1113,13 +1132,13 @@ window.IRASBadminton = createBadmintonRules();
 
   $('#history-list').onclick=attempt(async e=>{const b=e.target.closest('[data-record]');if(!b)return;const item=published.sessions.find(s=>s.id===b.dataset.record);const res=await fetch(item.file,{cache:'no-store'});if(!res.ok)throw Error('기록을 불러오지 못했습니다.');const s=R.fromMarkdown(await res.text());if(s.id!==item.id)throw Error('기록 ID가 목록과 다릅니다.');if(state&&!confirm('현재 기록을 바꿉니다. MD 백업을 내려받았나요?'))return;adopt(s);});
   window.addEventListener('storage',e=>{if(e.key===key)message('다른 탭에서 임시 기록이 바뀌었습니다. 이 탭의 기록을 MD로 내려받고 새로고침하세요.',true);});
-  try{const raw=localStorage.getItem(key);if(raw){const saved=JSON.parse(raw);revision=saved.revision;roster=R.roster({schemaVersion:1,players:saved.roster}).players;for(const id of Array.isArray(saved.provisional)?saved.provisional:[])if(roster.some(p=>p.id===id&&p.tier===2))provisional.add(id);for(const id of Array.isArray(saved.randomPlayers)?saved.randomPlayers:[])if(roster.some(p=>p.id===id))randomPlayers.add(id);for(const id of Array.isArray(saved.defaultAbsent)?saved.defaultAbsent:[])if(typeof id==='string')defaultAbsent.add(id);for(const pair of Array.isArray(saved.manualOrder)?saved.manualOrder:[])if(Array.isArray(pair)&&roster.some(p=>p.id===pair[0])&&Number.isInteger(pair[1])&&pair[1]>=0)manualOrder.set(pair[0],pair[1]);selected=new Set(saved.selected);teams=saved.teams;state=saved.state?R.validate(saved.state):null;for(const [id,k] of [['title','title'],['date','date'],['team-count','count'],['court-count','courts']])if(saved.form?.[k])$('#'+id).value=saved.form[k];if(state)view='matches';message('이 브라우저의 임시 기록을 복구했습니다.');}}catch(e){message('임시 기록을 복구하지 못했습니다. 저장한 MD를 불러오세요. '+e.message,true);}
+  try{const raw=localStorage.getItem(key);if(raw){const saved=JSON.parse(raw);revision=saved.revision;pendingGuestCleanup=Array.isArray(saved.pendingGuestCleanup)?saved.pendingGuestCleanup.filter(id=>typeof id==='string'&&R.isGuestId(id)):[];roster=R.roster({schemaVersion:1,players:saved.roster}).players;for(const id of Array.isArray(saved.provisional)?saved.provisional:[])if(roster.some(p=>p.id===id&&p.tier===2))provisional.add(id);for(const id of Array.isArray(saved.randomPlayers)?saved.randomPlayers:[])if(roster.some(p=>p.id===id))randomPlayers.add(id);for(const id of Array.isArray(saved.defaultAbsent)?saved.defaultAbsent:[])if(typeof id==='string')defaultAbsent.add(id);for(const pair of Array.isArray(saved.manualOrder)?saved.manualOrder:[])if(Array.isArray(pair)&&roster.some(p=>p.id===pair[0])&&Number.isInteger(pair[1])&&pair[1]>=0)manualOrder.set(pair[0],pair[1]);selected=new Set(saved.selected);teams=saved.teams;state=saved.state?R.validate(saved.state):null;for(const [id,k] of [['title','title'],['date','date'],['team-count','count'],['court-count','courts']])if(saved.form?.[k])$('#'+id).value=saved.form[k];if(state)view='matches';message('이 브라우저의 임시 기록을 복구했습니다.');}}catch(e){message('임시 기록을 복구하지 못했습니다. 저장한 MD를 불러오세요. '+e.message,true);}
   render();
   renderSampleHistory();
   if(state)fetch('../people/',{cache:'no-store'}).then(async res=>{
     if(!res.ok)return;
     readPhotos(new DOMParser().parseFromString(await res.text(),'text/html'));renderSetup();
   }).catch(()=>{});
-  Promise.allSettled([fetch('players.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('선수 명단을 불러오지 못했습니다.');const data=R.roster(await r.json());data.players.forEach(p=>publishedTiers.set(p.id,p.tier));renderSetup();if(!roster.length&&!state){roster=data.players;selected=new Set(roster.filter(p=>!defaultAbsent.has(p.id)).map(p=>p.id));persist();render();}}).catch(e=>{message(e.message,true);}).then(()=>loadMembers(false)),(recordIndexReady=fetch('records.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('지난 기록 목록을 불러오지 못했습니다.');published=R.index(await r.json());$('#history-list').innerHTML=published.sessions.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(s=>'<div class="record"><div><strong>'+esc(s.title)+'</strong><small>'+esc(s.date)+'</small></div><button data-record="'+s.id+'">기록 불러오기</button></div><div data-history-rank="'+s.id+'"></div>').join('')||'<p class="empty">아직 게시된 모임이 없습니다. 첫 리그의 MD를 관리자에서 등록하세요.</p>';}).catch(e=>{recordIndexError=e.message;message(e.message,true);}))]).then(results=>{refreshIndividual();const errors=results.filter(r=>r.status==='rejected');if(errors.length)message(errors.map(r=>r.reason.message).join(' ')+' 로컬 경기와 MD는 계속 사용할 수 있습니다.',true);});
+  Promise.allSettled([fetch('players.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('선수 명단을 불러오지 못했습니다.');const data=R.roster(await r.json());data.players.forEach(p=>publishedTiers.set(p.id,p.tier));defaultsLoaded=true;if(pendingGuestCleanup.length&&draftCurrent()){removeMeetingGuests();persist();}renderSetup();if(!roster.length&&!state){roster=data.players;selected=new Set(roster.filter(p=>!defaultAbsent.has(p.id)).map(p=>p.id));persist();render();}}).catch(e=>{message(e.message,true);}).then(()=>loadMembers(false)),(recordIndexReady=fetch('records.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('지난 기록 목록을 불러오지 못했습니다.');published=R.index(await r.json());$('#history-list').innerHTML=published.sessions.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(s=>'<div class="record"><div><strong>'+esc(s.title)+'</strong><small>'+esc(s.date)+'</small></div><button data-record="'+s.id+'">기록 불러오기</button></div><div data-history-rank="'+s.id+'"></div>').join('')||'<p class="empty">아직 게시된 모임이 없습니다. 첫 리그의 MD를 관리자에서 등록하세요.</p>';}).catch(e=>{recordIndexError=e.message;message(e.message,true);}))]).then(results=>{refreshIndividual();const errors=results.filter(r=>r.status==='rejected');if(errors.length)message(errors.map(r=>r.reason.message).join(' ')+' 로컬 경기와 MD는 계속 사용할 수 있습니다.',true);});
 })();
-</script><script src="live-config.js"></script><script src="vendor/supabase-2.119.2.js"></script><script src="vendor/qrcode-2.0.4.js"></script><script src="live.js?v=20261125-16"></script></body></html>
+</script><script src="live-config.js"></script><script src="vendor/supabase-2.119.2.js"></script><script src="vendor/qrcode-2.0.4.js"></script><script src="live.js?v=20261125-17"></script></body></html>

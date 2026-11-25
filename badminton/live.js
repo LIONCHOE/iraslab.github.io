@@ -124,6 +124,7 @@
           </details>
           <h2 id="host-phase"></h2><p id="host-next"></p>
           <button type="button" id="host-prepare">팀 편성하기</button>
+          <button type="button" id="reload-draft" hidden>최신 대진 불러오기</button>
           <button type="button" id="league-open" class="primary">공유 모임 개설</button>
         </div>
       </div>`);
@@ -132,11 +133,18 @@
     function updateDraft(){
       const draft=window.leagueDraft?.();
       const ready=draft && !draft.matches.some(m=>m.lineups||m.finished);
-      openButton.disabled=!hostUser||!ready||opening;
+      const stale=window.leagueDraftCurrent?.()===false;
+      $('#reload-draft').hidden=!hostUser||!stale;
+      openButton.disabled=!hostUser||!ready||opening||stale;
       $('#host-prepare').hidden=!hostUser||!!ready;
       if(accountId && !hostUser){
         $('#host-phase').textContent=profileState==='pending'?'권한 확인 중':'개설 권한을 확인하세요';
         $('#host-next').textContent=profileState==='pending'?'':profileState==='denied'?'등록된 개설자 계정으로 로그인해 주세요.':'페이지를 새로고침하여 다시 시도해 주세요.';
+        return;
+      }
+      if(stale && hostUser){
+        $('#host-phase').textContent='저장된 대진을 다시 확인해 주세요';
+        $('#host-next').textContent='최신 대진을 불러온 뒤 공유 모임을 개설하세요.';
         return;
       }
       $('#host-phase').textContent=ready?'모임을 열 준비가 됐습니다':'경기 준비';
@@ -219,8 +227,12 @@
     });
     $('#host-logout').onclick=action(async()=>{await checked(client.auth.signOut({scope:'local'}));await showAccount(null);$('#league-message').textContent='';form.elements.identifier.focus();});
     $('#host-prepare').onclick=()=>{$('[data-tab="setup"]').click();$('#setup').scrollIntoView({block:'start'});};
+    $('#reload-draft').onclick=()=>location.reload();
+    window.addEventListener('storage',updateDraft);
+    window.addEventListener('pageshow',updateDraft);
     new MutationObserver(updateDraft).observe($('#match-list'),{childList:true});
     openButton.onclick=action(async()=>{
+      updateDraft();
       if(openButton.disabled)return;
       opening=true;updateDraft();
       try{
@@ -238,12 +250,14 @@
   }
 
   const main=$('main');main.className='league-live';
-  main.innerHTML='<div class="meeting-bar"><a class="back-link" href="?view=recent">← 최근 기록</a><div id="meeting-management" hidden><span>모임 관리</span><a id="manage-login">개설자 로그인</a><button id="cancel-league" type="button" class="danger" hidden>모임 취소·제거</button></div></div><section class="league-head"><div><p id="league-date"></p><h1 id="league-title">공유 모임</h1></div><span id="connection" role="status">연결 중</span><p id="summary"></p></section><nav aria-label="모임 보기"><button data-pane="games" aria-pressed="true">점수 입력</button><button data-pane="ranks" aria-pressed="false">현재 순위</button></nav><p id="league-message" role="status"></p><section id="games" class="sheet-layout"><section><h2 id="matrix-heading">전체 대진표</h2><p id="matrix-help"></p><div id="score-matrix" tabindex="0" role="region" aria-labelledby="matrix-heading" aria-describedby="matrix-help"></div></section><section class="order-panel"><h2>대진 순서표</h2><details class="order-filters"><summary>일정 필터</summary><div class="league-tools"><label>내 조 <select id="team-filter"><option value="">전체 조</option></select></label></div></details><div class="order-frame"><table class="sheet-order" id="order-table"></table></div><h2>조별 팀원</h2><ul class="sheet-roster" id="team-roster"></ul></section></section><section id="ranks" hidden><h2>조 순위</h2><div id="rank-table"></div></section><div class="league-tools" id="actions" hidden><button id="print-league" disabled>경기지 인쇄</button><span id="print-help"></span><button id="close-league" hidden>모임 마감</button><button id="league-md" hidden>확정 기록 MD 다운로드</button></div><dialog id="league-dialog" aria-labelledby="game-title"><form id="score-form"><h2 id="game-title"></h2><div id="score-inputs"></div><p id="score-status" role="status"></p><button type="button" id="cancel-score">닫기</button><button class="primary" id="save-score">점수 저장</button></form></dialog><section id="league-paper"></section>';
+  main.innerHTML='<div class="meeting-bar"><a class="back-link" href="?view=recent">← 최근 기록</a><div id="meeting-management" hidden><span>모임 관리</span><a id="manage-login">개설자 로그인</a><button id="cancel-league" type="button" class="danger" hidden>모임 취소·제거</button></div></div><section class="league-head"><div><p id="league-date"></p><h1 id="league-title">공유 모임</h1></div><span id="connection" role="status">연결 중</span><p id="summary"></p></section><nav aria-label="모임 보기"><button data-pane="games" aria-pressed="true">점수 입력</button><button data-pane="ranks" aria-pressed="false">현재 순위</button></nav><p id="league-message" role="status"></p><button type="button" id="access-retry" hidden>다시 시도</button><section id="games" class="sheet-layout"><section><h2 id="matrix-heading">전체 대진표</h2><p id="matrix-help"></p><div id="score-matrix" tabindex="0" role="region" aria-labelledby="matrix-heading" aria-describedby="matrix-help"></div></section><section class="order-panel"><h2>대진 순서표</h2><details class="order-filters"><summary>일정 필터</summary><div class="league-tools"><label>내 조 <select id="team-filter"><option value="">전체 조</option></select></label></div></details><div class="order-frame"><table class="sheet-order" id="order-table"></table></div><h2>조별 팀원</h2><ul class="sheet-roster" id="team-roster"></ul></section></section><section id="ranks" hidden><h2>조 순위</h2><div id="rank-table"></div></section><div class="league-tools" id="actions" hidden><button id="print-league" disabled>경기지 인쇄</button><span id="print-help"></span><button id="close-league" hidden>모임 마감</button><button id="league-md" hidden>확정 기록 MD 다운로드</button></div><dialog id="league-dialog" aria-labelledby="game-title"><form id="score-form"><h2 id="game-title"></h2><div id="score-inputs"></div><p id="score-status" role="status"></p><button type="button" id="cancel-score">닫기</button><button class="primary" id="save-score">점수 저장</button></form></dialog><section id="league-paper"></section>';
   $('#manage-login').href='?'+new URLSearchParams({organize:'1',returnMeeting:mid});
   if(!client){$('#connection').textContent='연결 설정 필요';return;}
   let row, session, hostCode, active, opener, subscribed=false, defaultPane=true;
   const entryCode = new URLSearchParams(location.hash.slice(1)).get('entry');
-  let joined = false;
+  let joined = false, accessReady = false, accessRequest;
+  const retryAccess=$('#access-retry');
+  retryAccess.textContent=entryCode===null?'권한 확인 다시 시도':'참가 다시 시도';
   const canScore = () => !row.closed && Boolean(hostCode || joined);
   const team=id=>session.teams.find(t=>t.id===id);
   const names=t=>t.players.map(id=>R.displayName(session.players.find(p=>p.id===id).name)).join(' · ');
@@ -296,6 +310,11 @@
     $('[data-pane="games"]').textContent=canScore()?'경기 일정·점수':'경기 일정';
     if(defaultPane&&row.closed)pane('ranks');defaultPane=false;
     if(row.closed){$('#league-message').textContent='마감된 모임 · 최종 결과';$('#league-dialog').open&&$('#league-dialog').close();}
+    if(!row.closed && !accessReady){
+      $('#print-help').textContent='권한 확인 후 QR을 인쇄할 수 있습니다.';
+      $('#league-paper').innerHTML=printSheet('');
+      return;
+    }
     const printUrl=new URL(url(mid));
     if(hostCode && !row.closed)printUrl.hash=new URLSearchParams({entry:hostCode}).toString();
     const qr=window.qrcode(0,'M');qr.addData(printUrl.href);qr.make();
@@ -304,6 +323,7 @@
     const paper=$('#league-paper');
     paper.innerHTML=printSheet('<a class="meeting-qr" href="'+esc(printUrl.href)+'">'+svg+'<span>'+label+'</span></a>');
     paper.querySelector('.meeting-qr svg').setAttribute('aria-hidden','true');
+    $('#print-help').textContent=printUrl.hash?'점수 입력용 QR':'조회용 QR';
     $('#print-league').disabled=false;
   }
   let removed = false;
@@ -352,15 +372,8 @@
   });
   $('#close-league').onclick=action(async()=>{if(confirm('모임을 마감하고 점수 입력을 종료할까요?')){await rpc('close',{mid});await refresh();pane('ranks');}});
   $('#league-md').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([R.markdown(session)],{type:'text/markdown'}));a.download=session.id+'.md';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
-  const sync=action(refresh);
-  window.addEventListener('offline',()=>{if(!removed)$('#connection').textContent='오프라인';});window.addEventListener('online',sync);
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync();});
-  client.channel('league-'+mid)
-    .on('postgres_changes',{event:'DELETE',schema:'public',table:'league_meetings'},event=>{if(event.old?.id===mid)showRemoved();})
-    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'league_meetings',filter:'id=eq.'+mid},sync).subscribe(status=>{subscribed=status==='SUBSCRIBED';if(subscribed)sync();else if(!removed)$('#connection').textContent='재연결 대기';});
-  await action(async()=>{
-    await refresh();
-    if(removed||row.closed)return;
+  async function resolveAccess(){
+    retryAccess.hidden=true;
     const auth=await checked(client.auth.getSession());
     if(auth.session) {
       hostCode=await rpc('host_code',{mid});
@@ -380,6 +393,28 @@
       await rpc('join',{mid,entry_code:entryCode});
       joined=true;
     }
-    if(!removed)draw();
-  })();
+    accessReady=true;
+    if(!removed&&!row.closed){$('#league-message').textContent='';draw();}
+  }
+  const sync=action(async()=>{
+    try{
+      await refresh();
+      if(removed)return;
+      if(row.closed){retryAccess.hidden=true;return;}
+      if(!accessReady){
+        if(!accessRequest)accessRequest=resolveAccess().finally(()=>{accessRequest=null;});
+        await accessRequest;
+      }
+    }catch(error){
+      if(!removed && !accessReady)retryAccess.hidden=false;
+      throw error;
+    }
+  });
+  retryAccess.onclick=sync;
+  window.addEventListener('offline',()=>{if(!removed)$('#connection').textContent='오프라인';});window.addEventListener('online',sync);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync();});
+  client.channel('league-'+mid)
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'league_meetings'},event=>{if(event.old?.id===mid)showRemoved();})
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'league_meetings',filter:'id=eq.'+mid},sync).subscribe(status=>{subscribed=status==='SUBSCRIBED';if(subscribed)sync();else if(!removed)$('#connection').textContent='재연결 대기';});
+  await sync();
 })();
