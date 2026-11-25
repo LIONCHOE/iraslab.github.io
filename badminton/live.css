@@ -174,3 +174,19 @@
   #league-paper figure svg {width:38mm;height:38mm}
   .paper-roster li {padding:1mm 0;font-size:10pt}
 }
+
+@media screen {
+  #matrix-help {margin:0 0 10px;color:#536477;font-size:.9rem}
+  #score-matrix {max-width:100%;overflow-x:auto;border:1px solid #d5e0da;border-radius:9px}
+  .match-grid {width:100%;border-collapse:separate;border-spacing:0}
+  .match-grid th,.match-grid td {padding:0;text-align:center;border:0;border-right:1px solid #dae4df;border-bottom:1px solid #dae4df}
+  .match-grid th {min-width:58px;padding:10px 4px;background:#f2f7f4;color:#284b3c}
+  .match-grid tr>:first-child {position:sticky;left:0;z-index:1;background:#f2f7f4;box-shadow:1px 0 #cad7d1}
+  .match-grid td {min-width:72px;height:46px}
+  .match-grid .unused {background:#f8faf9;color:#b4bdb8}
+  .match-grid button {width:100%;min-height:46px;border:0;border-radius:0;padding:6px 3px;color:#08664d;font-variant-numeric:tabular-nums}
+  .match-grid button:hover:not(:disabled),.match-grid button:focus-visible {background:#e1f2e9;outline-offset:-3px}
+  .match-grid button:disabled {opacity:1;color:#51645a;cursor:default}
+  .order-details {margin:20px 0;border-block:1px solid #d5e0da}
+  .order-details summary {cursor:pointer;font-weight:650;padding:13px 0}
+}
