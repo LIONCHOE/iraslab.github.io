@@ -12,7 +12,7 @@
   const url = id => {const u=new URL(location.pathname,location.origin);u.searchParams.set('meeting',id);return u.href;};
   async function checked(query) {const {data,error}=await query;if(error)throw Error(error.message);return data;}
   const rpc = (name,args) => checked(client.rpc('league_'+name,args));
-  function action(fn) {return async event=>{event?.preventDefault();try{await fn(event);}catch(e){$('#league-message').textContent=e.message;}};}
+  function action(fn) {return async event=>{event?.preventDefault();try{await fn(event);}catch(e){const status=$('#league-message');if(status)status.textContent=e.message;}};}
   async function showPublicPage(recent) {
     const main = $('main');
     if (recent) {
@@ -227,7 +227,7 @@
   }
 
   const main=$('main');main.className='league-live';
-  main.innerHTML='<section class="league-head"><div><p id="league-date"></p><h1 id="league-title">공유 모임</h1></div><span id="connection" role="status">연결 중</span><p id="summary"></p></section><section id="host-share" hidden aria-labelledby="share-title"><div id="host-qr" role="img" aria-label="참가자 점수 입력용 QR"></div><div><h2 id="share-title">참가용 QR</h2><p>휴대폰 카메라로 스캔하면 점수를 입력하고 순위를 확인할 수 있습니다.</p><button id="host-print" type="button">QR 인쇄</button></div></section><nav aria-label="모임 보기"><button data-pane="games" aria-pressed="true">점수 입력</button><button data-pane="ranks" aria-pressed="false">현재 순위</button></nav><p id="league-message" role="status"></p><section id="games"><h2>코트별 다음 경기</h2><div id="upcoming"></div><div class="league-tools"><h2>경기 일정</h2><label>내 조 <select id="team-filter"><option value="">전체 조</option></select></label><label>코트 <select id="court-filter"><option value="">전체 코트</option></select></label></div><div id="schedule"></div></section><section id="ranks" hidden><h2>조 순위</h2><div id="rank-table"></div></section><div class="league-tools" id="actions" hidden><button id="print-league">경기지 인쇄</button><span id="print-help"></span><button id="close-league" hidden>모임 마감</button><button id="league-md" hidden>확정 기록 MD 다운로드</button></div><dialog id="league-dialog"><form id="score-form"><h2 id="game-title"></h2><div id="score-inputs"></div><p id="score-status" role="status"></p><button type="button" id="cancel-score">닫기</button><button class="primary" id="save-score">결과 저장</button></form></dialog><section id="league-paper"></section>';
+  main.innerHTML='<section class="league-head"><div><p id="league-date"></p><h1 id="league-title">공유 모임</h1></div><span id="connection" role="status">연결 중</span><p id="summary"></p></section><section id="host-share" hidden aria-labelledby="share-title"><div id="host-qr" role="img" aria-label="참가자 점수 입력용 QR"></div><div><h2 id="share-title">참가용 QR</h2><p>휴대폰 카메라로 스캔하면 점수를 입력하고 순위를 확인할 수 있습니다.</p><button id="host-print" type="button">QR 인쇄</button></div></section><nav aria-label="모임 보기"><button data-pane="games" aria-pressed="true">점수 입력</button><button data-pane="ranks" aria-pressed="false">현재 순위</button></nav><p id="league-message" role="status"></p><section id="games"><h2>코트별 다음 경기</h2><div id="upcoming"></div><div class="league-tools"><h2>경기 일정</h2><label>내 조 <select id="team-filter"><option value="">전체 조</option></select></label><label>코트 <select id="court-filter"><option value="">전체 코트</option></select></label></div><div id="schedule"></div></section><section id="ranks" hidden><h2>조 순위</h2><div id="rank-table"></div></section><div class="league-tools" id="actions" hidden><button id="print-league">경기지 인쇄</button><span id="print-help"></span><button id="close-league" hidden>모임 마감</button><button type="button" class="danger" id="cancel-league" hidden>모임 취소·제거</button><button id="league-md" hidden>확정 기록 MD 다운로드</button></div><dialog id="league-dialog"><form id="score-form"><h2 id="game-title"></h2><div id="score-inputs"></div><p id="score-status" role="status"></p><button type="button" id="cancel-score">닫기</button><button class="primary" id="save-score">결과 저장</button></form></dialog><section id="league-paper"></section>';
   $('#actions').before($('#host-share'));
   if(!client){$('#connection').textContent='연결 설정 필요';return;}
   let row, session, hostCode, active, opener, subscribed=false, defaultPane=true;
@@ -280,7 +280,7 @@
     $('#upcoming').innerHTML=[...upcoming.values()].map(m=>gameButton(m,games.indexOf(m)+1)).join('')||'모든 경기 결과가 입력되었습니다.';
     $('#schedule').innerHTML=games.map((m,i)=>(!$('#team-filter').value||m.teams.includes($('#team-filter').value))&&(!$('#court-filter').value||m.court===Number($('#court-filter').value))?gameButton(m,i+1):'').join('')||'해당 경기가 없습니다.';
     $('#rank-table').innerHTML='<table><thead><tr><th>순위</th><th>조</th><th>승</th><th>패</th><th>득실</th></tr></thead><tbody>'+R.standings(session).map(r=>'<tr>'+[r.rank,r.name,r.wins,r.losses,r.diff].map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
-    $('#actions').hidden=false;$('#close-league').hidden=!hostCode||row.closed;$('#league-md').hidden=!row.closed;
+    $('#actions').hidden=false;$('#close-league').hidden=!hostCode||row.closed;$('#cancel-league').hidden=!hostCode||row.closed;$('#league-md').hidden=!row.closed;
     $('[data-pane="games"]').textContent=canScore()?'경기 일정·점수':'경기 일정';
     $('#print-league').hidden=Boolean(hostCode&&!row.closed);
     if(defaultPane&&row.closed)pane('ranks');defaultPane=false;
@@ -293,8 +293,18 @@
     $('#host-qr').innerHTML=printUrl.hash?svg:'';
     $('#league-paper').innerHTML=printSheet(svg, row.closed?'최종 결과 보기':printUrl.hash?'점수 입력 · 현재 순위':'경기 일정 · 순위');
   }
+  let removed = false;
+  function showRemoved() {
+    removed = true;
+    main.innerHTML = '<section class="league-head"><div><h1>모임을 찾을 수 없습니다</h1><p>취소되었거나 유효하지 않은 모임입니다.</p><a href="?view=recent">최근 기록 보기</a></div></section>';
+  }
   async function refresh(){
-    const data=await checked(client.from('league_meetings').select('*').eq('id',mid).single());
+    if(removed)return;
+    const result=await client.from('league_meetings').select('*').eq('id',mid).single();
+    if(removed)return;
+    if(result.error?.code==='PGRST116'){showRemoved();return;}
+    if(result.error)throw Error(result.error.message);
+    const data=result.data;
     if(row&&data.revision<row.revision)return;
     session=R.validate(data.session);row=data;draw();$('#connection').textContent=subscribed?'실시간 연결':'재연결 대기';
   }
@@ -315,15 +325,26 @@
       $('#score-status').textContent=msg;
     }finally{btn.disabled=false;}};
   $('#host-print').onclick=$('#print-league').onclick=()=>window.print();
+  $('#cancel-league').onclick=action(async()=>{
+    if(!hostCode || row.closed || !confirm('“'+session.title+'” 모임을 취소할까요? 입력한 모든 점수가 삭제되고 참가용 QR을 더 이상 사용할 수 없습니다.'))return;
+    const button=$('#cancel-league');
+    button.disabled=true;
+    try {
+      await rpc('cancel',{mid});
+      location.replace('?view=recent');
+    } finally { button.disabled=false; }
+  });
   $('#close-league').onclick=action(async()=>{if(confirm('모임을 마감하고 점수 입력을 종료할까요?')){await rpc('close',{mid});await refresh();pane('ranks');}});
   $('#league-md').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([R.markdown(session)],{type:'text/markdown'}));a.download=session.id+'.md';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
   const sync=action(refresh);
-  window.addEventListener('offline',()=>{$('#connection').textContent='오프라인';});window.addEventListener('online',sync);
+  window.addEventListener('offline',()=>{if(!removed)$('#connection').textContent='오프라인';});window.addEventListener('online',sync);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync();});
-  client.channel('league-'+mid).on('postgres_changes',{event:'UPDATE',schema:'public',table:'league_meetings',filter:'id=eq.'+mid},sync).subscribe(status=>{subscribed=status==='SUBSCRIBED';if(subscribed)sync();else $('#connection').textContent='재연결 대기';});
+  client.channel('league-'+mid)
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'league_meetings'},event=>{if(event.old?.id===mid)showRemoved();})
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'league_meetings',filter:'id=eq.'+mid},sync).subscribe(status=>{subscribed=status==='SUBSCRIBED';if(subscribed)sync();else if(!removed)$('#connection').textContent='재연결 대기';});
   await action(async()=>{
     await refresh();
-    if(row.closed)return;
+    if(removed||row.closed)return;
     const auth=await checked(client.auth.getSession());
     if(auth.session)hostCode=await rpc('host_code',{mid});
     if(!hostCode && entryCode!==null){
@@ -336,6 +357,6 @@
       await rpc('join',{mid,entry_code:entryCode});
       joined=true;
     }
-    draw();
+    if(!removed)draw();
   })();
 })();
