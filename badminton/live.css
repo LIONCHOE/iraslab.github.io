@@ -190,3 +190,44 @@
   .order-details {margin:20px 0;border-block:1px solid #d5e0da}
   .order-details summary {cursor:pointer;font-weight:650;padding:13px 0}
 }
+
+.draft-print-score {display:none}
+.sheet-roster {list-style:none;margin:0;padding:0}
+.sheet-roster li {display:flex;align-items:baseline;gap:14px;padding:8px 2px;border-bottom:1px solid #e0e8e3}
+.sheet-roster li b {min-width:3em;color:#204e3b}
+.sheet-order {width:100%;border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
+.sheet-order th,.sheet-order td {padding:9px 6px;text-align:center;white-space:normal}
+.sheet-order thead th {background:#f2f7f4;color:#284b3c}
+.sheet-order tbody th {color:#3f594b;min-width:3em}
+.sheet-order td:last-child {font-weight:650}
+.sheet-order .pair-link {padding:6px 10px;min-height:36px;background:transparent;border:0;color:#106047}
+.sheet-order .pair-link:hover {background:#eaf4ed}
+@media screen {
+  .league-live:has(.sheet-layout) {max-width:1240px}
+  .sheet-layout,#match-list.match-layout {display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:clamp(20px,3vw,40px);align-items:start}
+  .sheet-layout>section,#match-list>section {min-width:0}
+  .sheet-layout[hidden] {display:none!important}
+  .sheet-layout h2,#match-list h3 {margin:18px 0 8px;font-size:1.24rem}
+  #match-list .sheet-hint {color:#536477;font-size:.9rem}
+  .matrix-scroll {overflow:auto;max-width:100%;border:1px solid #d5e0da;border-radius:9px}
+  .order-filters {margin:0 0 10px}
+  .order-filters summary {cursor:pointer;font-size:.9rem;color:#425d50}
+  .order-filters .league-tools {margin:5px 0}
+  .sheet-order {border:1px solid #d5e0da;border-radius:9px;overflow:hidden}
+}
+@media screen and (max-width:850px) {
+  .sheet-layout,#match-list.match-layout {grid-template-columns:minmax(0,1fr);gap:14px}
+}
+@media print {
+  #match-list.match-layout {grid-template-columns:3fr 2fr;gap:5mm}
+  #match-list h3 {margin:1mm 0;font-size:12pt}
+  #match-list .sheet-hint {margin:1mm 0;font-size:9pt}
+  #match-list table {table-layout:fixed;width:100%;border-collapse:collapse}
+  #match-list .match-grid {height:99mm}
+  #match-list .sheet-order {height:122mm}
+  #match-list :is(th,td) {border:.2mm solid #888;text-align:center;padding:.5mm;font-size:9pt}
+  #match-list .match-grid button {display:none}
+  .draft-print-score {display:inline}
+  #match-list .sheet-roster li {padding:.8mm 0;line-height:1.25}
+  #match-list .pair-link {min-height:0;padding:0;color:black;font-size:9pt}
+}

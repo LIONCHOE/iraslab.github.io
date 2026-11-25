@@ -232,9 +232,8 @@
   }
 
   const main=$('main');main.className='league-live';
-  main.innerHTML='<div class="meeting-bar"><a class="back-link" href="?view=recent">← 최근 기록</a><div id="meeting-management" hidden><span>모임 관리</span><a id="manage-login">개설자 로그인</a><button id="cancel-league" type="button" class="danger" hidden>모임 취소·제거</button></div></div><section class="league-head"><div><p id="league-date"></p><h1 id="league-title">공유 모임</h1></div><span id="connection" role="status">연결 중</span><p id="summary"></p></section><section id="host-share" hidden aria-labelledby="share-title"><div id="host-qr" role="img" aria-label="참가자 점수 입력용 QR"></div><div><h2 id="share-title">참가용 QR</h2><p>휴대폰 카메라로 스캔하면 점수를 입력하고 순위를 확인할 수 있습니다.</p><button id="host-print" type="button">QR 인쇄</button></div></section><nav aria-label="모임 보기"><button data-pane="games" aria-pressed="true">점수 입력</button><button data-pane="ranks" aria-pressed="false">현재 순위</button></nav><p id="league-message" role="status"></p><section id="games"><h2>코트별 다음 경기</h2><div id="upcoming"></div><h2 id="matrix-heading">전체 대진표</h2><p id="matrix-help"></p><div id="score-matrix" tabindex="0" role="region" aria-labelledby="matrix-heading" aria-describedby="matrix-help"></div><details class="order-details"><summary>경기 순서표</summary><div class="league-tools"><label>내 조 <select id="team-filter"><option value="">전체 조</option></select></label><label>코트 <select id="court-filter"><option value="">전체 코트</option></select></label></div><div id="schedule"></div></details></section><section id="ranks" hidden><h2>조 순위</h2><div id="rank-table"></div></section><div class="league-tools" id="actions" hidden><button id="print-league">경기지 인쇄</button><span id="print-help"></span><button id="close-league" hidden>모임 마감</button><button id="league-md" hidden>확정 기록 MD 다운로드</button></div><dialog id="league-dialog" aria-labelledby="game-title"><form id="score-form"><h2 id="game-title"></h2><div id="score-inputs"></div><p id="score-status" role="status"></p><button type="button" id="cancel-score">닫기</button><button class="primary" id="save-score">점수 저장</button></form></dialog><section id="league-paper"></section>';
+  main.innerHTML='<div class="meeting-bar"><a class="back-link" href="?view=recent">← 최근 기록</a><div id="meeting-management" hidden><span>모임 관리</span><a id="manage-login">개설자 로그인</a><button id="cancel-league" type="button" class="danger" hidden>모임 취소·제거</button></div></div><section class="league-head"><div><p id="league-date"></p><h1 id="league-title">공유 모임</h1></div><span id="connection" role="status">연결 중</span><p id="summary"></p></section><nav aria-label="모임 보기"><button data-pane="games" aria-pressed="true">점수 입력</button><button data-pane="ranks" aria-pressed="false">현재 순위</button></nav><p id="league-message" role="status"></p><section id="games" class="sheet-layout"><section><h2 id="matrix-heading">전체 대진표</h2><p id="matrix-help"></p><div id="score-matrix" tabindex="0" role="region" aria-labelledby="matrix-heading" aria-describedby="matrix-help"></div><h2>조별 팀원</h2><ul class="sheet-roster" id="team-roster"></ul></section><section><h2>대진 순서표</h2><details class="order-filters"><summary>일정 필터</summary><div class="league-tools"><label>내 조 <select id="team-filter"><option value="">전체 조</option></select></label><label>코트 <select id="court-filter"><option value="">전체 코트</option></select></label></div></details><table class="sheet-order" id="order-table"></table></section></section><section id="ranks" hidden><h2>조 순위</h2><div id="rank-table"></div></section><div class="league-tools" id="actions" hidden><button id="print-league">경기지 인쇄</button><span id="print-help"></span><button id="close-league" hidden>모임 마감</button><button id="league-md" hidden>확정 기록 MD 다운로드</button></div><dialog id="league-dialog" aria-labelledby="game-title"><form id="score-form"><h2 id="game-title"></h2><div id="score-inputs"></div><p id="score-status" role="status"></p><button type="button" id="cancel-score">닫기</button><button class="primary" id="save-score">점수 저장</button></form></dialog><section id="league-paper"></section>';
   $('#manage-login').href='?'+new URLSearchParams({organize:'1',returnMeeting:mid});
-  $('#actions').before($('#host-share'));
   if(!client){$('#connection').textContent='연결 설정 필요';return;}
   let row, session, hostCode, active, opener, subscribed=false, defaultPane=true;
   const entryCode = new URLSearchParams(location.hash.slice(1)).get('entry');
@@ -244,10 +243,6 @@
   const names=t=>t.players.map(id=>R.displayName(session.players.find(p=>p.id===id).name)).join(' · ');
   function pane(v){$('#games').hidden=v!=='games';$('#ranks').hidden=v!=='ranks';main.querySelectorAll('[data-pane]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.pane===v)));}
   main.querySelectorAll('[data-pane]').forEach(b=>b.onclick=()=>pane(b.dataset.pane));
-  function gameButton(m,i,showPlayers=false){
-    const label=m.teams.map(id=>esc(team(id).name)).join(' — ');
-    const players=showPlayers ? '<small class="match-players">'+m.teams.map(id=>esc(names(team(id)))).join('<br>')+'</small>' : '';
-    return '<button class="league-game" data-game="'+esc(m.id)+'"'+(canScore()?'':' disabled')+'><small>'+i+'경기 · '+m.slot+'차례 · 코트 '+m.court+'</small><strong>'+label+'</strong>'+players+'<span>'+(m.finished?m.result.join(' : ')+' · 기록 완료':canScore()?'점수 입력':'대기')+'</span></button>';}
   function matchMatrix(print=false) {
     const {teams, matches} = session;
     const matrix = teams.map((left, i) => {
@@ -269,22 +264,11 @@
   }
   function printSheet(svg, qrLabel) {
     const {teams, matches} = session;
-    const slots = new Map();
-    for (const match of matches) {
-      if (!slots.has(match.slot)) slots.set(match.slot, []);
-      slots.get(match.slot).push(match);
-    }
-    const order = [...slots].sort(([a],[b]) => a-b).map(([slot, games]) =>
-      games.sort((a,b) => a.court-b.court).map((m,i) =>
-        '<tr>'+(i===0?'<th scope="rowgroup" rowspan="'+games.length+'">'+slot+'</th>':'')+
-        '<td>'+m.court+'</td><td>'+m.teams.map(id=>esc(team(id).name)).join(' – ')+'</td></tr>'
-      ).join('')
-    ).map(rows => '<tbody>'+rows+'</tbody>').join('');
     return `<header><h1>${esc(session.title)}</h1><p>${esc(session.date)} · ${teams.length}조 · ${session.courts}코트</p></header>
       <div class="paper-columns"><section><h2>전체 대진표</h2><p>점수는 왼쪽 조 : 위쪽 조 순서로 적으세요.</p>
       ${matchMatrix(true)}
-      <h2>조별 팀원</h2><ul class="paper-roster">${teams.map(t=>'<li><b>'+esc(t.name)+'</b> '+esc(names(t))+'</li>').join('')}</ul></section>
-      <section><h2>대진 순서표</h2><table class="paper-order"><thead><tr><th>차례</th><th>코트</th><th>대결 조</th></tr></thead>${order}</table>
+      <h2>조별 팀원</h2><ul class="paper-roster">${R.sheetRoster(session)}</ul></section>
+      <section><h2>대진 순서표</h2><table class="paper-order">${R.sheetOrder(session,matches)}</table>
       <figure>${svg}<figcaption>${qrLabel}</figcaption></figure></section></div>`;
   }
   function draw(){
@@ -292,25 +276,22 @@
     $('#league-title').textContent=session.title;$('#league-date').textContent=session.date;
     $('#summary').textContent=session.players.length+'명 · '+session.teams.length+'조 · '+session.courts+'코트　|　'+done+' / '+games.length+'경기 완료';
     if($('#team-filter').options.length===1){for(const t of session.teams)$('#team-filter').add(new Option(t.name,t.id));for(let i=1;i<=session.courts;i++)$('#court-filter').add(new Option(i,i));}
-    const upcoming=new Map();for(const m of games)if(!m.finished&&!upcoming.has(m.court))upcoming.set(m.court,m);
-    $('#upcoming').innerHTML=[...upcoming.values()].map(m=>gameButton(m,games.indexOf(m)+1,true)).join('')||'모든 경기 결과가 입력되었습니다.';
+    $('#team-roster').innerHTML=R.sheetRoster(session);
     const matrixFocus = $('#score-matrix').contains(document.activeElement) && document.activeElement.dataset.game;
     $('#score-matrix').innerHTML=matchMatrix();
     if(matrixFocus)$('#score-matrix').querySelector('[data-game="'+CSS.escape(matrixFocus)+'"]')?.focus({preventScroll:true});
     $('#matrix-help').textContent=canScore()?'두 조가 만나는 칸을 눌러 점수를 입력하거나 수정하세요. 왼쪽 조 점수가 먼저 표시됩니다.':'점수는 왼쪽 조, 위쪽 조 순서입니다.';
-    $('#schedule').innerHTML=games.map((m,i)=>(!$('#team-filter').value||m.teams.includes($('#team-filter').value))&&(!$('#court-filter').value||m.court===Number($('#court-filter').value))?gameButton(m,i+1):'').join('')||'해당 경기가 없습니다.';
+    const filtered=games.filter(m=>(!$('#team-filter').value||m.teams.includes($('#team-filter').value))&&(!$('#court-filter').value||m.court===Number($('#court-filter').value)));
+    $('#order-table').innerHTML=R.sheetOrder(session,filtered,(m,label)=>canScore()?'<button type="button" class="pair-link" data-game="'+esc(m.id)+'" aria-haspopup="dialog">'+label+'</button>':label);
     $('#rank-table').innerHTML='<table><thead><tr><th>순위</th><th>조</th><th>승</th><th>패</th><th>득실</th></tr></thead><tbody>'+R.standings(session).map(r=>'<tr>'+[r.rank,r.name,r.wins,r.losses,r.diff].map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
     $('#actions').hidden=false;$('#close-league').hidden=!hostCode||row.closed;$('#meeting-management').hidden=row.closed;$('#manage-login').hidden=Boolean(hostCode)||!$('#manage-login').hasAttribute('href');$('#cancel-league').hidden=!hostCode||row.closed;$('#league-md').hidden=!row.closed;
     $('[data-pane="games"]').textContent=canScore()?'경기 일정·점수':'경기 일정';
-    $('#print-league').hidden=Boolean(hostCode&&!row.closed);
     if(defaultPane&&row.closed)pane('ranks');defaultPane=false;
     if(row.closed){$('#league-message').textContent='마감된 모임 · 최종 결과';$('#league-dialog').open&&$('#league-dialog').close();}
     const printUrl=new URL(url(mid));
     if(hostCode && !row.closed)printUrl.hash=new URLSearchParams({entry:hostCode}).toString();
     const qr=window.qrcode(0,'M');qr.addData(printUrl.href);qr.make();
     const svg=qr.createSvgTag({cellSize:4,margin:16});
-    $('#host-share').hidden=!printUrl.hash;
-    $('#host-qr').innerHTML=printUrl.hash?svg:'';
     $('#league-paper').innerHTML=printSheet(svg, row.closed?'최종 결과 보기':printUrl.hash?'점수 입력 · 현재 순위':'경기 일정 · 순위');
   }
   let removed = false;
@@ -347,7 +328,7 @@
       if(msg.includes('최신 점수')){await refresh();const m=row.session.matches.find(g=>g.id===active.id);active.version=m.version||0;if(m.finished){const saved=R.replay(session,m).score;msg+=' 저장된 결과 '+[...$('#score-inputs').querySelectorAll('input')].map(input=>saved[input.name==='side0'?0:1]).join(' : ');}}
       $('#score-status').textContent=msg;
     }finally{btn.disabled=false;}};
-  $('#host-print').onclick=$('#print-league').onclick=()=>window.print();
+  $('#print-league').onclick=()=>window.print();
   $('#cancel-league').onclick=action(async()=>{
     if(!hostCode || row.closed || !confirm('“'+session.title+'” 모임을 취소할까요? 입력한 모든 점수가 삭제되고 참가용 QR을 더 이상 사용할 수 없습니다.'))return;
     const button=$('#cancel-league');
