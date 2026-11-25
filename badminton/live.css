@@ -240,7 +240,7 @@
   }
   :is(#match-list,#league-paper) .paper-order tr>th:first-child {width:11mm;text-align:center;font-weight:700}
   :is(#match-list,#league-paper) .paper-order thead th {border-block:.35mm solid #333}
-  .slot-pairs {display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);align-items:baseline;column-gap:2mm}
+  .slot-pairs {display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);align-items:baseline;column-gap:0}
   .slot-pairs span {max-width:100%;overflow-wrap:anywhere}
 }
 
@@ -249,7 +249,7 @@
 .meeting-qr {display:grid;justify-items:center;gap:4px;text-align:center;color:#174f3c;font-size:.8rem;font-weight:650}
 .meeting-qr svg {display:block;width:clamp(86px,9vw,112px);height:auto}
 @media screen {
-  .slot-pairs {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,5em),1fr));align-items:center;gap:2px}
+  .slot-pairs {display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);align-items:stretch}
   .slot-pairs span {min-width:0;overflow-wrap:anywhere}
   .sheet-order .pair-link {padding:4px 2px}
   .roster-share .sheet-roster li {gap:6px}
@@ -261,4 +261,17 @@
   #league-paper .meeting-qr svg {width:30mm;height:30mm}
   #league-paper .paper-roster li {line-height:1.25;padding:.65mm 0}
   #league-paper .paper-roster b {min-width:6mm}
+}
+
+@media screen {
+  #match-list .order-panel,#match-list .order-frame {height:auto;max-height:none;overflow:visible;contain:none}
+  .sheet-order tr>th:first-child {border-right:1px solid #a5b9ad}
+  .sheet-order td:has(.slot-pairs) {padding-inline:0}
+  .sheet-order .slot-pairs>span {display:grid;align-content:center;text-align:center;padding-inline:2px}
+  .sheet-order .slot-pairs>span+span {border-left:1px solid #b7c7bc}
+}
+@media print {
+  :is(#match-list,#league-paper) .paper-order tr>th:first-child {border-right:.25mm solid #777}
+  .paper-order :is(.slot-pairs,.print-pairs)>span {padding-inline:1mm}
+  .paper-order :is(.slot-pairs,.print-pairs)>span+span {border-left:.2mm solid #888}
 }

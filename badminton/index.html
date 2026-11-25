@@ -379,7 +379,7 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
   .toolbar .grow{flex-basis:100%;width:100%}
   dialog :is(input,select){font-size:16px}
 }
-</style><link rel="stylesheet" href="live.css"></head>
+</style><link rel="stylesheet" href="live.css?v=20261125-11"></head>
 <body>
 <header>
 <div class="site-top"><div class="brand">
@@ -621,6 +621,9 @@ window.IRASBadminton = createBadmintonRules();
   R.sheetOrder = (session,matches,renderPair)=>orderTable(session,matches,(slot,games,label)=>
     '<tr><th scope="row">'+slot+'</th><td><div class="slot-pairs">'+
       games.map(m=>'<span>'+(renderPair?renderPair(m,label(m)):label(m))+'</span>').join('')+'</div></td></tr>');
+  // Cached league scripts also use this entry point for the printed schedule.
+  R.printOrder = session=>R.sheetOrder(session,session.matches);
+
 
 
   if (new URLSearchParams(location.search).has('meeting') || !new URLSearchParams(location.search).has('organize')) return;
@@ -780,7 +783,7 @@ window.IRASBadminton = createBadmintonRules();
     $('#match-popup-body .score-field input').focus();
   }
   function renderMatches() {
-    $('#print-matches').disabled=!state;
+    $('#print-matches').disabled=true;
     $('#print-meeting-name').textContent=state?state.title:'';
     $('#print-meeting-date').textContent=state?'날짜: '+state.date:'';
     $('#print-meta').textContent=state?state.date+' · '+state.teams.length+'팀 · '+state.players.length+'명':'';
@@ -803,8 +806,9 @@ window.IRASBadminton = createBadmintonRules();
     const schedule=R.sheetOrder(state,state.matches,(m,label)=>'<button type="button" class="pair-link" data-match-source="schedule" data-open-match="'+m.id+'" data-row-team="'+m.teams[0]+'" aria-haspopup="dialog">'+label+'</button>');
     $('#match-list').innerHTML=`<section><h3>전체 대진표</h3><p class="sheet-hint">두 조가 만나는 칸을 눌러 점수를 입력하세요. 왼쪽 조 점수가 먼저 표시됩니다.</p>
       <div class="matrix-scroll" tabindex="0" role="region" aria-label="전체 대진표"><table class="match-grid">${heading}<tbody>${rows}</tbody></table></div>
-      </section><section class="order-panel"><h3>대진 순서표</h3><div class="order-frame"><table class="sheet-order">${schedule}</table></div><table class="paper-order">${R.sheetOrder(state,state.matches)}</table>
+      </section><section class="order-panel"><h3>대진 순서표</h3><div class="order-frame"><table class="sheet-order">${schedule}</table></div><table class="paper-order">${R.printOrder(state)}</table>
       <h3>조별 팀원</h3><ul class="sheet-roster">${R.sheetRoster(state)}</ul></section>`;
+    $('#print-matches').disabled=false;
     renderMatchPopup();
   }
   function table(head,rows){return '<table><thead><tr>'+head.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';}
@@ -1108,4 +1112,4 @@ window.IRASBadminton = createBadmintonRules();
   }).catch(()=>{});
   Promise.allSettled([fetch('players.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('선수 명단을 불러오지 못했습니다.');const data=R.roster(await r.json());data.players.forEach(p=>publishedTiers.set(p.id,p.tier));renderSetup();if(!roster.length&&!state){roster=data.players;selected=new Set(roster.filter(p=>!defaultAbsent.has(p.id)).map(p=>p.id));persist();render();}}).catch(e=>{message(e.message,true);}).then(()=>loadMembers(false)),(recordIndexReady=fetch('records.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('지난 기록 목록을 불러오지 못했습니다.');published=R.index(await r.json());$('#history-list').innerHTML=published.sessions.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(s=>'<div class="record"><div><strong>'+esc(s.title)+'</strong><small>'+esc(s.date)+'</small></div><button data-record="'+s.id+'">기록 불러오기</button></div><div data-history-rank="'+s.id+'"></div>').join('')||'<p class="empty">아직 게시된 모임이 없습니다. 첫 리그의 MD를 관리자에서 등록하세요.</p>';}).catch(e=>{recordIndexError=e.message;message(e.message,true);}))]).then(results=>{refreshIndividual();const errors=results.filter(r=>r.status==='rejected');if(errors.length)message(errors.map(r=>r.reason.message).join(' ')+' 로컬 경기와 MD는 계속 사용할 수 있습니다.',true);});
 })();
-</script><script src="live-config.js"></script><script src="vendor/supabase-2.119.2.js"></script><script src="vendor/qrcode-2.0.4.js"></script><script src="live.js"></script></body></html>
+</script><script src="live-config.js"></script><script src="vendor/supabase-2.119.2.js"></script><script src="vendor/qrcode-2.0.4.js"></script><script src="live.js?v=20261125-11"></script></body></html>
