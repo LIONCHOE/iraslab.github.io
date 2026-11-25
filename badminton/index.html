@@ -379,7 +379,7 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
   .toolbar .grow{flex-basis:100%;width:100%}
   dialog :is(input,select){font-size:16px}
 }
-</style><link rel="stylesheet" href="live.css?v=20261125-12"></head>
+</style><link rel="stylesheet" href="live.css?v=20261125-13"></head>
 <body>
 <header>
 <div class="site-top"><div class="brand">
@@ -1112,4 +1112,4 @@ window.IRASBadminton = createBadmintonRules();
   }).catch(()=>{});
   Promise.allSettled([fetch('players.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('선수 명단을 불러오지 못했습니다.');const data=R.roster(await r.json());data.players.forEach(p=>publishedTiers.set(p.id,p.tier));renderSetup();if(!roster.length&&!state){roster=data.players;selected=new Set(roster.filter(p=>!defaultAbsent.has(p.id)).map(p=>p.id));persist();render();}}).catch(e=>{message(e.message,true);}).then(()=>loadMembers(false)),(recordIndexReady=fetch('records.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('지난 기록 목록을 불러오지 못했습니다.');published=R.index(await r.json());$('#history-list').innerHTML=published.sessions.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(s=>'<div class="record"><div><strong>'+esc(s.title)+'</strong><small>'+esc(s.date)+'</small></div><button data-record="'+s.id+'">기록 불러오기</button></div><div data-history-rank="'+s.id+'"></div>').join('')||'<p class="empty">아직 게시된 모임이 없습니다. 첫 리그의 MD를 관리자에서 등록하세요.</p>';}).catch(e=>{recordIndexError=e.message;message(e.message,true);}))]).then(results=>{refreshIndividual();const errors=results.filter(r=>r.status==='rejected');if(errors.length)message(errors.map(r=>r.reason.message).join(' ')+' 로컬 경기와 MD는 계속 사용할 수 있습니다.',true);});
 })();
-</script><script src="live-config.js"></script><script src="vendor/supabase-2.119.2.js"></script><script src="vendor/qrcode-2.0.4.js"></script><script src="live.js?v=20261125-12"></script></body></html>
+</script><script src="live-config.js"></script><script src="vendor/supabase-2.119.2.js"></script><script src="vendor/qrcode-2.0.4.js"></script><script src="live.js?v=20261125-13"></script></body></html>
