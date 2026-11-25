@@ -232,7 +232,7 @@
   }
 
   const main=$('main');main.className='league-live';
-  main.innerHTML='<div class="meeting-bar"><a class="back-link" href="?view=recent">← 최근 기록</a><div id="meeting-management" hidden><span>모임 관리</span><a id="manage-login">개설자 로그인</a><button id="cancel-league" type="button" class="danger" hidden>모임 취소·제거</button></div></div><section class="league-head"><div><p id="league-date"></p><h1 id="league-title">공유 모임</h1></div><span id="connection" role="status">연결 중</span><p id="summary"></p></section><nav aria-label="모임 보기"><button data-pane="games" aria-pressed="true">점수 입력</button><button data-pane="ranks" aria-pressed="false">현재 순위</button></nav><p id="league-message" role="status"></p><section id="games" class="sheet-layout"><section><h2 id="matrix-heading">전체 대진표</h2><p id="matrix-help"></p><div id="score-matrix" tabindex="0" role="region" aria-labelledby="matrix-heading" aria-describedby="matrix-help"></div></section><section class="order-panel"><h2>대진 순서표</h2><details class="order-filters"><summary>일정 필터</summary><div class="league-tools"><label>내 조 <select id="team-filter"><option value="">전체 조</option></select></label></div></details><div class="order-frame"><table class="sheet-order" id="order-table"></table></div><h2>조별 팀원</h2><div class="roster-share"><ul class="sheet-roster" id="team-roster"></ul><a id="meeting-qr" class="meeting-qr"></a></div></section></section><section id="ranks" hidden><h2>조 순위</h2><div id="rank-table"></div></section><div class="league-tools" id="actions" hidden><button id="print-league">경기지 인쇄</button><span id="print-help"></span><button id="close-league" hidden>모임 마감</button><button id="league-md" hidden>확정 기록 MD 다운로드</button></div><dialog id="league-dialog" aria-labelledby="game-title"><form id="score-form"><h2 id="game-title"></h2><div id="score-inputs"></div><p id="score-status" role="status"></p><button type="button" id="cancel-score">닫기</button><button class="primary" id="save-score">점수 저장</button></form></dialog><section id="league-paper"></section>';
+  main.innerHTML='<div class="meeting-bar"><a class="back-link" href="?view=recent">← 최근 기록</a><div id="meeting-management" hidden><span>모임 관리</span><a id="manage-login">개설자 로그인</a><button id="cancel-league" type="button" class="danger" hidden>모임 취소·제거</button></div></div><section class="league-head"><div><p id="league-date"></p><h1 id="league-title">공유 모임</h1></div><span id="connection" role="status">연결 중</span><p id="summary"></p></section><nav aria-label="모임 보기"><button data-pane="games" aria-pressed="true">점수 입력</button><button data-pane="ranks" aria-pressed="false">현재 순위</button></nav><p id="league-message" role="status"></p><section id="games" class="sheet-layout"><section><h2 id="matrix-heading">전체 대진표</h2><p id="matrix-help"></p><div id="score-matrix" tabindex="0" role="region" aria-labelledby="matrix-heading" aria-describedby="matrix-help"></div></section><section class="order-panel"><h2>대진 순서표</h2><details class="order-filters"><summary>일정 필터</summary><div class="league-tools"><label>내 조 <select id="team-filter"><option value="">전체 조</option></select></label></div></details><div class="order-frame"><table class="sheet-order" id="order-table"></table></div><h2>조별 팀원</h2><div class="roster-share"><ul class="sheet-roster" id="team-roster"></ul><a id="meeting-qr" class="meeting-qr"></a></div></section></section><section id="ranks" hidden><h2>조 순위</h2><div id="rank-table"></div></section><div class="league-tools" id="actions" hidden><button id="print-league" disabled>경기지 인쇄</button><span id="print-help"></span><button id="close-league" hidden>모임 마감</button><button id="league-md" hidden>확정 기록 MD 다운로드</button></div><dialog id="league-dialog" aria-labelledby="game-title"><form id="score-form"><h2 id="game-title"></h2><div id="score-inputs"></div><p id="score-status" role="status"></p><button type="button" id="cancel-score">닫기</button><button class="primary" id="save-score">점수 저장</button></form></dialog><section id="league-paper"></section>';
   $('#manage-login').href='?'+new URLSearchParams({organize:'1',returnMeeting:mid});
   if(!client){$('#connection').textContent='연결 설정 필요';return;}
   let row, session, hostCode, active, opener, subscribed=false, defaultPane=true;
@@ -265,13 +265,15 @@
   }
   function printSheet(qrLink) {
     const {teams} = session;
+    const order=R.printOrder ? R.printOrder(session) : R.sheetOrder(session,session.matches,(_match,label)=>label);
     return `<header><h1>${esc(session.title)}</h1><p>${esc(session.date)} · ${teams.length}조</p></header>
       <div class="paper-columns"><section><h2>전체 대진표</h2><p>점수는 왼쪽 조 : 위쪽 조 순서로 적으세요.</p>
       ${matchMatrix(true)}</section>
-      <section><h2>대진 순서표</h2><table class="paper-order">${R.sheetOrder(session,session.matches)}</table>
+      <section><h2>대진 순서표</h2><table class="paper-order">${order}</table>
       <h2>조별 팀원</h2><div class="roster-share"><ul class="paper-roster">${R.sheetRoster(session)}</ul>${qrLink}</div></section></div>`;
   }
   function draw(){
+    $('#print-league').disabled=true;
     const games=session.matches,done=games.filter(m=>m.finished).length;
     $('#league-title').textContent=session.title;$('#league-date').textContent=session.date;
     $('#summary').textContent=session.players.length+'명 · '+session.teams.length+'조　|　'+done+' / '+games.length+'경기 완료';
@@ -298,6 +300,7 @@
     link.innerHTML=svg+'<span>'+label+'</span>';
     link.querySelector('svg').setAttribute('aria-hidden','true');
     $('#league-paper').innerHTML=printSheet('<a class="meeting-qr" href="'+esc(printUrl.href)+'">'+link.innerHTML+'</a>');
+    $('#print-league').disabled=false;
   }
   let removed = false;
   function showRemoved() {
