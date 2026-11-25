@@ -232,7 +232,7 @@
   }
 
   const main=$('main');main.className='league-live';
-  main.innerHTML='<div class="meeting-bar"><a class="back-link" href="?view=recent">← 최근 기록</a><div id="meeting-management" hidden><span>모임 관리</span><a id="manage-login">개설자 로그인</a><button id="cancel-league" type="button" class="danger" hidden>모임 취소·제거</button></div></div><section class="league-head"><div><p id="league-date"></p><h1 id="league-title">공유 모임</h1></div><span id="connection" role="status">연결 중</span><p id="summary"></p></section><nav aria-label="모임 보기"><button data-pane="games" aria-pressed="true">점수 입력</button><button data-pane="ranks" aria-pressed="false">현재 순위</button></nav><p id="league-message" role="status"></p><section id="games" class="sheet-layout"><section><h2 id="matrix-heading">전체 대진표</h2><p id="matrix-help"></p><div id="score-matrix" tabindex="0" role="region" aria-labelledby="matrix-heading" aria-describedby="matrix-help"></div><h2>조별 팀원</h2><ul class="sheet-roster" id="team-roster"></ul></section><section><h2>대진 순서표</h2><details class="order-filters"><summary>일정 필터</summary><div class="league-tools"><label>내 조 <select id="team-filter"><option value="">전체 조</option></select></label><label>코트 <select id="court-filter"><option value="">전체 코트</option></select></label></div></details><table class="sheet-order" id="order-table"></table></section></section><section id="ranks" hidden><h2>조 순위</h2><div id="rank-table"></div></section><div class="league-tools" id="actions" hidden><button id="print-league">경기지 인쇄</button><span id="print-help"></span><button id="close-league" hidden>모임 마감</button><button id="league-md" hidden>확정 기록 MD 다운로드</button></div><dialog id="league-dialog" aria-labelledby="game-title"><form id="score-form"><h2 id="game-title"></h2><div id="score-inputs"></div><p id="score-status" role="status"></p><button type="button" id="cancel-score">닫기</button><button class="primary" id="save-score">점수 저장</button></form></dialog><section id="league-paper"></section>';
+  main.innerHTML='<div class="meeting-bar"><a class="back-link" href="?view=recent">← 최근 기록</a><div id="meeting-management" hidden><span>모임 관리</span><a id="manage-login">개설자 로그인</a><button id="cancel-league" type="button" class="danger" hidden>모임 취소·제거</button></div></div><section class="league-head"><div><p id="league-date"></p><h1 id="league-title">공유 모임</h1></div><span id="connection" role="status">연결 중</span><p id="summary"></p></section><nav aria-label="모임 보기"><button data-pane="games" aria-pressed="true">점수 입력</button><button data-pane="ranks" aria-pressed="false">현재 순위</button></nav><p id="league-message" role="status"></p><section id="games" class="sheet-layout"><section><h2 id="matrix-heading">전체 대진표</h2><p id="matrix-help"></p><div id="score-matrix" tabindex="0" role="region" aria-labelledby="matrix-heading" aria-describedby="matrix-help"></div><h2>조별 팀원</h2><ul class="sheet-roster" id="team-roster"></ul></section><section class="order-panel"><h2>대진 순서표</h2><details class="order-filters"><summary>일정 필터</summary><div class="league-tools"><label>내 조 <select id="team-filter"><option value="">전체 조</option></select></label></div></details><div class="order-frame"><table class="sheet-order" id="order-table"></table></div></section></section><section id="ranks" hidden><h2>조 순위</h2><div id="rank-table"></div></section><div class="league-tools" id="actions" hidden><button id="print-league">경기지 인쇄</button><span id="print-help"></span><button id="close-league" hidden>모임 마감</button><button id="league-md" hidden>확정 기록 MD 다운로드</button></div><dialog id="league-dialog" aria-labelledby="game-title"><form id="score-form"><h2 id="game-title"></h2><div id="score-inputs"></div><p id="score-status" role="status"></p><button type="button" id="cancel-score">닫기</button><button class="primary" id="save-score">점수 저장</button></form></dialog><section id="league-paper"></section>';
   $('#manage-login').href='?'+new URLSearchParams({organize:'1',returnMeeting:mid});
   if(!client){$('#connection').textContent='연결 설정 필요';return;}
   let row, session, hostCode, active, opener, subscribed=false, defaultPane=true;
@@ -245,9 +245,10 @@
   main.querySelectorAll('[data-pane]').forEach(b=>b.onclick=()=>pane(b.dataset.pane));
   function matchMatrix(print=false) {
     const {teams, matches} = session;
+    const opponents = teams.slice(1);
     const matrix = teams.map((left, i) => {
-      const cells = teams.map((right, j) => {
-        if (j <= i) return '<td class="unused">—</td>';
+      const cells = opponents.map((right, j) => {
+        if (j < i) return '<td class="unused">—</td>';
         const match = matches.find(m => m.teams.includes(left.id) && m.teams.includes(right.id));
         if (!match) return '<td>—</td>';
         const score = match.finished ? R.replay(session, match).score : null;
@@ -260,11 +261,11 @@
       }).join('');
       return '<tr><th scope="row">'+esc(left.name)+'</th>'+cells+'</tr>';
     }).join('');
-    return `<table class="${print?'paper-matrix':'match-grid'}"><thead><tr><th scope="col">조</th>${teams.map(t=>'<th scope="col">'+esc(t.name)+'</th>').join('')}</tr></thead><tbody>${matrix}</tbody></table>`;
+    return `<table class="${print?'paper-matrix':'match-grid'}"><thead><tr><th scope="col">조</th>${opponents.map(t=>'<th scope="col">'+esc(t.name)+'</th>').join('')}</tr></thead><tbody>${matrix}</tbody></table>`;
   }
   function printSheet(svg, qrLabel) {
     const {teams, matches} = session;
-    return `<header><h1>${esc(session.title)}</h1><p>${esc(session.date)} · ${teams.length}조 · ${session.courts}코트</p></header>
+    return `<header><h1>${esc(session.title)}</h1><p>${esc(session.date)} · ${teams.length}조</p></header>
       <div class="paper-columns"><section><h2>전체 대진표</h2><p>점수는 왼쪽 조 : 위쪽 조 순서로 적으세요.</p>
       ${matchMatrix(true)}
       <h2>조별 팀원</h2><ul class="paper-roster">${R.sheetRoster(session)}</ul></section>
@@ -274,14 +275,14 @@
   function draw(){
     const games=session.matches,done=games.filter(m=>m.finished).length;
     $('#league-title').textContent=session.title;$('#league-date').textContent=session.date;
-    $('#summary').textContent=session.players.length+'명 · '+session.teams.length+'조 · '+session.courts+'코트　|　'+done+' / '+games.length+'경기 완료';
-    if($('#team-filter').options.length===1){for(const t of session.teams)$('#team-filter').add(new Option(t.name,t.id));for(let i=1;i<=session.courts;i++)$('#court-filter').add(new Option(i,i));}
+    $('#summary').textContent=session.players.length+'명 · '+session.teams.length+'조　|　'+done+' / '+games.length+'경기 완료';
+    if($('#team-filter').options.length===1){for(const t of session.teams)$('#team-filter').add(new Option(t.name,t.id));}
     $('#team-roster').innerHTML=R.sheetRoster(session);
     const matrixFocus = $('#score-matrix').contains(document.activeElement) && document.activeElement.dataset.game;
     $('#score-matrix').innerHTML=matchMatrix();
     if(matrixFocus)$('#score-matrix').querySelector('[data-game="'+CSS.escape(matrixFocus)+'"]')?.focus({preventScroll:true});
     $('#matrix-help').textContent=canScore()?'두 조가 만나는 칸을 눌러 점수를 입력하거나 수정하세요. 왼쪽 조 점수가 먼저 표시됩니다.':'점수는 왼쪽 조, 위쪽 조 순서입니다.';
-    const filtered=games.filter(m=>(!$('#team-filter').value||m.teams.includes($('#team-filter').value))&&(!$('#court-filter').value||m.court===Number($('#court-filter').value)));
+    const filtered=games.filter(m=>!$('#team-filter').value||m.teams.includes($('#team-filter').value));
     $('#order-table').innerHTML=R.sheetOrder(session,filtered,(m,label)=>canScore()?'<button type="button" class="pair-link" data-game="'+esc(m.id)+'" aria-haspopup="dialog">'+label+'</button>':label);
     $('#rank-table').innerHTML='<table><thead><tr><th>순위</th><th>조</th><th>승</th><th>패</th><th>득실</th></tr></thead><tbody>'+R.standings(session).map(r=>'<tr>'+[r.rank,r.name,r.wins,r.losses,r.diff].map(x=>'<td>'+esc(x)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
     $('#actions').hidden=false;$('#close-league').hidden=!hostCode||row.closed;$('#meeting-management').hidden=row.closed;$('#manage-login').hidden=Boolean(hostCode)||!$('#manage-login').hasAttribute('href');$('#cancel-league').hidden=!hostCode||row.closed;$('#league-md').hidden=!row.closed;
@@ -309,10 +310,10 @@
     if(row&&data.revision<row.revision)return;
     session=R.validate(data.session);row=data;draw();$('#connection').textContent=subscribed?'실시간 연결':'재연결 대기';
   }
-  $('#team-filter').onchange=$('#court-filter').onchange=draw;
+  $('#team-filter').onchange=draw;
   main.addEventListener('click',e=>{const b=e.target.closest('[data-game]');if(!b||!canScore())return;
     opener=b;const m=row.session.matches.find(g=>g.id===b.dataset.game);active={id:m.id,version:m.version||0};
-    $('#game-title').textContent=m.slot+'차례 · 코트 '+m.court+' 점수 입력';
+    $('#game-title').textContent=m.slot+'차례 · 점수 입력';
     const sides=b.dataset.left===m.teams[1]?[1,0]:[0,1];
     const score=m.finished?R.replay(session,m).score:null;
     $('#score-inputs').innerHTML=sides.map(i=>{const id=m.teams[i];return '<label><strong>'+esc(team(id).name)+'</strong><small>'+esc(names(team(id)))+'</small><input name="side'+i+'" placeholder="—" type="number" min="0" max="30" inputmode="numeric" required value="'+(score?.[i]??'')+'"></label>';}).join('');
