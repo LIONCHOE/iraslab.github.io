@@ -266,7 +266,7 @@
   function matchMatrix(print=false) {
     const {teams, matches} = session;
     const opponents = teams.slice(1);
-    const matrix = teams.map((left, i) => {
+    const matrix = teams.slice(0,-1).map((left, i) => {
       const cells = opponents.map((right, j) => {
         if (j < i) return '<td class="unused">—</td>';
         const match = matches.find(m => m.teams.includes(left.id) && m.teams.includes(right.id));
