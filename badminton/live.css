@@ -56,3 +56,43 @@
   #host-alias input{min-width:0;width:100%;box-sizing:border-box}
   #host-email{overflow-wrap:anywhere}
 }
+
+.club-heading, main:has(.club-board) { max-width: 960px; margin: auto; padding-inline: clamp(14px, 3vw, 32px); }
+.club-heading h1 { margin: 28px 0 12px; font-size: clamp(24px, 4vw, 34px); }
+.club-nav { display: flex; align-items: stretch; gap: clamp(10px, 3vw, 30px); }
+.club-nav a { display: grid; align-items: center; min-height: 48px; color: #516075; text-decoration: none; font-weight: 650; border-bottom: 3px solid transparent; }
+.club-nav a[aria-current=page] { color: #08664d; border-color: currentColor; }
+.club-board h2 { font-size: clamp(21px, 3vw, 28px); margin: 0; letter-spacing: -.04em; }
+.club-board h3 { margin: 28px 0 8px; }
+.club-note, #records-status, .club-board small { color: #536477; }
+.club-note { margin: 4px 0 20px; }
+.club-filters { display: flex; gap: 3px; width: fit-content; border-radius: 10px; padding: 3px; background: #eff3f2; margin-bottom: 18px; }
+.club-filters button { border: 0; border-radius: 7px; background: transparent; padding: 7px 14px; }
+.club-filters [aria-pressed=true] { background: #fff; color: #08664d; box-shadow: 0 1px 4px #213b3429; }
+#club-ranks table { table-layout: fixed; min-width: 0; }
+#club-ranks th:first-child { width: 12%; } #club-ranks th:nth-child(3) { width: 19%; } #club-ranks th:last-child { width: 21%; }
+#club-ranks :is(th,td):last-child { text-align: right; }
+#club-ranks td { white-space: normal; overflow-wrap: anywhere; }
+.club-tier { border-radius: 5px; padding: 3px 7px; white-space: nowrap; font-size: .82rem; font-weight: 650; }
+.level-1 { background: #def2e9; color: #145c44; } .level-2 { background: #e4edfa; color: #234e7d; } .level-3 { background: #fff0cf; color: #75500f; }
+.club-board summary { cursor: pointer; }
+.club-record, .club-result { display: block; padding: 14px 4px; border-bottom: 1px solid #dce4e4; text-decoration: none; }
+.club-record small, .club-result small { margin-right: 14px; }
+.club-result li { margin: 5px 0; } .club-result li b { margin-left: 16px; font-variant-numeric: tabular-nums; }
+.club-result summary, .club-board summary:focus-visible { outline-offset: 3px; }
+@media screen {
+  .host-locked main > :not(.league-launch) { display: none; }
+  .host-page { --accent: #08664d; background: #fff; }
+  .host-page .host-access { display: block; max-width: 600px; margin-inline: auto; border-color: #d5dfde; }
+  .host-page .primary:hover { background: #074d3b; }
+  .host-page .league-launch { margin-top: 0; }
+  .host-page:not(.host-signed-out) .host-access { max-width: none; }
+  .host-page #host-session { padding: 20px; }
+  .host-page #league-open:disabled { display: none; }
+  body:has(.league-live) .club-heading { display: none; }
+}
+@media (max-width: 500px) {
+  .club-nav { justify-content: space-between; gap: 4px; font-size: .86rem; }
+  #club-ranks :is(td,th) { padding: 11px 4px; }
+}
+@media print { .club-heading { display: none; } }
