@@ -323,17 +323,17 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
 @media(max-width:640px){.site-top.root-brand .iras-logo{width:40px;height:40px}}
 .print-score,#print-identification{display:none}
 @media print{
-  @page{size:A4 landscape;margin:8mm}
+  @page{size:A4 landscape;margin:5mm}
   html,body{margin:0!important;padding:0!important;background:#fff!important;color:#000!important;font-size:9pt}
   header,footer,main>nav,main>.toolbar,#message,dialog,dialog::backdrop{display:none!important}
-  main{width:281mm;max-width:none;margin:0;padding:0}
+  main{width:287mm;max-width:none;margin:0;padding:0}
   .view{display:none!important}
   #matches{display:block!important;margin:0;padding:0}
   #matches> :not(#match-list):not(#print-identification),.match-panel>h3,.match-panel>.note,.match-panel caption{display:none!important}
   #print-identification{display:block;margin:0 0 3mm;color:#000}
   #print-meeting-name{display:block;text-align:center;font-size:15pt;line-height:1.25;overflow-wrap:anywhere;font-weight:700}
   #print-meeting-date{display:block;text-align:right;margin-top:1mm;white-space:nowrap;font-size:9pt;line-height:1.3}
-  .match-layout{display:grid!important;grid-template-columns:100mm 175mm;gap:6mm;align-items:start;width:281mm;margin:0;padding:0;break-inside:avoid}
+  .match-layout{display:grid!important;grid-template-columns:100mm 175mm;gap:6mm;align-items:start;width:100%;margin:0;padding:0;break-inside:avoid}
   .match-panel{margin:0;padding:0;min-width:0;break-before:auto;break-inside:avoid}
   .league-scroll{overflow:visible;border:0;border-radius:0;margin:0}
   .league-matrix,.schedule-table{width:100%;height:166mm;min-width:0;table-layout:fixed;border-collapse:collapse}
@@ -379,7 +379,7 @@ footer{font-size:.85rem;color:var(--muted);margin-top:32px;padding-top:24px;bord
   .toolbar .grow{flex-basis:100%;width:100%}
   dialog :is(input,select){font-size:16px}
 }
-</style><link rel="stylesheet" href="live.css?v=20261125-11"></head>
+</style><link rel="stylesheet" href="live.css?v=20261125-12"></head>
 <body>
 <header>
 <div class="site-top"><div class="brand">
@@ -1112,4 +1112,4 @@ window.IRASBadminton = createBadmintonRules();
   }).catch(()=>{});
   Promise.allSettled([fetch('players.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('선수 명단을 불러오지 못했습니다.');const data=R.roster(await r.json());data.players.forEach(p=>publishedTiers.set(p.id,p.tier));renderSetup();if(!roster.length&&!state){roster=data.players;selected=new Set(roster.filter(p=>!defaultAbsent.has(p.id)).map(p=>p.id));persist();render();}}).catch(e=>{message(e.message,true);}).then(()=>loadMembers(false)),(recordIndexReady=fetch('records.json',{cache:'no-store'}).then(async r=>{if(!r.ok)throw Error('지난 기록 목록을 불러오지 못했습니다.');published=R.index(await r.json());$('#history-list').innerHTML=published.sessions.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(s=>'<div class="record"><div><strong>'+esc(s.title)+'</strong><small>'+esc(s.date)+'</small></div><button data-record="'+s.id+'">기록 불러오기</button></div><div data-history-rank="'+s.id+'"></div>').join('')||'<p class="empty">아직 게시된 모임이 없습니다. 첫 리그의 MD를 관리자에서 등록하세요.</p>';}).catch(e=>{recordIndexError=e.message;message(e.message,true);}))]).then(results=>{refreshIndividual();const errors=results.filter(r=>r.status==='rejected');if(errors.length)message(errors.map(r=>r.reason.message).join(' ')+' 로컬 경기와 MD는 계속 사용할 수 있습니다.',true);});
 })();
-</script><script src="live-config.js"></script><script src="vendor/supabase-2.119.2.js"></script><script src="vendor/qrcode-2.0.4.js"></script><script src="live.js?v=20261125-11"></script></body></html>
+</script><script src="live-config.js"></script><script src="vendor/supabase-2.119.2.js"></script><script src="vendor/qrcode-2.0.4.js"></script><script src="live.js?v=20261125-12"></script></body></html>
