@@ -73,7 +73,8 @@
   #host-email{overflow-wrap:anywhere}
 }
 
-.club-heading, main:has(.club-board) { max-width: 960px; margin: auto; padding-inline: clamp(14px, 3vw, 32px); }
+:root { --club-width: 960px; --club-gutter: clamp(14px, 3vw, 32px); }
+.club-heading, main:has(.club-board) { max-width: var(--club-width); margin: auto; padding-inline: var(--club-gutter); }
 .club-heading h1 { margin: 28px 0 12px; font-size: clamp(24px, 4vw, 34px); }
 .club-nav { display: flex; align-items: stretch; gap: clamp(10px, 3vw, 30px); }
 .club-nav a { display: grid; align-items: center; min-height: 48px; color: #516075; text-decoration: none; font-weight: 650; border-bottom: 3px solid transparent; }
@@ -99,10 +100,10 @@
 @media screen {
   .host-locked main > :not(.league-launch) { display: none; }
   .host-page { --accent: #08664d; background: #fff; }
-  .host-page .host-access { display: block; max-width: 600px; margin-inline: auto; border-color: #d5dfde; }
+  .host-page main { max-width: var(--club-width); padding-inline: var(--club-gutter); }
+  .host-page .host-access { display: block; border-color: #d5dfde; }
   .host-page .primary:hover { background: #074d3b; }
   .host-page .league-launch { margin-top: 0; }
-  .host-page:not(.host-signed-out) .host-access { max-width: none; }
   .host-page #host-session { padding: 20px; }
   .host-page #league-open:disabled { display: none; }
   body:has(.league-live) .club-heading { display: none; }
