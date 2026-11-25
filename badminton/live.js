@@ -39,48 +39,110 @@
         </div>
         <form id="league-login">
           <h2>개설자 로그인</h2>
-          <label>이메일<input name="email" type="email" required autocomplete="username"></label>
+          <label>아이디 또는 이메일<input name="identifier" type="text" required autocomplete="username" autocapitalize="none" spellcheck="false"></label>
           <label>비밀번호<input name="password" type="password" required autocomplete="current-password"></label>
           <button class="primary" type="submit">로그인</button>
         </form>
         <div id="host-session" hidden>
           <div class="host-account"><span id="host-email"></span><button type="button" id="host-logout">로그아웃</button></div>
+          <details id="host-alias" hidden>
+            <summary>로그인 아이디 등록</summary>
+            <form id="alias-form">
+              <label for="alias-input">사용할 아이디</label>
+              <small id="alias-hint">영문자로 시작하는 3~24자. 영문, 숫자, 밑줄을 사용할 수 있습니다.</small>
+              <input id="alias-input" name="alias" required minlength="3" maxlength="24" pattern="[A-Za-z][A-Za-z0-9_]{2,23}" aria-describedby="alias-hint" autocomplete="off" autocapitalize="none" spellcheck="false">
+              <button type="submit">아이디 등록</button>
+            </form>
+          </details>
           <h2 id="host-phase"></h2><p id="host-next"></p>
           <button type="button" id="host-prepare">팀 편성하기</button>
           <button type="button" id="league-open" class="primary">편성한 모임 열기</button>
         </div>
       </div>`);
     const form=$('#league-login'),openButton=$('#league-open');
-    let hostUser=null, opening=false;
+    let hostUser=null, opening=false, accountId=null, profileState='pending';
     function updateDraft(){
       const draft=window.leagueDraft?.();
       const ready=draft && !draft.matches.some(m=>m.lineups||m.finished);
       openButton.disabled=!hostUser||!ready||opening;
-      $('#host-prepare').hidden=!!ready;
+      $('#host-prepare').hidden=!hostUser||!!ready;
+      if(accountId && !hostUser){
+        $('#host-phase').textContent=profileState==='pending'?'권한 확인 중':'개설 권한을 확인하세요';
+        $('#host-next').textContent=profileState==='pending'?'':profileState==='denied'?'등록된 개설자 계정으로 로그인해 주세요.':'페이지를 새로고침하여 다시 시도해 주세요.';
+        return;
+      }
       $('#host-phase').textContent=ready?'모임을 열 준비가 됐습니다':'경기 준비';
       $('#host-next').textContent=ready?draft.title+' · '+draft.teams.length+'조 · '+draft.matches.length+'경기':'참석자를 선택하고 팀을 편성한 뒤 대진을 만들어 주세요.';
     }
-    function showAccount(user){
-      hostUser=user?.email&&!user.is_anonymous?user:null;
-      form.hidden=!!hostUser;
-      $('#host-session').hidden=!hostUser;
-      document.body.classList.toggle('host-signed-out',!hostUser);
-      $('#host-email').textContent=hostUser?'로그인 중 · '+hostUser.email:'';
+    let profileVersion=0;
+    async function showAccount(user){
+      const id=user?.email&&!user.is_anonymous?user.id:null;
+      if(id && id===accountId)return;
+      accountId=id;
+      const version=++profileVersion;
+      hostUser=null;profileState='pending';
+      form.hidden=!!id;
+      $('#host-session').hidden=!id;
+      document.body.classList.toggle('host-signed-out',!id);
+      $('#host-email').textContent=id?user.email:'';
+      const panel=$('#host-alias');
+      panel.hidden=true;panel.open=false;$('#alias-form').reset();
+      updateDraft();
+      if(!id)return;
+      const {data,error}=await client.rpc('league_organizer_profile');
+      if(version!==profileVersion)return;
+      // During rollout the original league_open RPC still enforces the organizer list.
+      if(error?.code==='PGRST202'){
+        hostUser=user;
+      }else if(error || !data){
+        profileState=error?'error':'denied';
+      }else{
+        hostUser=user;
+        panel.hidden=!!data.alias;
+        if(data.alias)$('#host-email').textContent='로그인 아이디 · '+data.alias;
+      }
       updateDraft();
     }
     if(!client){form.querySelector('button').disabled=true;$('#league-message').textContent='공유 모임을 열려면 Supabase 프로젝트 연결이 필요합니다.';return;}
-    client.auth.onAuthStateChange((_event,session)=>showAccount(session?.user));
+    // Release the Auth client lock before making an authenticated RPC request.
+    client.auth.onAuthStateChange((_event,session)=>{setTimeout(action(()=>showAccount(session?.user)),0);});
     await action(async()=>showAccount((await checked(client.auth.getSession())).session?.user))();
     form.onsubmit=action(async e=>{
-      const {email,password}=e.target.elements;
+      const {identifier,password}=e.target.elements;
       const submit=form.querySelector('[type=submit]');
       submit.disabled=true;submit.textContent='로그인 중…';
       try{
-        const {user}=await checked(client.auth.signInWithPassword({email:email.value.trim(),password:password.value}));
-        password.value='';$('#league-message').textContent='';showAccount(user);
+        const login=identifier.value.trim();
+        let result;
+        if(login.includes('@')){
+          result=await checked(client.auth.signInWithPassword({email:login,password:password.value}));
+        }else{
+          const {data,error}=await client.functions.invoke('organizer-login',{body:{alias:login,password:password.value}});
+          if(error){
+            const status=error.context?.status;
+            if(status===429)throw Error('시도가 많습니다. 잠시 뒤 다시 로그인해 주세요.');
+            if(status===401)throw Error('아이디와 비밀번호를 확인하세요.');
+            throw Error('아이디 로그인에 연결할 수 없습니다. 기존 이메일로 로그인해 주세요.');
+          }
+          result=await checked(client.auth.setSession(data));
+        }
+        password.value='';$('#league-message').textContent='';await showAccount(result.user);
       }finally{submit.disabled=false;submit.textContent='로그인';}
     });
-    $('#host-logout').onclick=action(async()=>{await checked(client.auth.signOut({scope:'local'}));showAccount(null);$('#league-message').textContent='';form.elements.email.focus();});
+    $('#alias-form').onsubmit=action(async e=>{
+      const input=e.target.elements.alias, submit=e.target.querySelector('button');
+      const version=profileVersion;
+      submit.disabled=true;
+      try{
+        const alias=await rpc('register_alias',{requested_alias:input.value.trim()});
+        if(version!==profileVersion)return;
+        $('#host-alias').hidden=true;
+        $('#host-email').textContent='로그인 아이디 · '+alias;
+        $('#league-message').textContent='아이디를 등록했습니다. 다음부터 기존 비밀번호와 함께 사용하세요.';
+        $('#host-logout').focus();
+      }finally{submit.disabled=false;}
+    });
+    $('#host-logout').onclick=action(async()=>{await checked(client.auth.signOut({scope:'local'}));await showAccount(null);$('#league-message').textContent='';form.elements.identifier.focus();});
     $('#host-prepare').onclick=()=>{$('[data-tab="setup"]').click();$('#setup').scrollIntoView({block:'start'});};
     new MutationObserver(updateDraft).observe($('#match-list'),{childList:true});
     openButton.onclick=action(async()=>{

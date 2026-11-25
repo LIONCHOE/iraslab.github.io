@@ -47,3 +47,12 @@
   .host-cover p{margin:0;max-width:18em}.host-court{width:40%;opacity:.6}
   .league-live #host-share{flex-direction:column;text-align:center;gap:10px;padding:16px}
 }
+@media screen{
+  #host-alias{border-block:1px solid #ded6da;padding:12px 0}
+  #host-alias summary{color:#75163e;font-weight:650;cursor:pointer}
+  #host-alias form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin:12px 0 2px}
+  #host-alias label,#host-alias small{grid-column:1/-1}
+  #host-alias small{color:#56515a;line-height:1.5}
+  #host-alias input{min-width:0;width:100%;box-sizing:border-box}
+  #host-email{overflow-wrap:anywhere}
+}
